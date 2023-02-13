@@ -200,89 +200,81 @@ end
 %% Visualize data going in Kalman
 plot_2_2(IMU_accel.flight,IMU_rate.flight,V_XYZ.flight,IMU_angle.flight)
 
+%% Kalman Filter Object Oriented (but sloooooow)
+epsi = 1E-2;
+t = airspeed_pitot.flight.time;
+dt = mean(t(2:end)-t(1:end-1));
+
+wind_var = [1 1 1]*7.8E-8;
+Q = diag([IMU_accel.var,wind_var]); %process noise
+R = diag([V_XYZ.var 1E-6 1E-6]); %measurement noise
+P_0 = diag([1 1 1 wind_var]); %covariance
+x_0 =  [0, 0, 0,  0,  0,   0]';
+f_fh = str2func('f_2');
+g_fh = str2func('g_2');
+
+u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data]';
+z_list = [V_XYZ.flight.data alpha.flight.data beta.flight.data]'; %measurement
+
+filter = EKF(epsi,dt,Q,R,P_0,x_0,f_fh,g_fh);
+
+for k=1:length(t)
+filter = update_EKF(filter,u_list(:,k),z_list(:,k));
+end
+
+kalman_res{i}.error = error_quantification(filter.x_list(1,:)',airspeed_pitot.flight.data);
+kalman_res{i}.t = t;
+kalman_res{i}.x = filter.x_list;
+kalman_res{i}.u = filter.u_list;
+kalman_res{i}.y = filter.y_list;
+kalman_res{i}.z = filter.z_list;
+kalman_res{i}.P = filter.P;
+kalman_res{i}.Q = filter.Q;
+kalman_res{i}.R = filter.R;
+kalman_res{i}.K = filter.K;
+
 %% Kalman Filter Without euler angle estimation
-k_wind_var =  [7.8E-8, 1.43E-6]; %1.43E-6 %7.8E-8; logspace(-9,-3,20);
-kalman_res = {};
-
-for i=1:length(k_wind_var)
-
 % 𝑢, 𝑣, 𝑤 = Velocity in the Body Frame
 % 𝜇𝑥, 𝜇𝑦, 𝜇𝑧 = Wind Velocity in Earth Fixed Frame
 % 𝑝, 𝑞, 𝑟 = Angular Rates Measured by Gyroscopes
 % 𝑎x, 𝑎𝑦, 𝑎𝑧 = Accelerations Measured by Accelerometers
 % 𝑉𝑥 , 𝑉𝑦, 𝑉𝑧 = Velocity in Earth Fixed Frame
+% alpha, beta = angle of attack and sideslip angle
 
-
-%x = [u v w phi theta psi mu_x mu_y mu_z];
-%u = [a_x a_y a_z p q r];
+%x = [u v w mu_x mu_y mu_z];
+%u = [a_x a_y a_z p q r phi theta psi];
 %y = [V_x V_y V_z alpha beta];
 
 %w_w = [0;0;0]; %noise angular rate
 %w_a = [0;0;0]; %noise accelerations
 %w_mu =[0;0;0]; %noise wind
 
-%x = [u v w mu_x mu_y mu_z];
-%u = [a_x a_y a_z p q r phi theta psi];
-%y = [V_x V_y V_z alpha beta];
-
-clear x_list u_list y_list z_list P K
-
-%x = [u    v  w  mu_x mu_y mu_z]
-x_0 =  [0, 0, 0,  0,  0,   0]';
-
-%u = [a_x a_y a_z     p  q r phi theta psi];
-u_0 =  [0   0   -9.81   0  0 0 0 0 0]';
-
-%y = [V_x V_y V_z alpha beta];
-y_0 = [0,0,0,0,0]';
+epsi = 1E-2;
 
 t = airspeed_pitot.flight.time;
 dt = mean(t(2:end)-t(1:end-1));
 
-wind_var = [1 1 1]*k_wind_var(i);
-Q = diag([IMU_accel.var,wind_var]); %process noise
-R = diag([V_XYZ.var 1E-6 1E-6]); %measurement noise
-P = {diag([1 1 1 wind_var])}; %covariance
-K = {};
+f_fh = str2func('f_2');
+g_fh = str2func('g_2');
 
-x_list(:,1) = [0 0 0 0 0 0]';
+x_0 = [0 0 0 0 0 0]';
 u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data]';
-y_list = zeros(length(y_0),length(t));
 z_list = [V_XYZ.flight.data alpha.flight.data beta.flight.data]'; %measurement
 
-epsi = 1E-2;
 
-for k=1:length(t)
-    x=x_list(:,k);
-    u=u_list(:,k);
-    z=z_list(:,k);
+k_wind_var =  [7.8E-8]; %1.43E-6 %7.8E-8; logspace(-9,-3,20);
+kalman_res = cell(1,length(k_wind_var));
+% Loop for all wind variances
+for i=1:length(k_wind_var)
+    clear Q P R
+    
+    wind_var = [1 1 1]*k_wind_var(i);
+    Q = diag([IMU_accel.var,wind_var]); %process noise
+    P_0 = diag([1 1 1 wind_var]); %covariance
+    R = diag([V_XYZ.var 1E-6 1E-6]); %measurement noise
 
-    F_val = F_2(x,u,epsi);
-    G_val = G_2(x,u,epsi);
-
-    % Prediction
-    x_pred = x + dt*f_2(x,u);   
-    P_pred = F_val*P{k}*F_val'+Q;
-
-    % Update
-    y_list(:,k+1) = z-g_2(x,u);
-
-    %Kalman gain
-    K{k} = P_pred*G_val'*inv(G_val*P_pred*G_val'+R);
-
-    x_list(:,k+1) = x_pred+K{k}*y_list(:,k+1);
-    P{k+1} = (eye(length(x_0))-K{k}*G_val)*P_pred;
-
-end
-kalman_res{i}.error = error_quantification(x_list(1,1:end-1)',airspeed_pitot.flight.data);
-kalman_res{i}.t = t;
-kalman_res{i}.x = x_list;
-kalman_res{i}.u = u_list;
-kalman_res{i}.z = z_list;
-kalman_res{i}.P = P;
-kalman_res{i}.Q = Q;
-kalman_res{i}.R = R;
-kalman_res{i}.K = K;
+    kalman_res{i} = run_EKF(epsi,t,Q,R,P_0,x_0,u_list,z_list,f_fh,g_fh);
+    kalman_res{i}.error = error_quantification(kalman_res{i}.x(1,:)',airspeed_pitot.flight.data);
 
 end
 %% Analysis of Results
@@ -303,7 +295,7 @@ figure
 ax1=subplot(3,1,1);
 plot(airspeed_estimation.time,airspeed_estimation.data)
 hold on
-plot(kalman_res{select}.t,kalman_res{select}.x(1,1:end-1));
+plot(kalman_res{select}.t,kalman_res{select}.x(1,:));
 plot(airspeed_pitot.flight.time,airspeed_pitot.flight.data)
 title('Airspeed Estimation Kalman')
 xlabel('Time [s]')
@@ -312,7 +304,7 @@ legend('Estimation Knowing wind','Kalman Estimation','Measured Airspeed')
 grid on
 
 ax2 = subplot(3,1,2);
-plot(kalman_res{select}.t,kalman_res{select}.x([4:6],1:end-1));
+plot(kalman_res{select}.t,kalman_res{select}.x([4:6],:));
 hold on
 plot(wind.raw.time,ones(length(wind.raw.time),1)*wind.vect(:,[1:2]),'--')
 %plot(wind.raw.time,wind.raw.data(:,[1:2]),'--')
@@ -324,7 +316,7 @@ legend('Kalman N','Kalman E','Kalman D','Mean Real N','Mean Real E')
 grid on
 
 ax3 = subplot(3,1,3);
-plot(kalman_res{select}.t,kalman_res{select}.x([1:3],1:end-1));
+plot(kalman_res{select}.t,kalman_res{select}.x([1:3],:));
 title('Velocity Body Axis')
 xlabel('Time [s]')
 ylabel('Speed [m/s]')
