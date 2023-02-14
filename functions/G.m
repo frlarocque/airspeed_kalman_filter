@@ -1,4 +1,12 @@
 function G = G(g_fh,x,u,epsi)
+%G Calculates output jacobian
+%
+% Inputs:
+%           -g_fh: function handle to point to output function
+%           -x: states
+%           -u: inputs
+%           -epsi: epsilon to perform numerical derivative
+
 y = g_fh(x,u);
 G = zeros(length(y),length(x));
 for i=1:length(x)

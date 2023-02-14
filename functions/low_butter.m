@@ -1,18 +1,16 @@
 function [arr] = low_butter(arr,filter_freq,sf,debug,order)
 %HIGH_BUTTER Apply a Low pass butter filter to eliminate high frequency
 %noise
-%ff = [0.1,0.5,1,2,3,4];
-%order = 6;
-[b,a] = butter(order,filter_freq/(sf/2),'low')  ;
+%
+% Inputs:
+%           -arr: signal
+%           -filter_freq: filter low pass frequency [Hz]
+%           -sf: sampling frequency [Hz]
+%           -order: order of filter
 
-% [b1,a1] = butter(order,ff(1)/(sf/2),'low')  ;
-% [b2,a2] = butter(order,ff(2)/(sf/2),'low')  ;
-% [b3,a3] = butter(order,ff(3)/(sf/2),'low')  ;
-% [b4,a4] = butter(order,ff(4)/(sf/2),'low')  ;
-% [b5,a5] = butter(order,ff(5)/(sf/2),'low')  ;
-% [b6,a6] = butter(order,ff(6)/(sf/2),'low')  ;
+[b,a] = butter(order,filter_freq/(sf/2),'low');
 
-arr   = filter(b,a,arr)              ;
+arr = filter(b,a,arr);
 if debug==1
     figure (200)
     clf

@@ -1,4 +1,12 @@
 function F = F(f_fh,x,u,epsi)
+%F Calculates states jacobian
+%
+% Inputs:
+%           -f_fh: function handle to point to output function
+%           -x: states
+%           -u: inputs
+%           -epsi: epsilon to perform numerical derivative
+
 F = zeros(length(x),length(x));
 for i=1:length(x)
     

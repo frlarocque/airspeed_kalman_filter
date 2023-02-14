@@ -1,13 +1,20 @@
-function [outputArg1,outputArg2] = circle_wind_estimation(V_XYZ,cut_condition)
-%UNTITLED4 Summary of this function goes here
-%   Assumes constant TAS to work
+function [wind] = circle_wind_estimation(Vg_NED,cut_condition)
+%CIRCLE_WIND_ESTIMATION Estimates wind using ground velocity when traveling
+%at constant TAS
+% 
+% Based on : A  no-flow-sensor  Wind Estimation Algorithm for Unmanned Aerial Systems
+% Assumes constant TAS to work
+%
+% Inputs:
+%           -Vg_NED: struct with ground velocity in NED [m/s]
+%           -cut_condition: cut condition
 
 if nargin==6
     cut_condition = [0 0];
 end
 
 cut_condition = [400 500];
-V_XYZ_cut.data = V_XYZ.data(V_XYZ.time<cut_condition(2)&V_XYZ.time>cut_condition(1),:);
+V_XYZ_cut.data = Vg_NED.data(Vg_NED.time<cut_condition(2)&Vg_NED.time>cut_condition(1),:);
 
 x = V_XYZ_cut.data(:,1);
 y = V_XYZ_cut.data(:,2);

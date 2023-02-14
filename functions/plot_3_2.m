@@ -1,6 +1,16 @@
-function plot_3_2(IMU_accel,airspeed_pitot,IMU_rate,V_XYZ,IMU_angle,position_NED,cut_condition)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+function plot_3_2(IMU_accel,airspeed_pitot,IMU_rate,Vg_NED,IMU_angle,position_NED,cut_condition)
+%PLOT_3_2 Plots main states of the vehicle in a 3x2 configuration
+%
+% Inputs:
+%           -IMU_accel: struct with accelerations in body frame [m/s^2]
+%           -airspeed_pitot: struct with pitot airspeed (u_b) [m/s]
+%           -IMU_rate: struct with angular rates in body frame (p,q,r) [rad/s]
+%           -Vg_NED: struct with ground velocity in NED frame [m/s]
+%           -IMU_angle: struct with euleur angles [rad]
+%           -position_NED: struct with position in NED frame [m]
+%           -cut_condition: matrix with engine stop and start [s]
+
+% Support case where no cut_condition is provided
 if nargin==6
     cut_condition = [0 0];
 end
@@ -49,9 +59,9 @@ grid on
 
 % Velocity
 ax4 = subplot(3,2,4);
-plot(V_XYZ.time,V_XYZ.data);
+plot(Vg_NED.time,Vg_NED.data);
 % Plot Motor ON
-if cut_condition(1)>V_XYZ.time(1) && cut_condition(2)<V_XYZ.time(end)
+if cut_condition(1)>Vg_NED.time(1) && cut_condition(2)<Vg_NED.time(end)
     hold on
     plot([cut_condition; cut_condition], repmat(ylim',1,length(cut_condition)), '--r');
 end

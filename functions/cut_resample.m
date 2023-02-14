@@ -1,6 +1,11 @@
 function [new_data,new_time] = cut_resample(data,initial_time,resample_time,conditions)
-%CUT_RESAMPLE Summary of this function goes here
-%   Detailed explanation goes here
+%CUT_RESAMPLE Cuts a signal and resamples it
+%
+% Inputs:
+%           -data: data to calculate variance
+%           -initial_time: time for data [s]
+%           -resample_time: time to resample [s]
+%           -conditions: cut conditions
 
 cut = initial_time<conditions(2)&initial_time>conditions(1);
 cut2 = resample_time<conditions(2)&resample_time>conditions(1);

@@ -1,6 +1,8 @@
 function [error] = error_quantification(obtained,desired)
-%UNTITLED Summary of this function goes here
-%   Detailed explanation goes here
+%ERROR_QUANTIFICATION Calculates different types of error between two
+%signals
+%
+% Calculates relative error, absolute error, RMS error
 
 error.rel_error = (obtained-desired)./desired;
 error.rel_error(isinf(error.rel_error))=0;
