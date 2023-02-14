@@ -1,4 +1,4 @@
-function [wind,airspeed_estimation] = wind_estimation(Vg_NED,IMU_angle,airspeed_pitot,alpha,beta)
+function [wind,airspeed_estimation] = wind_estimation(Vg_NED,IMU_angle,airspeed_pitot,alpha,beta,graph)
 %WIND_ESTIMATION Estimates wind using pitot tube airspeed and GPS airspeed
 %
 % Inputs:
@@ -7,6 +7,7 @@ function [wind,airspeed_estimation] = wind_estimation(Vg_NED,IMU_angle,airspeed_
 %           -airspeed_pitot: struct of pitot airspeed [m/s]
 %           -alpha: struct of angle of attack [rad]
 %           -beta: struct of sideslip angle [rad]
+%           -graph: 1 to plot graph of wind speed
 %
 % Outputs:
 %           -wind: struct with wind information [m/s, rad]
@@ -37,4 +38,19 @@ wind.direction = atan2(wind.vect(2),wind.vect(1));
 v_g = sqrt(Vg_NED.data(:,1).^2+Vg_NED.data(:,2).^2);
 airspeed_estimation.data = sqrt(wind.norm.^2+v_g.^2-2.*v_g.*wind.norm.*cos(wind.direction-IMU_angle.data(:,3)));
 airspeed_estimation.time = Vg_NED.time;
+
+if graph
+    fprintf('Estimated wind (using pitot) is %0.2f m/s going %0.2f deg\n',wind.norm,rad2deg(wind.direction))
+
+    figure
+    plot(wind.raw.time,wind.raw.data(:,[1 2]))
+    hold on
+    plot(wind.raw.time,ones(length(wind.raw.time),1)*wind.vect(:,[1:2]))
+    title('Wind Estimation')
+    xlabel('Time [s]')
+    ylabel('Wind Component [m/s]')
+    legend('N','E','Mean N','Mean E')
+    grid on
+end
+
 end
