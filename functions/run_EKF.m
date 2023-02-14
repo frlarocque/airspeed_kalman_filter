@@ -1,5 +1,5 @@
 function [EKF_res] = run_EKF(epsi,t,Q,R,P_0,x_0,u_list,z_list,f_fh,g_fh)
-%UNTITLED6 Summary of this function goes here
+%RUN_EKF Run an EKF with existing data
 %   Detailed explanation goes here
 
 dt = mean(t(2:end)-t(1:end-1));
@@ -47,8 +47,9 @@ EKF_res.x = x_list;
 EKF_res.y = y_list;
 EKF_res.u = u_list;
 EKF_res.z = z_list;
-EKF_res.P = P_last;
+EKF_res.P = P;
 EKF_res.Q = Q;
 EKF_res.R = R;
 EKF_res.K = K;
+
 end

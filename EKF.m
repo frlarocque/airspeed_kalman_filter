@@ -1,6 +1,4 @@
-
-
-classdef EKF
+classdef EKF < handle
 
     properties
         epsi
@@ -18,7 +16,6 @@ classdef EKF
         f_fh
         g_fh
     end
-
 
     methods
         function obj = EKF(epsi,dt,Q,R,P_0,x_0,f_fh,g_fh)
@@ -39,7 +36,7 @@ classdef EKF
             obj.y_list = [];
         end
 
-        function obj = update_EKF(obj,u,z)
+        function update_EKF(obj,u,z)
             if isempty(obj.x_list)
                 x = obj.x_0;
                 k=1;
@@ -102,3 +99,36 @@ classdef EKF
 
 
 end
+
+
+%% To run EKF object oriented (really slow)
+% epsi = 1E-2;
+% t = airspeed_pitot.flight.time;
+% dt = mean(t(2:end)-t(1:end-1));
+% R = diag([Vg_NED.var IMU_angle.var(2) 1E-6]); %measurement noise
+% x_0 =  [0, 0, 0,  0,  0,   0]';
+% f_fh = str2func('f_2'); %with beta and alpha, without euler angle estimation
+% g_fh = str2func('g_2'); %with beta and alpha, without euler angle estimation
+% u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data]';
+% z_list = [Vg_NED.flight.data alpha.flight.data beta.flight.data]'; %measurement
+% 
+% cov_list = 1E-8;%logspace(-9,-5,15);
+% kalman_res = cell(size(cov_list));
+% %kalman_res = repmat({struct([])}, size(cov_list,1), size(cov_list,2));
+% 
+% for i=1:length(cov_list)
+%     clear filter
+%     wind_var = [1 1 1]*cov_list(i);
+%     Q = diag([IMU_accel.var,wind_var]); %process noise
+%     P_0 = diag([1 1 1 wind_var]); %covariance
+%     
+%     filter = EKF(epsi,dt,Q,R,P_0,x_0,f_fh,g_fh);
+% 
+%     for k=1:length(t)
+%     update_EKF(filter,u_list(:,k),z_list(:,k));
+%     end
+%     
+%     for fn = fieldnames(filter)'
+%         kalman_res{i}.(erase(fn{1},"_list")) = filter.(fn{1});
+%     end
+% end
