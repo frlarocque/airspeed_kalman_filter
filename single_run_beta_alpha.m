@@ -49,7 +49,7 @@ u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data]';
 z_list = [Vg_NED.flight.data alpha.flight.data beta.flight.data]'; %measurement
 
 
-cov_list =  1.43E-6; %7.8E-8; ;
+cov_list =  7.8E-7;%1.43E-6; %7.8E-8; ;
 kalman_res = {};
 
     

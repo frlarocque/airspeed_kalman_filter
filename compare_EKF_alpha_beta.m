@@ -12,7 +12,7 @@ log_path = '/home/frederic/Documents/thesis/tools/kalman_airspeed_estimation/mat
 file_list = dir(fullfile(log_path, 'OUTDOOR*.mat'));
 
 %[file,path] = uigetfile({'*.mat'},'Select a file');
-for i=1:length(file_list)
+for i=1:1%length(file_list)
 clearvars -except file_list i
 file = file_list(i).name;
 path = file_list(i).folder;
@@ -65,7 +65,7 @@ kalman_res_alpha_beta.error = error_quantification(kalman_res_alpha_beta.x(1,:)'
 kalman_res_alpha_beta.wind.vect = mean(kalman_res_alpha_beta.x([4:6],:)');
 kalman_res_alpha_beta.wind.direction = atan2(kalman_res_alpha_beta.wind.vect(2),kalman_res_alpha_beta.wind.vect(1));
 
-%plot_EKF_result(kalman_res_alpha_beta,airspeed_estimation,airspeed_pitot,wind)
+plot_EKF_result(kalman_res_alpha_beta,airspeed_estimation,airspeed_pitot,wind)
 
 %% EKF without beta
 %z = [V_x V_y V_z alpha];
@@ -80,6 +80,8 @@ kalman_res_alpha = run_EKF(epsi,t,Q,R,P_0,x_0,u_list,z_list,f_fh,g_fh);
 kalman_res_alpha.error = error_quantification(kalman_res_alpha.x(1,:)',airspeed_pitot.flight.data);
 kalman_res_alpha.wind.vect = mean(kalman_res_alpha.x([4:6],:)');
 kalman_res_alpha.wind.direction = atan2(kalman_res_alpha.wind.vect(2),kalman_res_alpha.wind.vect(1));
+
+plot_EKF_result(kalman_res_alpha,airspeed_estimation,airspeed_pitot,wind)
 %% EKF without alpha nor beta
 %z = [V_x V_y V_z];
 
@@ -93,6 +95,8 @@ kalman_res = run_EKF(epsi,t,Q,R,P_0,x_0,u_list,z_list,f_fh,g_fh);
 kalman_res.error = error_quantification(kalman_res.x(1,:)',airspeed_pitot.flight.data);
 kalman_res.wind.vect = mean(kalman_res.x([4:6],:)');
 kalman_res.wind.direction = atan2(kalman_res.wind.vect(2),kalman_res.wind.vect(1));
+
+plot_EKF_result(kalman_res,airspeed_estimation,airspeed_pitot,wind)
 
 %% Print results
 fprintf('----------------------------------------------\n')
