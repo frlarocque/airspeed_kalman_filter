@@ -37,12 +37,12 @@ psi_v = sin(PSI).*sqrt(U.^2+V.^2);
 % Plot figure
 scale = 0.5;
 figure('name','Trajectory')
-p1 = plot(position_NED.data(:,1),position_NED.data(:,2),'--r');
+p1 = plot(position_NED.data(:,2),position_NED.data(:,1),'--r');
 hold on
-xlabel('x position [m]')
-ylabel('y position [m]')
-q1 = quiver(X,Y,U,V,0.5,'b','linewidth',2);
-q2 = quiver(X,Y,psi_u,psi_v,0.5,'c','linewidth',2);
+xlabel('E position [m]')
+ylabel('N position [m]')
+q1 = quiver(Y,X,V,U,0.5,'b','linewidth',2);
+q2 = quiver(Y,X,psi_v,psi_u,0.5,'c','linewidth',2);
 axis('equal')
 legend([p1,q1,q2],{'Trajectory','Ground Speed','Orientation'})
 

@@ -15,6 +15,6 @@ error.error_RMS = sqrt(mean(error.error.^2));
 error.error_mean = mean(error.error);
 error.error_max = max(error.error);
 error.error_min = min(error.error);
-error.error_var = var(error.error);
+error.std_dev = std(error.error);
 
 end

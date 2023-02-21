@@ -1,4 +1,4 @@
-function g = g(state,input)
+function g = g(state,input,meas_noise)
 %G Output function of Kalman filter with Euler Angles estimation 
 %
 % x = [u v w phi theta psi mu_x mu_y mu_z];
@@ -6,6 +6,13 @@ function g = g(state,input)
 
 u=state(1);v=state(2);w=state(3);phi=state(4);theta=state(5);psi=state(6);mu_x=state(7);mu_y=state(8);mu_z=state(9);
 a_x=input(1);a_y=input(2);a_z=input(3);p=input(4);q=input(5);r=input(6);
+
+if nargin==3
+    v_noise = meas_noise; %[Vx Vy Vz alpha beta]
+else
+    v_noise = zeros(5,1);
+end
+
 % V_x V_y V_z
 speed = DCM(phi,theta,psi)*[u;v;w]+[mu_x;mu_y;mu_z];
 
@@ -13,6 +20,6 @@ speed = DCM(phi,theta,psi)*[u;v;w]+[mu_x;mu_y;mu_z];
 alpha = atan2(w,u);
 beta = asin(v/sqrt(u.^2+v.^2+w.^2));
 
-g = [speed; alpha;beta];
+g = [speed; alpha;beta]+v_noise;
 
 end
