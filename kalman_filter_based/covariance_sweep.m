@@ -4,7 +4,7 @@ close all
 clc
 
 % Add all paths
-addpath('functions/');
+addpath('/home/frederic/Documents/thesis/tools/airspeed_estimation/functions/');
 
 %% Load single filedata
 [file,path] = uigetfile({'*.mat'},'Select a file');
@@ -54,41 +54,49 @@ kalman_res = cell(1,length(cov_list));
 
 % Loop for all wind variances
 for i=1:length(cov_list)
+    fprintf('RUNNING %2.2e\n',cov_list(i))
     clear Q P_0 R
     
     wind_var = [1 1 1]*cov_list(i);
-    Q = diag([IMU_accel.var,wind_var]); %process noise
+    Q = diag([IMU_accel.var,IMU_rate.var,wind_var]); %process noise
     P_0 = diag([1 1 1 wind_var]); %covariance
     R = diag([Vg_NED.var IMU_angle.var(2) 1E-6]); %measurement noise
 
     kalman_res{i} = run_EKF(epsi,t,Q,R,P_0,x_0,u_list,z_list,f_fh,g_fh);
     kalman_res{i}.error = error_quantification(kalman_res{i}.x(1,:)',airspeed_pitot.flight.data);
+    error{i} = kalman_res{i}.error;
 end
 
 %% Covariance sweep Graph
 figure
 subplot(2,1,1)
-for i=1:length(kalman_res)
-    semilogx(cov_list(i),kalman_res{i}.error.error_RMS,'*','MarkerSize',10)
+for i=1:length(error)
+    semilogx(cov_list(i),error{i}.error_RMS,'*','MarkerSize',10)
     hold on
     grid on
 end
 xlabel('Wind Covariance')
 ylabel('Airspeed RMS Error [m/s]')
 grid on
+yline(error_airspeed.error_RMS)
 
 subplot(2,1,2)
-for i=1:length(kalman_res)
-    semilogx(cov_list(i),kalman_res{i}.error.error_mean,'*','MarkerSize',10)
+for i=1:length(error)
+    semilogx(cov_list(i),error{i}.error_mean,'*','MarkerSize',10)
     hold on
     grid on
 end
 xlabel('Wind Covariance')
 ylabel('Airspeed Mean Error [m/s]')
 grid on
+yline(error_airspeed.error_mean)
 sgtitle(['Covariance Sweep: ',file(1:end-4)])
 
 %% Save data
 
-save(['covariance_sweep_',file(1:end-4),'.mat'],'kalman_res','file','ac_data','cov_list')
+% Light data
+save(['covariance_sweep_',file(1:end-4),'.mat'],'error','file','error_airspeed','cov_list')
+
+% Heavy data
+%save(['covariance_sweep_',file(1:end-4),'.mat'],'kalman_res','file','error_airspeed','ac_data','cov_list')
 

@@ -4,7 +4,7 @@ close all
 clc
 
 % Add all paths
-addpath('functions/');
+addpath('/home/frederic/Documents/thesis/tools/airspeed_estimation/functions/');
 
 %% Load single filedata
 [file,path] = uigetfile({'*.mat'},'Select a file');

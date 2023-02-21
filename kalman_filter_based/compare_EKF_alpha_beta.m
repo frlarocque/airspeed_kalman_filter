@@ -4,10 +4,10 @@ close all
 clc
 
 % Add all paths
-addpath('functions/');
+addpath('/home/frederic/Documents/thesis/tools/airspeed_estimation/functions/');
 
 %% Load mat file
-log_path = '/home/frederic/Documents/thesis/tools/kalman_airspeed_estimation/mat_files';
+log_path = '/home/frederic/Documents/thesis/tools/airspeed_estimation/mat_files/log';
 
 file_list = dir(fullfile(log_path, 'OUTDOOR*.mat'));
 
@@ -48,7 +48,7 @@ t = airspeed_pitot.flight.time;
 dt = mean(t(2:end)-t(1:end-1));
 x_0 = [0 0 0 0 0 0]';
 u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data]';
-Q = diag([IMU_accel.var,wind_var]); %process noise
+Q = diag([IMU_accel.var,IMU_rate.var,wind_var]); %process noise
 P_0 = diag([1 1 1 wind_var]); %covariance
 
 %% EKF with alpha and beta
