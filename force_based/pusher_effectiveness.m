@@ -4,7 +4,7 @@
 clear all
 
 options = optimset('TolFun',1E-5,'TolX',1E-5);
-show_error_bar = true;
+show_error_bar = false;
 
 % Add all paths
 addpath('/home/frederic/Documents/thesis/tools/airspeed_estimation/functions/');
@@ -106,12 +106,12 @@ figure
 if show_error_bar; errorbar(body_db.Windspeed,body_db.Fx,body_db.std_Fx,'*')
 else; plot(body_db.Windspeed,body_db.Fx,'*'); end
 hold on
-plot(linspace(min(body_db.Windspeed),max(body_db.Windspeed),10),fit_body(s_body,linspace(min(body_db.Windspeed),max(body_db.Windspeed),10)'),'--')
+plot(linspace(0,max(body_db.Windspeed),10),fit_body(s_body,linspace(0,max(body_db.Windspeed),10)'),'--')
 axis([0 inf -inf 0])
 xlabel('Winspeed [m/s]')
 ylabel('Fx [N]')
 grid on
-sgtitle(sprintf('Skew = 0 deg\nFbody = K1*V^2  |  K1 = %2.2e  |  RMS = %2.2f',s_body(1),RMS_body))
+title(sprintf('Skew = 0 deg\nFbody = K1*V^2  |  K1 = %2.2e  |  RMS = %2.2f',s_body(1),RMS_body));
 
 %Hence
 %
@@ -146,7 +146,7 @@ legend(hdls,legend_lbl,'location','best')
 xlabel('Pusher Command [pprz]')
 ylabel('F_x [N]')
 grid on
-title('Fx (pusher thrust+body drag) depending on airspeed and command')
+title({'Fx depending on airspeed and pusher command'})
 axis([0 inf -inf inf])
 
 %% Correct for body drag
@@ -222,7 +222,7 @@ plot(linspace(0,max(pusher_db.Mot_Push),10),fit_pprz2rpm_quad(s_pprz2rpm_quad,li
 plot(linspace(0,max(pusher_db.Mot_Push),10),fit_pprz2rpm_lin(s_pprz2rpm_lin,linspace(0,max(pusher_db.Mot_Push),10)'),'--')
 xlabel('pprz signal [pprz]')
 ylabel('RPM [rotation per minute]')
-legend('Data','Quadratic Fit','Linear Fit')
+legend('Data','Quadratic Fit','Linear Fit','location','best')
 grid on
 axis([0 inf 0 inf])
 
@@ -305,14 +305,14 @@ for i=1:length(windspeed_bins)
     else; hdls(i) = plot(temp_db.Mot_Push,temp_db.Fx_pusher,'*','color',col(i,:)); end
     
     hold on
-    plot(linspace(0,max(temp_db.Mot_Push),10),fit_all_rpm(s_all_rpm,[fit_pprz2rpm_quad(s_pprz2rpm,temp_x(:,1)),temp_x(:,2)]),'--','color',col(i,:))
+    plot(linspace(0,max(temp_db.Mot_Push),10),fit_all_rpm(s_all_rpm,[fit_pprz2rpm_quad(s_pprz2rpm_quad,temp_x(:,1)),temp_x(:,2)]),'--','color',col(i,:))
     legend_lbl{i} = ['Airspeed = ',mat2str(windspeed_bins(i))];
 end
-RMS_pprz2rpm2fx = sqrt(mean((fit_all_rpm(s_all_rpm,[fit_pprz2rpm_quad(s_pprz2rpm,pusher_db.Mot_Push),pusher_db.Windspeed])-pusher_db.Fx_pusher).^2));
+RMS_pprz2rpm2fx = sqrt(mean((fit_all_rpm(s_all_rpm,[fit_pprz2rpm_quad(s_pprz2rpm_quad,pusher_db.Mot_Push),pusher_db.Windspeed])-pusher_db.Fx_pusher).^2));
 legend(hdls,legend_lbl,'location','best')
 sgtitle(sprintf(['RPM = K1 * pprz + K2 * pprz^2  |  K1 = %2.2e K2 = %2.2e' ...
     '  |  RMS = %2.2f\nFx = k1*V*rpm+k_2*rpm^2  |  K1 = %2.2e K2 = %2.2e' ...
-    '  |  RMS = %2.2f\nOverall RMS = %2.2f'],s_pprz2rpm(1),s_pprz2rpm(2) ...
+    '  |  RMS = %2.2f\nOverall RMS = %2.2f'],s_pprz2rpm_quad(1),s_pprz2rpm_quad(2) ...
     ,RMS_pprz2pwm_quad,s_all_rpm(1),s_all_rpm(2),RMS_all_rpm,RMS_pprz2rpm2fx))
 xlabel('pprz signal [pprz]')
 ylabel('Pusher F_x [N]')
@@ -364,7 +364,7 @@ for i=1:length(windspeed_bins)
     legend_lbl{i} = ['Airspeed = ',mat2str(windspeed_bins(i))];
 end
 legend(hdls,legend_lbl,'location','best')
-sgtitle(sprintf('Fx = k1*V*pprz+k_2*pprz^2  |  K1 = %2.2e K2 = %2.2e  |  RMS = %2.2f',s_all_pprz(1),s_all_pprz(2),RMS_all_pprz))
+sgtitle(sprintf('Fx = k1*V*pprz+k2*pprz^2  |  K1 = %2.2e K2 = %2.2e  |  RMS = %2.2f',s_all_pprz(1),s_all_pprz(2),RMS_all_pprz))
 xlabel('Pusher Command [pprz]')
 ylabel('Pusher F_x [N]')
 axis([0 inf 0 inf])
