@@ -65,26 +65,30 @@ for i=1:length(windspeed_bins)
     hdls(4,i) = plot(rad2deg(temp_db.Skew_sp),temp_db.Fy./temp_db.Windspeed.^2,'*','color',col(i,:));
     hold on
 
-    legend_lbl{i} = ['Airspeed = ',mat2str(windspeed_bins(i))];
+    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
 end
 
 subplot(2,2,1)
 xlabel('Turn table angle (pitch) [deg]')
 ylabel('F_y [N]')
-legend(hdls(1,:),legend_lbl,'location','best')
+lgd1 = legend(hdls(1,:),legend_lbl,'location','southeast');
+title(lgd1,'Airspeed') % add legend title
 subplot(2,2,2)
 xlabel('Skew Setpoint [deg]')
 ylabel('F_y [N]')
-legend(hdls(2,:),legend_lbl,'location','best')
+lgd1 = legend(hdls(1,:),legend_lbl,'location','southeast');
+title(lgd1,'Airspeed') % add legend title
 subplot(2,2,3)
 xlabel('Turn table angle (pitch) [deg]')
 ylabel('F_y/Airspeed^2 [N/((m/s)^2)]')
-legend(hdls(3,:),legend_lbl,'location','best')
+lgd1 = legend(hdls(1,:),legend_lbl,'location','southeast');
+title(lgd1,'Airspeed') % add legend title
 grid on
 subplot(2,2,4)
 xlabel('Skew Setpoint [deg]')
 ylabel('F_y/Airspeed^2 [N/((m/s)^2)]')
-legend(hdls(4,:),legend_lbl,'location','best')
+lgd1 = legend(hdls(1,:),legend_lbl,'location','southeast');
+title(lgd1,'Airspeed') % add legend title
 sgtitle('Initial Data from Wind Tunnel tests')
 
 %% Fit on all data
@@ -259,15 +263,17 @@ for i=1:length(windspeed_bins)
     hold on
     plot(rad2deg(temp_x(:,1)),fit_beta(s_beta,temp_x)./(windspeed_bins(i).^2),'--','color',col(i,:))
 
-    legend_lbl{i} = ['Airspeed = ',mat2str(windspeed_bins(i))];
+    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
 end
 
 subplot(1,2,1)
 xlabel('Turn table angle (pitch) [deg]')
 ylabel('F_y [N]')
-legend(hdls(1,:),legend_lbl,'location','best')
+lgd1 = legend(hdls(1,:),legend_lbl,'location','best');
+title(lgd1,'Airspeed') % add legend title
 subplot(1,2,2)
 xlabel('Turn table angle (pitch) [deg]')
 ylabel('F_y/Airspeed^2 [N/((m/s)^2)]')
-legend(hdls(2,:),legend_lbl,'location','best')
+lgd1 = legend(hdls(1,:),legend_lbl,'location','best');
+title(lgd1,'Airspeed') % add legend title
 sgtitle(sprintf('Skew fixed at 0 deg \nFy = K1*beta*V^2\nK1 = %2.2e \nRMS = %2.2f',s_beta(1),RMS_beta))
