@@ -2,6 +2,9 @@ clear all
 
 options = optimset('TolFun',1E-5,'TolX',1E-5);
 
+% Add all paths
+addpath('/home/frederic/Documents/thesis/tools/airspeed_estimation/functions/');
+
 %% Import all database
 [file,path] = uigetfile({'*.xlsx'},'Select a file');
 

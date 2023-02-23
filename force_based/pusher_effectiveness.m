@@ -64,15 +64,17 @@ body_db.skew_bin = deg2rad(round(rad2deg(body_db.Skew_sp),0));
 legend_lbl = {};
 col=linspecer(length(skew_bins));
 hdls = [];
+title('Body Drag depending on skew')
 for i=1:length(skew_bins)
     temp_db = body_db(body_db.skew_bin==skew_bins(i),:);
 
     if show_error_bar; hdls(i) = errorbar(temp_db.Windspeed,temp_db.Fx,temp_db.std_Fx,'*','color',col(i,:));
     else; hdls(i) = plot(temp_db.Windspeed,temp_db.Fx,'*','color',col(i,:)); end
     hold on
-    legend_lbl{i} = ['Skew = ',mat2str(rad2deg(skew_bins(i))),' deg'];
+    legend_lbl{i} = [mat2str(rad2deg(skew_bins(i))),' deg'];
 end
-legend(hdls,legend_lbl,'location','best')
+lgd1 = legend(hdls,legend_lbl,'location','best');
+title(lgd1,'Skew') % add legend title
 xlabel('Winspeed [m/s]')
 ylabel('Fx [N]')
 grid on
@@ -140,9 +142,10 @@ for i=1:length(windspeed_bins)
     else; hdls(i) = plot(temp_db.Mot_Push,temp_db.Fx,'*','color',col(i,:)); end
     
     hold on
-    legend_lbl{i} = ['Airspeed = ',mat2str(windspeed_bins(i))];
+    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
 end
-legend(hdls,legend_lbl,'location','best')
+lgd1 = legend(hdls,legend_lbl,'location','best');
+title(lgd1,'Airspeed') % add legend title
 xlabel('Pusher Command [pprz]')
 ylabel('F_x [N]')
 grid on
@@ -172,9 +175,10 @@ for i=1:length(windspeed_bins)
     else; hdls(i) = plot(temp_db.Mot_Push,temp_db.Fx_pusher,'*','color',col(i,:)); end
     
     hold on
-    legend_lbl{i} = ['Airspeed = ',mat2str(windspeed_bins(i))];
+    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
 end
-legend(hdls,legend_lbl,'location','best')
+lgd1 = legend(hdls,legend_lbl,'location','best');
+title(lgd1,'Airspeed') % add legend title
 xlabel('Pusher Command [pprz]')
 ylabel('Pusher F_x [N]')
 grid on
@@ -277,10 +281,11 @@ for i=1:length(windspeed_bins)
     
     hold on
     plot(linspace(0,max(temp_db.rpm_Mot_Push),10),fit_all_rpm(s_all_rpm,temp_x),'--','color',col(i,:))
-    legend_lbl{i} = ['Airspeed = ',mat2str(windspeed_bins(i))];
+    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
 end
-legend(hdls,legend_lbl,'location','best')
-sgtitle(sprintf('Fx = k1*V*rpm+k_2*rpm^2  |  K1 = %2.2e K2 = %2.2e  |  RMS = %2.2f',s_all_rpm(1),s_all_rpm(2),RMS_all_rpm))
+lgd1 = legend(hdls,legend_lbl,'location','best');
+title(lgd1,'Airspeed') % add legend title
+title(sprintf('Fx = k1*V*rpm+k_2*rpm^2  |  K1 = %2.2e K2 = %2.2e  |  RMS = %2.2f',s_all_rpm(1),s_all_rpm(2),RMS_all_rpm))
 xlabel('RPM [rotation per minute]')
 ylabel('Pusher F_x [N]')
 axis([0 inf 0 inf])
@@ -306,11 +311,12 @@ for i=1:length(windspeed_bins)
     
     hold on
     plot(linspace(0,max(temp_db.Mot_Push),10),fit_all_rpm(s_all_rpm,[fit_pprz2rpm_quad(s_pprz2rpm_quad,temp_x(:,1)),temp_x(:,2)]),'--','color',col(i,:))
-    legend_lbl{i} = ['Airspeed = ',mat2str(windspeed_bins(i))];
+    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
 end
 RMS_pprz2rpm2fx = sqrt(mean((fit_all_rpm(s_all_rpm,[fit_pprz2rpm_quad(s_pprz2rpm_quad,pusher_db.Mot_Push),pusher_db.Windspeed])-pusher_db.Fx_pusher).^2));
-legend(hdls,legend_lbl,'location','best')
-sgtitle(sprintf(['RPM = K1 * pprz + K2 * pprz^2  |  K1 = %2.2e K2 = %2.2e' ...
+lgd1 = legend(hdls,legend_lbl,'location','best');
+title(lgd1,'Airspeed') % add legend title
+title(sprintf(['RPM = K1 * pprz + K2 * pprz^2  |  K1 = %2.2e K2 = %2.2e' ...
     '  |  RMS = %2.2f\nFx = k1*V*rpm+k_2*rpm^2  |  K1 = %2.2e K2 = %2.2e' ...
     '  |  RMS = %2.2f\nOverall RMS = %2.2f'],s_pprz2rpm_quad(1),s_pprz2rpm_quad(2) ...
     ,RMS_pprz2pwm_quad,s_all_rpm(1),s_all_rpm(2),RMS_all_rpm,RMS_pprz2rpm2fx))
@@ -361,10 +367,11 @@ for i=1:length(windspeed_bins)
     
     hold on
     plot(linspace(0,max(temp_db.Mot_Push),10),fit_all_pprz(s_all_pprz,temp_x),'--','color',col(i,:))
-    legend_lbl{i} = ['Airspeed = ',mat2str(windspeed_bins(i))];
+    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
 end
-legend(hdls,legend_lbl,'location','best')
-sgtitle(sprintf('Fx = k1*V*pprz+k2*pprz^2  |  K1 = %2.2e K2 = %2.2e  |  RMS = %2.2f',s_all_pprz(1),s_all_pprz(2),RMS_all_pprz))
+lgd1 = legend(hdls,legend_lbl,'location','best');
+title(lgd1,'Airspeed') % add legend title
+title(sprintf('Fx = k1*V*pprz+k2*pprz^2  |  K1 = %2.2e K2 = %2.2e  |  RMS = %2.2f',s_all_pprz(1),s_all_pprz(2),RMS_all_pprz))
 xlabel('Pusher Command [pprz]')
 ylabel('Pusher F_x [N]')
 axis([0 inf 0 inf])
