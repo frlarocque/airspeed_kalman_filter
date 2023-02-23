@@ -71,25 +71,25 @@ end
 subplot(2,2,1)
 xlabel('Turn table angle (pitch) [deg]')
 ylabel('F_y [N]')
-lgd1 = legend(hdls(1,:),legend_lbl,'location','southeast');
-title(lgd1,'Airspeed') % add legend title
+%lgd1 = legend(hdls(1,:),legend_lbl,'location','southeast');
+%title(lgd1,'Airspeed') % add legend title
 subplot(2,2,2)
 xlabel('Skew Setpoint [deg]')
 ylabel('F_y [N]')
-lgd1 = legend(hdls(1,:),legend_lbl,'location','southeast');
-title(lgd1,'Airspeed') % add legend title
+%lgd1 = legend(hdls(2,:),legend_lbl,'location','southeast');
+%title(lgd1,'Airspeed') % add legend title
 subplot(2,2,3)
 xlabel('Turn table angle (pitch) [deg]')
 ylabel('F_y/Airspeed^2 [N/((m/s)^2)]')
-lgd1 = legend(hdls(1,:),legend_lbl,'location','southeast');
-title(lgd1,'Airspeed') % add legend title
+%lgd1 = legend(hdls(3,:),legend_lbl,'location','southeast');
+%title(lgd1,'Airspeed') % add legend title
 grid on
 subplot(2,2,4)
 xlabel('Skew Setpoint [deg]')
 ylabel('F_y/Airspeed^2 [N/((m/s)^2)]')
-lgd1 = legend(hdls(1,:),legend_lbl,'location','southeast');
+lgd1 = legend(hdls(4,:),legend_lbl,'location','southeast');
 title(lgd1,'Airspeed') % add legend title
-sgtitle('Initial Data from Wind Tunnel tests')
+sgtitle('Sideforce Data from Wind Tunnel tests')
 
 %% Fit on all data
 % k  = [k_beta,k_skew]
