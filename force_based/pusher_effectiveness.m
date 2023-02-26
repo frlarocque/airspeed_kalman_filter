@@ -196,12 +196,12 @@ fcn_pprz2rpm_lin = @(k) sqrt(mean((fit_pprz2rpm_lin(k,x) - y).^2));           % 
 
 % s_pprz2rpm_lin =
 % 
-%    1.129296875000000
+%     1.1293
 % 
 % 
 % RMS_pprz2pwm_lin =
 % 
-%      3.803132878893272e+02
+%   439.1480
 
 fit_pprz2rpm_quad = @(k,x)  k(1).*x(:,1)+k(2).*x(:,1).^2;    % Function to fit
 fcn_pprz2rpm_quad = @(k) sqrt(mean((fit_pprz2rpm_quad(k,x) - y).^2));           % Least-Squares cost function
@@ -209,13 +209,13 @@ fcn_pprz2rpm_quad = @(k) sqrt(mean((fit_pprz2rpm_quad(k,x) - y).^2));           
 
 % s_pprz2rpm_quad =
 % 
-%    1.378672356359907
-%   -0.000037895059856
+%     1.3787
+%    -0.0000
 % 
 % 
 % RMS_pprz2pwm_quad =
 % 
-%      1.091531803162169e+02
+%   126.0392
 
 figure
 if show_error_bar; hdls(i) = errorbar(pusher_db.Mot_Push,pusher_db.rpm_Mot_Push,pusher_db.rpm_Mot_Push_std,'*');
@@ -232,7 +232,7 @@ axis([0 inf 0 inf])
 
 % Hence
 % RPM = 1.378672356359907 * pprz + -3.789505985611778e-05 * pprz^2
-% RMS = 109.1532
+% RMS = 126
 %
 % or 
 %
@@ -250,9 +250,9 @@ axis([0 inf 0 inf])
 x = [pusher_db.rpm_Mot_Push,pusher_db.Windspeed];
 y = [pusher_db.Fx_pusher];
 
-fit_all_rpm = @(k,x)  k(1).*(x(:,1)+k(3)).^2+k(2).*(x(:,1)+k(3)).*x(:,2);%k(1).*(x(:,1)+k(2)).^2+k(3).*(x(:,1)+k(2)).*x(:,2)+k(4);    % Function to fit
+fit_all_rpm = @(k,x)  k(1).*(x(:,1)).^2+k(2).*x(:,1).*x(:,2);
 fcn_all_rpm = @(k) sqrt(mean((fit_all_rpm(k,x) - y).^2));           % Least-Squares cost function
-[s_all_rpm,RMS_all_rpm] = fminsearch(fcn_all_rpm,[1E-7;-6E-5;-1000])
+[s_all_rpm,RMS_all_rpm] = fminsearch(fcn_all_rpm,[1E-7;-6E-5])
 
 % s_all_rpm =
 % 
@@ -285,7 +285,7 @@ for i=1:length(windspeed_bins)
 end
 lgd1 = legend(hdls,legend_lbl,'location','best');
 title(lgd1,'Airspeed') % add legend title
-title(sprintf('Fx = k1*V*rpm+k_2*rpm^2  |  K1 = %2.2e K2 = %2.2e  |  RMS = %2.2f',s_all_rpm(1),s_all_rpm(2),RMS_all_rpm))
+title(sprintf('Fx = K1*rpm^2+K2*V*rpm  |  K1 = %2.2e K2 = %2.2e  |  RMS = %2.2f',s_all_rpm(1),s_all_rpm(2),RMS_all_rpm))
 xlabel('RPM [rotation per minute]')
 ylabel('Pusher F_x [N]')
 axis([0 inf 0 inf])
@@ -317,7 +317,7 @@ RMS_pprz2rpm2fx = sqrt(mean((fit_all_rpm(s_all_rpm,[fit_pprz2rpm_quad(s_pprz2rpm
 lgd1 = legend(hdls,legend_lbl,'location','best');
 title(lgd1,'Airspeed') % add legend title
 title(sprintf(['RPM = K1 * pprz + K2 * pprz^2  |  K1 = %2.2e K2 = %2.2e' ...
-    '  |  RMS = %2.2f\nFx = k1*V*rpm+k_2*rpm^2  |  K1 = %2.2e K2 = %2.2e' ...
+    '  |  RMS = %2.2f\nFx = K1*rpm^2+K2*V*rpm  |  K1 = %2.2e K2 = %2.2e' ...
     '  |  RMS = %2.2f\nOverall RMS = %2.2f'],s_pprz2rpm_quad(1),s_pprz2rpm_quad(2) ...
     ,RMS_pprz2pwm_quad,s_all_rpm(1),s_all_rpm(2),RMS_all_rpm,RMS_pprz2rpm2fx))
 xlabel('pprz signal [pprz]')
@@ -335,7 +335,6 @@ grid on
 x = [pusher_db.Mot_Push,pusher_db.Windspeed];
 y = [pusher_db.Fx_pusher];
 
-%fit_all_pprz = @(k,x)  k(1).*(x(:,1)+k(2)).^2+k(3).*(x(:,1)+k(2)).*x(:,2)+k(4);    % Function to fit
 fit_all_pprz = @(k,x)  k(1).*x(:,1).^2+k(2).*x(:,1).*x(:,2);    % Function to fit
 fcn_all_pprz = @(k) sqrt(mean((fit_all_pprz(k,x) - y).^2));           % Least-Squares cost function
 [s_all_pprz,RMS_all_pprz] = fminsearch(fcn_all_pprz,[1E-5;1E-5])
@@ -371,7 +370,7 @@ for i=1:length(windspeed_bins)
 end
 lgd1 = legend(hdls,legend_lbl,'location','best');
 title(lgd1,'Airspeed') % add legend title
-title(sprintf('Fx = k1*V*pprz+k2*pprz^2  |  K1 = %2.2e K2 = %2.2e  |  RMS = %2.2f',s_all_pprz(1),s_all_pprz(2),RMS_all_pprz))
+title(sprintf('Fx = K1*pprz^2+K2*V*pprz  |  K1 = %2.2e K2 = %2.2e  |  RMS = %2.2f',s_all_pprz(1),s_all_pprz(2),RMS_all_pprz))
 xlabel('Pusher Command [pprz]')
 ylabel('Pusher F_x [N]')
 axis([0 inf 0 inf])
