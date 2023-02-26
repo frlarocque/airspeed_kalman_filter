@@ -16,6 +16,7 @@ load(fullfile(path,file))
 graph = 0;
 beta_est = 0;
 recalculate_variance = false;
+pitot_correction = 1.1;
 
 % Run setup
 wind_triangle_setup

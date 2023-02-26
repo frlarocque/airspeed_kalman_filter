@@ -4,6 +4,7 @@
 % graph
 % beta_est
 % recalculate_variance
+% pitot_correction
 
 %% Assign
 fprintf('OPENED: %s\n',file)
@@ -13,7 +14,7 @@ conditions = conditions{1};
 if strcmp(conditions,'WINDTUNNEL')
     % Obtained directly
     IMU_accel.raw.data = [ac_data.EFF_FULL_INDI.body_accel_x,ac_data.EFF_FULL_INDI.body_accel_y,ac_data.EFF_FULL_INDI.body_accel_z];IMU_accel.raw.time =ac_data.EFF_FULL_INDI.timestamp;
-    airspeed_pitot.raw.data = low_butter(ac_data.EFF_FULL_INDI.airspeed,0.4,1/mean(diff(ac_data.EFF_FULL_INDI.timestamp)),0,4);airspeed_pitot.raw.time = ac_data.EFF_FULL_INDI.timestamp;
+    airspeed_pitot.raw.data = ac_data.EFF_FULL_INDI.airspeed;airspeed_pitot.raw.time = ac_data.EFF_FULL_INDI.timestamp;
     IMU_rate.raw.data = deg2rad([ac_data.EFF_FULL_INDI.angular_rate_p ac_data.EFF_FULL_INDI.angular_rate_q ac_data.EFF_FULL_INDI.angular_rate_r]);IMU_rate.raw.time = ac_data.EFF_FULL_INDI.timestamp;
     IMU_angle.raw.data = deg2rad([ac_data.EFF_FULL_INDI.phi_alt ac_data.EFF_FULL_INDI.theta_alt ac_data.EFF_FULL_INDI.psi_alt]);IMU_angle.raw.time = ac_data.EFF_FULL_INDI.timestamp;
 
@@ -46,7 +47,7 @@ elseif strcmp(conditions,'OUTDOOR')
     % Assign values
     position_NED.raw.data = [ac_data.ROTORCRAFT_FP.north_alt,ac_data.ROTORCRAFT_FP.east_alt,-ac_data.ROTORCRAFT_FP.up_alt]; position_NED.raw.time = ac_data.ROTORCRAFT_FP.timestamp;
     IMU_accel.raw.data = [ac_data.IMU_ACCEL_SCALED.ax_alt ac_data.IMU_ACCEL_SCALED.ay_alt ac_data.IMU_ACCEL_SCALED.az_alt]; IMU_accel.raw.time = ac_data.IMU_ACCEL_SCALED.timestamp;
-    airspeed_pitot.raw.data = low_butter(ac_data.AIR_DATA.airspeed,0.4,1/mean(diff(ac_data.AIR_DATA.timestamp)),0,4); airspeed_pitot.raw.time=ac_data.AIR_DATA.timestamp;
+    airspeed_pitot.raw.data = ac_data.AIR_DATA.airspeed; airspeed_pitot.raw.time=ac_data.AIR_DATA.timestamp;
     IMU_rate.raw.data = deg2rad([ac_data.IMU_GYRO_SCALED.gp_alt ac_data.IMU_GYRO_SCALED.gq_alt ac_data.IMU_GYRO_SCALED.gr_alt]); IMU_rate.raw.time = ac_data.IMU_GYRO_SCALED.timestamp;
     Vg_NED.raw.data = [ac_data.ROTORCRAFT_FP.vnorth_alt,ac_data.ROTORCRAFT_FP.veast_alt,-ac_data.ROTORCRAFT_FP.vup_alt];Vg_NED.raw.time=ac_data.ROTORCRAFT_FP.timestamp;
     IMU_angle.raw.data = deg2rad([ac_data.ROTORCRAFT_FP.phi_alt,ac_data.ROTORCRAFT_FP.theta_alt,ac_data.ROTORCRAFT_FP.psi_alt]);IMU_angle.raw.time=ac_data.ROTORCRAFT_FP.timestamp;
@@ -54,6 +55,8 @@ elseif strcmp(conditions,'OUTDOOR')
 else
     fprintf('Wrong or No Condition')
 end
+%% Correct Pitot data
+airspeed_pitot.raw.data = pitot_correction.*airspeed_pitot.raw.data;
 
 %% Resample
 % Resample Choice 
@@ -72,6 +75,8 @@ cut_condition = [ac_data.motors_on(end-1),ac_data.motors_on(end)];
     % To add a square wave: +deg2rad(10*square(IMU_angle.flight.time./10))
 alpha.flight.data = IMU_angle.flight.data(:,2);alpha.flight.time = IMU_angle.flight.time;
 beta.flight.data = 0*ones(length(IMU_angle.flight.data),1);beta.flight.time = IMU_angle.flight.time;
+
+
 
 %% Visualizing input data
 if graph
