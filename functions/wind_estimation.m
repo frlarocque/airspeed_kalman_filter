@@ -38,10 +38,10 @@ wind.direction = atan2(wind.vect(2),wind.vect(1));
 v_g = sqrt(Vg_NED.data(:,1).^2+Vg_NED.data(:,2).^2);
 airspeed_estimation.data = sqrt(wind.norm.^2+v_g.^2-2.*v_g.*wind.norm.*cos(wind.direction-IMU_angle.data(:,3)));
 airspeed_estimation.time = Vg_NED.time;
+fprintf('Estimated wind (using pitot) is %0.2f m/s going %0.2f deg\n',wind.norm,rad2deg(wind.direction))
 
 if graph
-    fprintf('Estimated wind (using pitot) is %0.2f m/s going %0.2f deg\n',wind.norm,rad2deg(wind.direction))
-
+    
     figure
     plot(wind.raw.time,wind.raw.data(:,[1 2]))
     hold on

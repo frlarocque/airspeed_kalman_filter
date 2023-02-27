@@ -1,6 +1,1 @@
 
-# Ignore all content of matfiles
-matfiles/
-
-# But don't ignore the folder itself
-!matfiles
