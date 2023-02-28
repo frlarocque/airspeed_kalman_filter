@@ -1,10 +1,10 @@
-function x_axis_related_plot(IMU_accel,airspeed_pitot,pusher_prop,IMU_angle,low_pass_value,cut_condition)
+function x_axis_related_plot(IMU_accel,airspeed_pitot,pusher_prop_RPM,IMU_angle,low_pass_value,cut_condition)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
 IMU_accel.data = low_butter(IMU_accel.data,low_pass_value,1/mean(diff(IMU_accel.time)),0,4);
 airspeed_pitot.data = low_butter(airspeed_pitot.data,low_pass_value,1/mean(diff(airspeed_pitot.time)),0,4);
-pusher_prop.data = low_butter(pusher_prop.data,low_pass_value,1/mean(diff(pusher_prop.time)),0,4);
+pusher_prop_RPM.data = low_butter(pusher_prop_RPM.data,low_pass_value,1/mean(diff(pusher_prop_RPM.time)),0,4);
 IMU_angle.data = low_butter(IMU_angle.data,low_pass_value,1/mean(diff(IMU_angle.time)),0,4);
 
 if nargin==5
@@ -41,15 +41,15 @@ grid on
 
 % Pusher command
 ax3 = subplot(2,2,3);
-plot(pusher_prop.time,pusher_prop.data);
+plot(pusher_prop_RPM.time,pusher_prop_RPM.data);
 % Plot Motor ON
-if cut_condition(1)>pusher_prop.time(1) && cut_condition(2)<pusher_prop.time(end)
+if cut_condition(1)>pusher_prop_RPM.time(1) && cut_condition(2)<pusher_prop_RPM.time(end)
     hold on
     plot([cut_condition; cut_condition], repmat(ylim',1,length(cut_condition)), '--r');
 end
 title('Pusher Prop')
 xlabel('Time [s]')
-ylabel('pprz command')
+ylabel('RPM (revolution per minute)')
 grid on
 
 % Angle

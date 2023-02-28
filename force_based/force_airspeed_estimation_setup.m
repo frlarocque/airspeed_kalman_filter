@@ -4,6 +4,7 @@
 % graph
 % beta_est
 % recalculate_variance
+% pitot_correction
 
 %% Assign
 fprintf('OPENED: %s\n',file)
@@ -13,7 +14,7 @@ conditions = conditions{1};
 if strcmp(conditions,'WINDTUNNEL')
     % Obtained directly
     IMU_accel.raw.data = [ac_data.EFF_FULL_INDI.body_accel_x,ac_data.EFF_FULL_INDI.body_accel_y,ac_data.EFF_FULL_INDI.body_accel_z];IMU_accel.raw.time =ac_data.EFF_FULL_INDI.timestamp;
-    airspeed_pitot.raw.data = low_butter(ac_data.EFF_FULL_INDI.airspeed,0.4,1/mean(diff(ac_data.EFF_FULL_INDI.timestamp)),0,4);airspeed_pitot.raw.time = ac_data.EFF_FULL_INDI.timestamp;
+    airspeed_pitot.raw.data = ac_data.EFF_FULL_INDI.airspeed;airspeed_pitot.raw.time = ac_data.EFF_FULL_INDI.timestamp;
     IMU_rate.raw.data = deg2rad([ac_data.EFF_FULL_INDI.angular_rate_p ac_data.EFF_FULL_INDI.angular_rate_q ac_data.EFF_FULL_INDI.angular_rate_r]);IMU_rate.raw.time = ac_data.EFF_FULL_INDI.timestamp;
     IMU_angle.raw.data = deg2rad([ac_data.EFF_FULL_INDI.phi_alt ac_data.EFF_FULL_INDI.theta_alt ac_data.EFF_FULL_INDI.psi_alt]);IMU_angle.raw.time = ac_data.EFF_FULL_INDI.timestamp;
 
@@ -46,20 +47,37 @@ elseif strcmp(conditions,'OUTDOOR')
     % Assign values
     position_NED.raw.data = [ac_data.ROTORCRAFT_FP.north_alt,ac_data.ROTORCRAFT_FP.east_alt,-ac_data.ROTORCRAFT_FP.up_alt]; position_NED.raw.time = ac_data.ROTORCRAFT_FP.timestamp;
     IMU_accel.raw.data = [ac_data.IMU_ACCEL_SCALED.ax_alt ac_data.IMU_ACCEL_SCALED.ay_alt ac_data.IMU_ACCEL_SCALED.az_alt]; IMU_accel.raw.time = ac_data.IMU_ACCEL_SCALED.timestamp;
-    airspeed_pitot.raw.data = low_butter(ac_data.AIR_DATA.airspeed,0.4,1/mean(diff(ac_data.AIR_DATA.timestamp)),0,4); airspeed_pitot.raw.time=ac_data.AIR_DATA.timestamp;
+    airspeed_pitot.raw.data = ac_data.AIR_DATA.airspeed; airspeed_pitot.raw.time=ac_data.AIR_DATA.timestamp;
     IMU_rate.raw.data = deg2rad([ac_data.IMU_GYRO_SCALED.gp_alt ac_data.IMU_GYRO_SCALED.gq_alt ac_data.IMU_GYRO_SCALED.gr_alt]); IMU_rate.raw.time = ac_data.IMU_GYRO_SCALED.timestamp;
     Vg_NED.raw.data = [ac_data.ROTORCRAFT_FP.vnorth_alt,ac_data.ROTORCRAFT_FP.veast_alt,-ac_data.ROTORCRAFT_FP.vup_alt];Vg_NED.raw.time=ac_data.ROTORCRAFT_FP.timestamp;
     IMU_angle.raw.data = deg2rad([ac_data.ROTORCRAFT_FP.phi_alt,ac_data.ROTORCRAFT_FP.theta_alt,ac_data.ROTORCRAFT_FP.psi_alt]);IMU_angle.raw.time=ac_data.ROTORCRAFT_FP.timestamp;
+    
     act_values = double(string(ac_data.ACTUATORS.values));
-    actuators.raw.data = act_values(:,5:9);actuators.raw.time = ac_data.ACTUATORS.timestamp;
+    control_surface_pprz.raw.data = act_values(:,2:4);control_surface_pprz.raw.time = ac_data.ACTUATORS.timestamp;
+    hover_prop_pprz.raw.data = act_values(:,5:8);hover_prop_pprz.raw.time = ac_data.ACTUATORS.timestamp;
+    pusher_prop_pprz.raw.data = act_values(:,9);pusher_prop_pprz.raw.time = ac_data.ACTUATORS.timestamp;
+    
+    hover_prop_RPM.raw.time = ac_data.ESC_PER_MOTOR.motor_0.timestamp;
+    hover_prop_RPM.raw.data(:,1) = ac_data.ESC_PER_MOTOR.motor_0.rpm;
+    temp_data = resample(timeseries(ac_data.ESC_PER_MOTOR.motor_1.rpm,ac_data.ESC_PER_MOTOR.motor_1.timestamp), hover_prop_RPM.raw.time);
+    hover_prop_RPM.raw.data(:,2) = temp_data.data;
+    temp_data = resample(timeseries(ac_data.ESC_PER_MOTOR.motor_2.rpm,ac_data.ESC_PER_MOTOR.motor_2.timestamp), hover_prop_RPM.raw.time);
+    hover_prop_RPM.raw.data(:,3) = temp_data.data;
+    temp_data = resample(timeseries(ac_data.ESC_PER_MOTOR.motor_3.rpm,ac_data.ESC_PER_MOTOR.motor_3.timestamp), hover_prop_RPM.raw.time);
+    hover_prop_RPM.raw.data(:,4) = temp_data.data;
+    
+    pusher_prop_RPM.raw.data = ac_data.ESC_PER_MOTOR.motor_4.rpm;pusher_prop_RPM.raw.time = ac_data.ESC_PER_MOTOR.motor_4.timestamp;
 else
     fprintf('Wrong or No Condition')
 end
 
+%% Correct Pitot data
+airspeed_pitot.raw.data = pitot_correction.*airspeed_pitot.raw.data;    
+
 %% Resample
 % Resample Choice 
 resample_time = airspeed_pitot.raw.time; %Airspeed has the lowest dt
-cut_condition = [ac_data.motors_on(end-1)+100,ac_data.motors_on(end)-100];
+cut_condition = [ac_data.motors_on(end-1),ac_data.motors_on(end)];
 
 % Resampling
 [IMU_accel.flight.data,IMU_accel.flight.time] = cut_resample(IMU_accel.raw.data,IMU_accel.raw.time,resample_time,cut_condition);
@@ -68,7 +86,13 @@ cut_condition = [ac_data.motors_on(end-1)+100,ac_data.motors_on(end)-100];
 [Vg_NED.flight.data,Vg_NED.flight.time] = cut_resample(Vg_NED.raw.data,Vg_NED.raw.time,resample_time,cut_condition);
 [IMU_angle.flight.data,IMU_angle.flight.time] = cut_resample(IMU_angle.raw.data,IMU_angle.raw.time,resample_time,cut_condition);
 [position_NED.flight.data,position_NED.flight.time] = cut_resample(position_NED.raw.data,position_NED.raw.time,resample_time,cut_condition);
-[actuators.flight.data,actuators.flight.time] = cut_resample(actuators.raw.data,actuators.raw.time,resample_time,cut_condition);
+[control_surface_pprz.flight.data,control_surface_pprz.flight.time] = cut_resample(control_surface_pprz.raw.data,control_surface_pprz.raw.time,resample_time,cut_condition);
+[hover_prop_pprz.flight.data,hover_prop_pprz.flight.time] = cut_resample(hover_prop_pprz.raw.data,hover_prop_pprz.raw.time,resample_time,cut_condition);
+[pusher_prop_pprz.flight.data,pusher_prop_pprz.flight.time] = cut_resample(pusher_prop_pprz.raw.data,pusher_prop_pprz.raw.time,resample_time,cut_condition);
+
+[hover_prop_RPM.flight.data,hover_prop_RPM.flight.time] = cut_resample(hover_prop_RPM.raw.data,hover_prop_RPM.raw.time,resample_time,cut_condition);
+[pusher_prop_RPM.flight.data,pusher_prop_RPM.flight.time] = cut_resample(pusher_prop_RPM.raw.data,pusher_prop_RPM.raw.time,resample_time,cut_condition);
+
 
 % Arbitrarly set so far
     % To add a square wave: +deg2rad(10*square(IMU_angle.flight.time./10))
@@ -85,6 +109,10 @@ if graph
     
     % Visualize Trajectory
     trajectory(position_NED.flight,Vg_NED.flight,IMU_angle.flight,10)
+
+    % Visualize Actuators
+    x_axis_related_plot(IMU_accel.flight,airspeed_pitot.flight,pusher_prop_pprz.flight,IMU_angle.flight,0.5)
+
 end
 %% Estimating wind
 [wind,airspeed_estimation] = wind_estimation(Vg_NED.flight,IMU_angle.flight,airspeed_pitot.flight,alpha.flight,beta.flight,graph);
