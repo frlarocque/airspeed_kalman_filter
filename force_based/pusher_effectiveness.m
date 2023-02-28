@@ -240,9 +240,6 @@ axis([0 inf 0 inf])
 % RMS = 380
 
 %% Fit on all RPM
-% Delete 0 command signals, as propeller is windmilling
-%pusher_db = pusher_db(pusher_db.Mot_Push~=0,:);
-
 
 % Fx = k1*V*RPM+k_2*RPM^2
 % k  = [k1 k_2]
@@ -250,21 +247,20 @@ axis([0 inf 0 inf])
 x = [pusher_db.rpm_Mot_Push,pusher_db.Windspeed];
 y = [pusher_db.Fx_pusher];
 
-fit_all_rpm = @(k,x)  k(1).*(x(:,1)).^2+k(2).*x(:,1).*x(:,2);
+fit_all_rpm = @(k,x)  k(1).*(x(:,1)).^2+k(2)*x(:,1).*x(:,2)+k(3).*x(:,2);
 fcn_all_rpm = @(k) sqrt(mean((fit_all_rpm(k,x) - y).^2));           % Least-Squares cost function
-[s_all_rpm,RMS_all_rpm] = fminsearch(fcn_all_rpm,[1E-7;-6E-5])
+[s_all_rpm,RMS_all_rpm] = fminsearch(fcn_all_rpm,[1E-7;-6E-4;-2])
 
 % s_all_rpm =
 % 
-%    1.0e-04 *
-% 
-%    0.003703544293799
-%   -0.600596182200311
+%    0.000000368027847
+%   -0.000043917972356
+%   -0.086517700632897
 % 
 % 
 % RMS_all_rpm =
 % 
-%    0.439420256812782
+%    0.404753339914599
 
 figure
 windspeed_bins = unique(round(pusher_db.Windspeed,0));
@@ -274,18 +270,18 @@ col=linspecer(length(windspeed_bins));
 hdls = [];
 for i=1:length(windspeed_bins)
     temp_db = pusher_db(pusher_db.Windspeed_bin==windspeed_bins(i),:);
-    temp_x = [linspace(0,max(temp_db.rpm_Mot_Push),10)',linspace(0,max(temp_db.Windspeed),10)'];
+    temp_x = [linspace(0,max(temp_db.rpm_Mot_Push),15)',ones(15,1).*windspeed_bins(i)];
 
     if show_error_bar; hdls(i) = errorbar(temp_db.rpm_Mot_Push,temp_db.Fx_pusher,temp_db.std_Fx_pusher,'*','color',col(i,:));
     else; hdls(i) = plot(temp_db.rpm_Mot_Push,temp_db.Fx_pusher,'*','color',col(i,:)); end
     
     hold on
-    plot(linspace(0,max(temp_db.rpm_Mot_Push),10),fit_all_rpm(s_all_rpm,temp_x),'--','color',col(i,:))
+    plot(linspace(0,max(temp_db.rpm_Mot_Push),15),fit_all_rpm(s_all_rpm,temp_x),'--','color',col(i,:))
     legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
 end
 lgd1 = legend(hdls,legend_lbl,'location','best');
 title(lgd1,'Airspeed') % add legend title
-title(sprintf('Fx = K1*rpm^2+K2*V*rpm  |  K1 = %2.2e K2 = %2.2e  |  RMS = %2.2f',s_all_rpm(1),s_all_rpm(2),RMS_all_rpm))
+title(sprintf('Fx = K1*rpm^2+K2*V*rpm+K3*V\nK1 = %2.2e K2 = %2.2e K3 = %2.2e  |  RMS = %2.2f',s_all_rpm(1),s_all_rpm(2),s_all_rpm(3),RMS_all_rpm))
 xlabel('RPM [rotation per minute]')
 ylabel('Pusher F_x [N]')
 axis([0 inf 0 inf])
@@ -293,7 +289,9 @@ grid on
 
 % Hence:
 %
-% Fx pusher =  3.703544293799073e-07 * rpm^2 [rpm] + -6.005961822003111e-05*rpm [rpm] * v [m/s]
+% Fx pusher =  3.680278471152158e-07 * rpm^2 [rpm] +
+% -4.391797235636297e-05*rpm [rpm] * v [m/s] + -8.651770063289748E-2 * v
+% [m/s]
 
 %% Plot pprz-->RPM-->T
 figure
@@ -304,7 +302,7 @@ col=linspecer(length(windspeed_bins));
 hdls = [];
 for i=1:length(windspeed_bins)
     temp_db = pusher_db(pusher_db.Windspeed_bin==windspeed_bins(i),:);
-    temp_x = [linspace(0,max(temp_db.Mot_Push),10)',linspace(0,max(temp_db.Windspeed),10)'];
+    temp_x = [linspace(0,max(temp_db.Mot_Push),10)',ones(10,1).*windspeed_bins(i)];
 
     if show_error_bar; hdls(i) = errorbar(temp_db.Mot_Push,temp_db.Fx_pusher,temp_db.std_Fx_pusher,'*','color',col(i,:));
     else; hdls(i) = plot(temp_db.Mot_Push,temp_db.Fx_pusher,'*','color',col(i,:)); end
@@ -317,9 +315,9 @@ RMS_pprz2rpm2fx = sqrt(mean((fit_all_rpm(s_all_rpm,[fit_pprz2rpm_quad(s_pprz2rpm
 lgd1 = legend(hdls,legend_lbl,'location','best');
 title(lgd1,'Airspeed') % add legend title
 title(sprintf(['RPM = K1 * pprz + K2 * pprz^2  |  K1 = %2.2e K2 = %2.2e' ...
-    '  |  RMS = %2.2f\nFx = K1*rpm^2+K2*V*rpm  |  K1 = %2.2e K2 = %2.2e' ...
+    '  |  RMS = %2.2f\nFx = K1*rpm^2+K2*V*rpm+K3*V  |  K1 = %2.2e K2 = %2.2e K3 = %2.2e' ...
     '  |  RMS = %2.2f\nOverall RMS = %2.2f'],s_pprz2rpm_quad(1),s_pprz2rpm_quad(2) ...
-    ,RMS_pprz2pwm_quad,s_all_rpm(1),s_all_rpm(2),RMS_all_rpm,RMS_pprz2rpm2fx))
+    ,RMS_pprz2pwm_quad,s_all_rpm(1),s_all_rpm(2),s_all_rpm(3),RMS_all_rpm,RMS_pprz2rpm2fx))
 xlabel('pprz signal [pprz]')
 ylabel('Pusher F_x [N]')
 axis([0 inf 0 inf])
@@ -359,7 +357,7 @@ col=linspecer(length(windspeed_bins));
 hdls = [];
 for i=1:length(windspeed_bins)
     temp_db = pusher_db(pusher_db.Windspeed_bin==windspeed_bins(i),:);
-    temp_x = [linspace(0,max(temp_db.Mot_Push),10)',linspace(0,max(temp_db.Windspeed),10)'];
+    temp_x = [linspace(0,max(temp_db.Mot_Push),10)',ones(10,1).*windspeed_bins];
 
     if show_error_bar; hdls(i) = errorbar(temp_db.Mot_Push,temp_db.Fx_pusher,temp_db.std_Fx_pusher,'*','color',col(i,:));
     else; hdls(i) = plot(temp_db.Mot_Push,temp_db.Fx_pusher,'*','color',col(i,:)); end
