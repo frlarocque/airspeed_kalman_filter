@@ -47,8 +47,6 @@ save(['db_',test,'.mat'],'test_db')
 test_db = test_db(test_db.Rud==0 & test_db.Elev==0 & test_db.Ail_R==0 & test_db.Ail_L==0 ,:);
 % Removing entries with non-zero pusher motor
 test_db = test_db(test_db.Mot_Push==0,:);
-% Removing entries with non-zero hover motor command
-test_db = test_db(test_db.Mot_F==0 & test_db.Mot_R==0 & test_db.Mot_B==0 & test_db.Mot_L==0,:);
 % Removing entries with angle of attack higher than 15 deg
 test_db(abs(test_db.Turn_Table)>deg2rad(15),:) = []; 
 
