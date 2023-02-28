@@ -218,7 +218,7 @@ lgd1 = legend(hdls,legend_lbl,'location','southeast');
 title(lgd1,'Airspeed') % add legend title
 title(sprintf('All Airspeed Fit\nFx = (k1+k2*alpha+k3*alpha^2)*V^2\nK1 = %2.2e K2 = %2.2e K3 = %2.2e |  RMS = %2.2f',s_quad(1),s_quad(2),s_quad(3),RMS_quad))
 xlabel('Turn table angle (angle of attack) [deg]')
-ylabel('F_x [N]')
+ylabel('Body Drag F_x [N]')
 axis([-inf inf -inf inf])
 grid on
 
@@ -269,7 +269,7 @@ lgd1 = legend(hdls,legend_lbl,'location','southeast');
 title(lgd1,'Airspeed') % add legend title
 title(sprintf('Fit for airspeed <9m/s\nFx = (k1+k2*alpha+k3*alpha^2)*V^2\nK1 = %2.2e K2 = %2.2e K3 = %2.2e |  RMS = %2.2f',s_quad_low(1),s_quad_low(2),s_quad_low(3),RMS_quad_low))
 xlabel('Turn table angle (angle of attack) [deg]')
-ylabel('F_x [N]')
+ylabel('Body Drag F_x [N]')
 axis([-inf inf -inf inf])
 grid on
 
@@ -282,11 +282,6 @@ legend_lbl = {};
 col=linspecer(length(windspeed_bins));
 hdls = [];
 Ax(1) = axes(f1); 
-xlabel('Turn table angle (angle of attack) [deg]')
-ylabel('F_x [N]')
-axis([-inf inf -inf inf])
-grid on
-title(sprintf('Fx = (k1+k2*alpha+k3*alpha^2)*k4*V^2  |  K1 = %2.2e K2 = %2.2e K3 = %2.2e |  RMS = %2.2f',s_quad(1),s_quad(2),s_quad(3),RMS_quad))
 
 for i=1:length(windspeed_bins)
     temp_db = quad_db(quad_db.Windspeed_bin==windspeed_bins(i),:);
@@ -310,8 +305,8 @@ delete(get(Ax(2), 'Children') )
 
 % plot helper data, but invisible
 hold on
-H1 = plot([1 2],[1 2], '--', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2),'Visible', 'off');
-H2 = plot([1 2],[1 2], ':', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2),'Visible', 'off');
+H1 = plot([NaN NaN],[NaN NaN], '--', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2));
+H2 = plot([NaN NaN],[NaN NaN], ':', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2));
 hold off
 % make second axes invisible
 set(Ax(2), 'Color', 'none', 'XTick', [], 'YAxisLocation', 'right', 'Box', 'Off', 'Visible', 'off')
@@ -319,8 +314,125 @@ set(Ax(2), 'Color', 'none', 'XTick', [], 'YAxisLocation', 'right', 'Box', 'Off',
 lgd2 = legend([H1 H2], 'All Airspeed', 'Low Airspeed', 'Location', 'southwest');
 title(lgd2,'Fit Type') % add legend title
 set(lgd2,'color','none')
-title('Comparison of Low Speed Fit and All Airspeed Fit')
+title(sprintf('Comparison of Low Speed Fit and All Airspeed Fit\nFx = (k1+k2*alpha+k3*alpha^2)*V^2\n All Airspeed K1 = %2.2e K2 = %2.2e K3 = %2.2e |  RMS = %2.2f\n Low Airspeed K1 = %2.2e K2 = %2.2e K3 = %2.2e |  RMS = %2.2f',s_quad(1),s_quad(2),s_quad(3),RMS_quad,s_quad_low(1),s_quad_low(2),s_quad_low(3),RMS_quad_low))
 xlabel('Turn table angle (angle of attack) [deg]')
-ylabel('F_x [N]')
+ylabel('Body Drag F_x [N]')
+axis([-inf inf -inf inf])
+grid on
+
+%% Drag for all airspeeds, for all skews
+skew_db = test_db;
+
+% Fx = (k1*cos(skew)+k2+k3*alpha+k4*alpha^2)*V^2
+% k  = [k1 k2 k3 k4]
+% x = [pprz,V]
+x = [skew_db.Turn_Table,skew_db.Windspeed,skew_db.Skew_sp];
+y = [skew_db.Fx];
+
+fit_skew = @(k,x)  (k(1)*cos(x(:,3))+k(2)+k(3).*x(:,1)+k(4).*x(:,1).^2).*x(:,2).^2; % Function to fit
+fcn_skew = @(k) sqrt(mean((fit_skew(k,x) - y).^2));           % Least-Squares cost function
+[s_skew,RMS_skew] = fminsearch(fcn_skew,[0;-3.84E-2;3.339E-3;1.399E-1],options) %bound first coefficient to negative value
+
+% s_skew =
+% 
+%   -0.009013405108487
+%   -0.019880356084256
+%    0.000985004818838
+%    0.144397520747447
+% 
+% 
+% RMS_skew =
+% 
+%    0.240686078575435
+
+
+windspeed_bins = unique(round(skew_db.Windspeed,0));
+skew_db.Windspeed_bin = round(skew_db.Windspeed,0);
+
+skew_bins = deg2rad(unique(round(rad2deg(skew_db.Skew_sp),0)));
+skew_db.Skew_sp_bin = deg2rad(round(rad2deg(skew_db.Skew_sp),0));
+skew_bins = skew_bins(1:2:length(skew_bins)); % Select only 4
+
+figure
+legend_lbl = {};
+col=linspecer(length(windspeed_bins));
+hdls = [];
+
+for j=1:length(skew_bins)
+
+    subplot(2,2,j)
+
+    for i=1:length(windspeed_bins)
+        temp_db = skew_db(skew_db.Windspeed_bin==windspeed_bins(i) & skew_db.Skew_sp_bin==skew_bins(j),:);
+        temp_x = [linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),10)',ones(10,1).*windspeed_bins(i),ones(10,1).*skew_bins(j)];
+    
+        if show_error_bar; hdls(i) = errorbar(rad2deg(temp_db.Turn_Table),temp_db.Fx,temp_db.std_Fx,'*','color',col(i,:));
+        else; hdls(i) = plot(rad2deg(temp_db.Turn_Table),temp_db.Fx,'*','color',col(i,:)); end
+        
+        hold on
+        plot(rad2deg(linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),10)),fit_skew(s_skew,temp_x),'--','color',col(i,:))
+        legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
+    end
+    
+    xlabel('Turn table angle (angle of attack) [deg]')
+    ylabel('Body Drag F_x [N]')
+    axis([-inf inf -inf inf])
+    grid on
+    title(sprintf('Skew Angle %2.0f deg',rad2deg(skew_bins(j))))
+end
+lgd1 = legend(hdls,legend_lbl,'location','southeast');
+title(lgd1,'Airspeed') % add legend title
+sgtitle(sprintf('Fit for all airspeed, AoA and skew\nFx = (K1*cos(skew)+K2+K3*alpha+K3*alpha^2)*V^2\nK1 = %2.2e K2 = %2.2e K3 = %2.2e K4 = %2.2e|  RMS = %2.2f',s_skew(1),s_skew(2),s_skew(3),s_skew(4),RMS_skew))
+
+%% Compare Skew Angle 90 deg and 0 deg on sample plot
+
+windspeed_bins = unique(round(skew_db.Windspeed,0));
+skew_db.Windspeed_bin = round(skew_db.Windspeed,0);
+
+skew_bins = deg2rad(unique(round(rad2deg(skew_db.Skew_sp),0)));
+skew_db.Skew_sp_bin = deg2rad(round(rad2deg(skew_db.Skew_sp),0));
+skew_bins = skew_bins([1,end]); % Select only 0 and 90 deg
+
+f1 = figure();
+legend_lbl = {};
+col=linspecer(length(windspeed_bins));
+hdls = [];
+Ax(1) = axes(f1); 
+
+for i=1:length(windspeed_bins)
+    % 0 Deg
+    temp_db = skew_db(skew_db.Windspeed_bin==windspeed_bins(i) & skew_db.Skew_sp_bin==skew_bins(1),:);
+    temp_x = [linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),10)',ones(10,1).*windspeed_bins(i),ones(10,1).*skew_bins(1)];
+    hdls(i) = plot(rad2deg(linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),10)),fit_skew(s_skew,temp_x),'-','color',col(i,:));
+    hold on
+    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
+
+    % 90 Deg
+    temp_db = skew_db(skew_db.Windspeed_bin==windspeed_bins(i) & skew_db.Skew_sp_bin==skew_bins(2),:);
+    temp_x = [linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),10)',ones(10,1).*windspeed_bins(i),ones(10,1).*skew_bins(2)];
+    plot(rad2deg(linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),10)),fit_skew(s_skew,temp_x),'--','color',col(i,:))
+end
+set(Ax(1), 'Box','off')
+lgd1 = legend(hdls,legend_lbl,'location','southeast');
+title(lgd1,'Airspeed') % add legend title
+
+% copy axes 
+Ax(2) = copyobj(Ax(1),gcf);
+delete(get(Ax(2), 'Children') )
+
+% plot helper data, but invisible
+hold on
+H1 = plot([NaN NaN],[NaN NaN], '-', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2));
+H2 = plot([NaN NaN],[NaN NaN], '--', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2));
+hold off
+% make second axes invisible
+set(Ax(2), 'Color', 'none', 'XTick', [], 'YAxisLocation', 'right', 'Box', 'Off', 'Visible', 'off')
+% add linestyle legend
+lgd2 = legend([H1 H2], '0 deg', '90 deg', 'Location', 'southwest');
+title(lgd2,'Skew Angle Type') % add legend title
+set(lgd2,'color','none')
+title('Comparison of different skew angle on body Fx Drag')
+xlabel('Turn table angle (angle of attack) [deg]')
+ylabel('Body Drag F_x [N]')
 axis([-inf inf -inf inf])
 grid on
