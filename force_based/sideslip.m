@@ -104,13 +104,13 @@ fcn_quad = @(k) sqrt(mean((fit_quad(k,x) - y).^2));           % Least-Squares co
 
 % s_quad =
 % 
-%     0.1394
-%     0.0023
+%    0.219434102254454
+%    0.000778161799535
 % 
 % 
 % RMS_all_quad =
 % 
-%     0.5249
+%    1.202810930869285
 
 k_beta_quad = s_quad(1); %N/(rad (m/s)^2)
 k_skew_quad = s_quad(2); %N/(rad (m/s)^2)
@@ -121,13 +121,13 @@ fcn_lin = @(k) sqrt(mean((fit_lin(k,x) - y).^2));               % Least-Squares 
 
 % s_lin =
 % 
-%     1.5898
-%     0.0783
+%    2.552098952269741
+%    0.008086387413837
 % 
 % 
 % RMS_all_lin =
 % 
-%     3.3391
+%    4.773614680570924
 
 k_beta_lin = s_lin(1); %N/(rad (m/s))
 k_skew_lin = s_lin(2); %N/(rad (m/s))
@@ -138,23 +138,23 @@ fcn_zero = @(k) sqrt(mean((fit_zero(k,x) - y).^2));               % Least-Square
 
 % s_zero =
 % 
-%    13.5926
-%     1.4531
+%   22.261145267138268
+%    0.054616595516816
 % 
 % 
 % RMS_all_zero =
 % 
-%     7.4743
+%   10.667523585577184
 
 k_beta_zero = s_zero(1); %N/(rad (m/s))
 k_skew_zero = s_zero(2); %N/(rad (m/s))
 
 % HENCE:
-% Fy = (beta [rad] *1.3939*1E-1+skew [rad]*2.2888*1E-3 )* V [m/s]^2
+% Fy = (beta [rad] *2.194341022544540*1E-1+skew [rad]*7.781617995352236*1E-4 )* V [m/s]^2
 % or
-% Fy = (beta [rad] *1.5898*1E0+skew [rad]*7.8329*1E-2 )* V [m/s]
+% Fy = (beta [rad] *2.552098952269741*1E0+skew [rad]*8.086387413837056*1E-2 )* V [m/s]
 % or
-% Fy = (beta [rad] *1.35926*1E1+ skew [rad]*1.4531*1E0)
+% Fy = (beta [rad] *2.226114526713827*1E1+ skew [rad]*5.461659551681629*1E-2)
 
 %% Visual Verification
 
@@ -183,7 +183,7 @@ beta = linspace(min(test_db.Turn_Table),max(test_db.Turn_Table),10);
 wind = linspace(min(test_db.Windspeed),max(test_db.Windspeed),10);
 [BETA,WIND] = meshgrid(beta,wind);
 surf(rad2deg(BETA),WIND,(k_beta_quad*BETA.*WIND.^2))
-sgtitle(sprintf('Quadratic airspeed fit on skew and turn table with k_{beta}=%2.2e [N/(rad*(m/s)^2)] and k_{skew}=%2.2e [N/(rad*(m/s)^2)]\n RMS %2.2f [N]',k_beta_quad,k_skew_quad,RMS_all_quad))
+sgtitle(sprintf('Quadratic airspeed fit on skew and turn table\n k_{beta}=%2.2e [N/(rad*(m/s)^2)]  |  k_{skew}=%2.2e [N/(rad*(m/s)^2)]\n RMS %2.2f [N]',k_beta_quad,k_skew_quad,RMS_all_quad))
 
 %Fy_est = test_db.Windspeed.^2.*(k_beta_quad.*test_db.Turn_Table+k_skew.*test_db.Skew_sp);
 %[error] = error_quantification(Fy_est,test_db.Fy);
@@ -234,12 +234,13 @@ fcn_beta = @(k) sqrt(mean((fit_beta(k,x) - y).^2)); % Least-Squares cost functio
 
 % s_beta =
 % 
-%     0.1384
+%    0.216187500000000
 % 
 % 
 % RMS_beta =
 % 
-%     0.2512
+%    1.768747873471054
+
 
 % Plot
 windspeed_bins = unique(round(test_db.Windspeed,0));
