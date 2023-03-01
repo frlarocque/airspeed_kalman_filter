@@ -71,8 +71,16 @@ fprintf(sprintf('Corrected RPM %d times\n',correction))
 % Fx = body drag + Hover_motors drag
 % Hover_motors drag = Fx-body drag
 %Drag without hover props (only body drag)
-Fx_body =  @(alpha,V) (-0.030061458379662+0.003497371379286.*alpha+0.146865971330522.*alpha.^2).*V.^2;
-test_db.Fx_hover = test_db.Fx-Fx_body(test_db.Turn_Table,test_db.Windspeed);
+
+%drag_body_coeff = [0                     -3.0061458379662E-2   3.497371379286E-3    1.46865971330522E-1];%all airspeeds without hover props without skew
+drag_body_coeff = [-9.013405108486905E-3 -1.988035608425628E-2 9.850048188379294E-4 1.443975207474472E-1]; %all airspeeds without hover props with skew
+
+Fx_body = @(alpha,skew,V) (drag_body_coeff(1)  .*  cos(skew)+...
+                              drag_body_coeff(2)+...
+                              drag_body_coeff(3)  .*  alpha+...
+                              drag_body_coeff(4)  .*  alpha.^2).*V.^2;
+
+test_db.Fx_hover = test_db.Fx-Fx_body(test_db.Turn_Table,test_db.Skew_sp,test_db.Windspeed);
 
 % Calculating std dev of new Fx_pusher
 % Mean C = mean A - mean B --> Variance C = Variance A + Variance B - 2*Correlation(A,B)*SD A * SD B
@@ -82,6 +90,8 @@ test_db.std_Fx_hover = sqrt(test_db.std_Fx.^2+test_db.std_Fx.^2);
 %% Analyze hover prop RPM effect
 %Different airspeed and different hover prop values
 hover_prop_db = test_db(test_db.Turn_Table==deg2rad(0) & test_db.Skew_sp==deg2rad(0),:);
+%hover_prop_db = test_db(test_db.Turn_Table==deg2rad(0),:);
+
 
 x = [hover_prop_db.rpm_Mot_R,hover_prop_db.Windspeed];
 y = [hover_prop_db.Fx_hover];
