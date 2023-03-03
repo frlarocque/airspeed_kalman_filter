@@ -111,9 +111,6 @@ if graph
     
     % Flight
     plot_3_2(IMU_accel.flight,airspeed_pitot.flight,IMU_rate.flight,Vg_NED.flight,IMU_angle.flight,position_NED.flight)
-    
-    % Visualize Trajectory
-    trajectory(position_NED.flight,Vg_NED.flight,IMU_angle.flight,10,wind.vect)
 
     % Visualize Actuators
     x_axis_related_plot(IMU_accel.flight,airspeed_pitot.flight,pusher_prop_pprz.flight,IMU_angle.flight,0.5)
@@ -122,6 +119,10 @@ end
 %% Estimating wind
 [wind,airspeed_estimation] = wind_estimation(Vg_NED.flight,IMU_angle.flight,airspeed_pitot.flight,alpha.flight,beta.flight,graph);
 
+if graph
+    % Visualize Trajectory
+    trajectory(position_NED.flight,Vg_NED.flight,IMU_angle.flight,10,wind.vect)
+end
 %% Beta estimation using Wind
 if beta_est
     [beta.flight.data] = beta_estimation_wind(Vg_NED.flight,IMU_angle.flight,wind,graph);
@@ -136,22 +137,48 @@ for i=1:length(valid_start)
 beta.flight.valid_times{i} = [valid_start(i) valid_end(i)];
 end
 
+%% Alpha estimation using Wind
+if alpha_est
+    [alpha_est] = alpha_estimation_wind(airspeed_pitot.flight,Vg_NED.flight,IMU_angle.flight,wind,graph);
+end
+alpha.flight.valid = abs(alpha.flight.data)<deg2rad(30);
+valid_start = alpha.flight.time(diff(alpha.flight.valid)==1);
+if alpha.flight.valid(1); valid_start = [alpha.flight.time(1); valid_start];end
+valid_end = alpha.flight.time(diff(alpha.flight.valid)==-1);
+if alpha.flight.valid(end);valid_end = [valid_end; alpha.flight.time(end)];end
+for i=1:length(valid_start)
+alpha.flight.valid_times{i} = [valid_start(i) valid_end(i)];
+end
+
+%% Pitot Valid: Alpha and beta valid
+airspeed_pitot.flight.valid = abs(alpha.flight.data)<deg2rad(30) &abs(beta.flight.data)<deg2rad(30);
+valid_start = airspeed_pitot.flight.time(diff(airspeed_pitot.flight.valid)==1);
+if airspeed_pitot.flight.valid(1); valid_start = [airspeed_pitot.flight.time(1); valid_start];end
+valid_end = airspeed_pitot.flight.time(diff(airspeed_pitot.flight.valid)==-1);
+if airspeed_pitot.flight.valid(end);valid_end = [valid_end; airspeed_pitot.flight.time(end)];end
+for i=1:length(valid_start)
+airspeed_pitot.flight.valid_times{i} = [valid_start(i) valid_end(i)];
+end
+
 %% Comparing pitot airspeed and estimated pitot airspeed
+ub_airspeed = airspeed_estimation.data.*(cos(alpha.flight.data).*cos(beta.flight.data)); 
+
 if graph
     figure;
-    plot(airspeed_estimation.time,airspeed_estimation.data.*(cos(alpha.flight.data).*cos(beta.flight.data)))
+    plot(airspeed_estimation.time,ub_airspeed)
     hold on
     plot(airspeed_pitot.flight.time,airspeed_pitot.flight.data)
     
     for i=1:length(beta.flight.valid_times)
-        patch([beta.flight.valid_times{i}(1) beta.flight.valid_times{i}(1) beta.flight.valid_times{i}(2) beta.flight.valid_times{i}(2)],...
+        patch([airspeed_pitot.flight.valid_times{i}(1) airspeed_pitot.flight.valid_times{i}(1) airspeed_pitot.flight.valid_times{i}(2) airspeed_pitot.flight.valid_times{i}(2)],...
               [min(airspeed_pitot.flight.data),max(airspeed_pitot.flight.data),max(airspeed_pitot.flight.data),min(airspeed_pitot.flight.data)],'green','LineStyle',"none",'FaceAlpha',.1);
     end
-    
+
     title('Airspeed Estimation Using Constant Wind')
     xlabel('Time [s]')
     ylabel('Airspeed [m/s]')
-    legend('Estimation','Measured','Valid beta')
+    legend('Estimation','Measured','Valid Pitot')
     grid on
 end
-error_airspeed = error_quantification(airspeed_estimation.data.*(cos(alpha.flight.data).*cos(beta.flight.data)),airspeed_pitot.flight.data);
+error_airspeed_all = error_quantification(ub_airspeed,airspeed_pitot.flight.data);
+error_airspeed_valid = error_quantification(ub_airspeed(airspeed_pitot.flight.valid),airspeed_pitot.flight.data(airspeed_pitot.flight.valid));
