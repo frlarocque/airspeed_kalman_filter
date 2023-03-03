@@ -87,7 +87,7 @@ test_db.Fx_hover = test_db.Fx-Fx_body(test_db.Turn_Table,test_db.Skew_sp,test_db
 % Assumming uncorrelated
 test_db.std_Fx_hover = sqrt(test_db.std_Fx.^2+test_db.std_Fx.^2);
 
-%% Analyze hover prop RPM effect
+%% Fit Hover Prop Fx Drag depending on airspeed and RPM
 %Different airspeed and different hover prop values
 hover_prop_db = test_db(test_db.Turn_Table==deg2rad(0) & test_db.Skew_sp==deg2rad(0),:);
 %hover_prop_db = test_db(test_db.Turn_Table==deg2rad(0),:);
@@ -159,4 +159,107 @@ lgd1 = legend(hdls,legend_lbl,'location','southeast');
 title(lgd1,'Airspeed') % add legend title
 title(sprintf('All AOA\nFx hover props = K1*V^{2}+K2*V^{1/2}*RPM^{2}\nK1 = %2.2e K2 = %2.2e |  RMS = %2.2f',s_hover(1),s_hover(2),RMS))
 axis([0 inf -inf 0])
+grid on
+
+%% Fit hover prop Fx Drag depending on V^2 and RPM alone
+%Different airspeed and different hover prop values
+hover_prop_db = test_db(test_db.Turn_Table==deg2rad(0) & test_db.Skew_sp==deg2rad(0),:);
+
+x = [hover_prop_db.rpm_Mot_R,hover_prop_db.Windspeed];
+y = [hover_prop_db.Fx_hover];
+
+% Fx = K1*V^2+K2*RPM^2
+fit_hover_no_V12 = @(k,x)  k(1)*x(:,2).^(2)+k(2).*x(:,1).^2; % Function to fit
+fcn_hover_no_V12 = @(k) sqrt(mean((fit_hover_no_V12(k,x) - y).^2));           % Least-Squares cost function
+[s_hover_no_V12,RMS_hover_no_V12] = fminsearch(fcn_hover_no_V12,[-6E-3;-1.18E-7],options) %bound first coefficient to negative value
+
+windspeed_bins = unique(round(hover_prop_db.Windspeed,0));
+hover_prop_db.Windspeed_bin = round(hover_prop_db.Windspeed,0);
+figure
+legend_lbl = {};
+col=linspecer(length(windspeed_bins));
+hdls = [];
+for i=1:length(windspeed_bins)
+    temp_db = hover_prop_db(hover_prop_db.Windspeed_bin==windspeed_bins(i),:);
+    temp_x = [linspace(0,max(temp_db.rpm_Mot_R),10)',ones(10,1).*windspeed_bins(i)];
+    if show_error_bar; hdls(i) = errorbar(temp_db.rpm_Mot_R,temp_db.Fx_hover,temp_db.std_Fx_hover,'*','color',col(i,:));
+    else; hdls(i) = plot(temp_db.rpm_Mot_R,temp_db.Fx_hover,'*','color',col(i,:)); end
+    
+    hold on
+    plot(linspace(0,max(temp_db.rpm_Mot_R),10),fit_hover_no_V12(s_hover_no_V12,temp_x),'--','color',col(i,:))
+    
+    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
+end
+
+xlabel('Hover Prop RPM [RPM]')
+ylabel('Hover Prop F_x [N]')
+lgd1 = legend(hdls,legend_lbl,'location','southeast');
+title(lgd1,'Airspeed') % add legend title
+title(sprintf('AoA = 0 deg\nFx hover props = K1*V^{2}+K2*RPM^{2}\nK1 = %2.2e K2 = %2.2e |  RMS = %2.2f',s_hover_no_V12(1),s_hover_no_V12(2),RMS_hover_no_V12))
+axis([0 inf -inf 0])
+grid on
+
+% Check on all aoa
+hover_prop_db = test_db(test_db.Skew_sp==deg2rad(0),:);
+RMS = sqrt(mean((fit_hover_no_V12(s_hover_no_V12,[hover_prop_db.rpm_Mot_R,hover_prop_db.Windspeed]) - hover_prop_db.Fx_hover).^2))
+
+
+% Fx hover props = -1.188293370185022E-2*V^2+- -3.133468238831906E-7*RPM^2
+% RMS = 0.57 (AoA=0)
+% RMS = 0.67 (all AoA)
+%% Compare with and without V^(1/2)
+hover_prop_db = test_db(test_db.Turn_Table==deg2rad(0) & test_db.Skew_sp==deg2rad(0),:);
+
+windspeed_bins = unique(round(hover_prop_db.Windspeed,0));
+hover_prop_db.Windspeed_bin = round(hover_prop_db.Windspeed,0);
+
+f1 = figure();
+legend_lbl = {};
+col=linspecer(length(windspeed_bins));
+hdls = [];
+Ax(1) = axes(f1); 
+
+for i=1:length(windspeed_bins)
+    temp_db = hover_prop_db(hover_prop_db.Windspeed_bin==windspeed_bins(i),:);
+    temp_x = [linspace(0,max(temp_db.rpm_Mot_R),10)',ones(10,1).*windspeed_bins(i)];
+
+    % Points
+    
+    if show_error_bar; hdls(i) = errorbar(temp_db.rpm_Mot_R,temp_db.Fx_hover,temp_db.std_Fx_hover,'*','color',col(i,:));
+    else; hdls(i) = plot(temp_db.rpm_Mot_R,temp_db.Fx_hover,'*','color',col(i,:)); end
+    
+    hold on
+        
+    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
+
+    % With V^(1/2)
+    plot(linspace(0,max(temp_db.rpm_Mot_R),10),fit_hover(s_hover,temp_x),'--','color',col(i,:))
+
+    % Without V^(1/2)
+    plot(linspace(0,max(temp_db.rpm_Mot_R),10),fit_hover_no_V12(s_hover_no_V12,temp_x),'-','color',col(i,:))
+
+end
+set(Ax(1), 'Box','off')
+lgd1 = legend(hdls,legend_lbl,'location','southeast');
+title(lgd1,'Airspeed') % add legend title
+
+% copy axes 
+Ax(2) = copyobj(Ax(1),gcf);
+delete(get(Ax(2), 'Children') )
+
+% plot helper data, but invisible
+hold on
+H1 = plot([NaN NaN],[NaN NaN], '-', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2));
+H2 = plot([NaN NaN],[NaN NaN], '--', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2));
+hold off
+% make second axes invisible
+set(Ax(2), 'Color', 'none', 'XTick', [], 'YAxisLocation', 'right', 'Box', 'Off', 'Visible', 'off')
+% add linestyle legend
+lgd2 = legend([H1 H2], 'With V^{1/2}', 'Without V^{1/2}', 'Location', 'southwest');
+title(lgd2,'Fit Type') % add legend title
+set(lgd2,'color','none')
+title(sprintf('Comparison of fit at AoA = 0 deg\nWith V^{1/2}  |  Fx = K1*V^{2}+K2*V^{1/2}*RPM^{2} K1 = %2.2e K2 = %2.2e |  RMS = %2.2f\nWithout V^{1/2} |  Fx = K1*V^{2}+K2*RPM^{2} K1 = %2.2e K2 = %2.2e |  RMS = %2.2f',s_hover(1),s_hover(2),RMS_hover,s_hover_no_V12(1),s_hover_no_V12(2),RMS_hover_no_V12))
+xlabel('Turn table angle (angle of attack) [deg]')
+ylabel('Body Drag F_x [N]')
+axis([-inf inf -inf inf])
 grid on
