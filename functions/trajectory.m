@@ -49,6 +49,6 @@ legend([p1,q1,q2],{'Trajectory','Ground Speed','Orientation'})
 if nargin>4
     % Plot wind if available
     axes('Position',[.75 .15 0.1 0.1])
-    q3 = quiver(0,0,wind_vect(2),wind_vect(1),'color',[0.8500 0.3250 0.0980],'linewidth',2);
+    q3 = quiver(0,0,wind_vect(2),wind_vect(1),'color',[0.8500 0.3250 0.0980],'linewidth',2,'MaxHeadSize',0.7);
     title('Wind')
 end
