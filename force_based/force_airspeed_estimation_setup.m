@@ -65,8 +65,11 @@ elseif strcmp(conditions,'OUTDOOR')
     hover_prop_RPM.raw.data(:,3) = temp_data.data;
     temp_data = resample(timeseries(ac_data.ESC_PER_MOTOR.motor_3.rpm,ac_data.ESC_PER_MOTOR.motor_3.timestamp), hover_prop_RPM.raw.time);
     hover_prop_RPM.raw.data(:,4) = temp_data.data;
-    
+
     pusher_prop_RPM.raw.data = ac_data.ESC_PER_MOTOR.motor_4.rpm;pusher_prop_RPM.raw.time = ac_data.ESC_PER_MOTOR.motor_4.timestamp;
+
+    skew.raw.data = round(ac_data.ROT_WING_CONTROLLER.wing_angle_deg);skew.raw.time = ac_data.ROT_WING_CONTROLLER.timestamp;
+
 else
     fprintf('Wrong or No Condition')
 end
@@ -93,6 +96,8 @@ cut_condition = [ac_data.motors_on(end-1),ac_data.motors_on(end)];
 [hover_prop_RPM.flight.data,hover_prop_RPM.flight.time] = cut_resample(hover_prop_RPM.raw.data,hover_prop_RPM.raw.time,resample_time,cut_condition);
 [pusher_prop_RPM.flight.data,pusher_prop_RPM.flight.time] = cut_resample(pusher_prop_RPM.raw.data,pusher_prop_RPM.raw.time,resample_time,cut_condition);
 
+[skew.flight.data,skew.flight.time] = cut_resample(skew.raw.data,skew.raw.time,resample_time,cut_condition);
+
 
 % Arbitrarly set so far
     % To add a square wave: +deg2rad(10*square(IMU_angle.flight.time./10))
@@ -108,7 +113,7 @@ if graph
     plot_3_2(IMU_accel.flight,airspeed_pitot.flight,IMU_rate.flight,Vg_NED.flight,IMU_angle.flight,position_NED.flight)
     
     % Visualize Trajectory
-    trajectory(position_NED.flight,Vg_NED.flight,IMU_angle.flight,10)
+    trajectory(position_NED.flight,Vg_NED.flight,IMU_angle.flight,10,wind.vect)
 
     % Visualize Actuators
     x_axis_related_plot(IMU_accel.flight,airspeed_pitot.flight,pusher_prop_pprz.flight,IMU_angle.flight,0.5)
@@ -119,18 +124,34 @@ end
 
 %% Beta estimation using Wind
 if beta_est
-    [beta.flight] = beta_estimation(Vg_NED.flight,IMU_angle.flight,wind,graph);
+    [beta.flight.data] = beta_estimation_wind(Vg_NED.flight,IMU_angle.flight,wind,graph);
 end
+
+beta.flight.valid = abs(beta.flight.data)<deg2rad(30);
+valid_start = beta.flight.time(diff(beta.flight.valid)==1);
+if beta.flight.valid(1); valid_start = [beta.flight.time(1); valid_start];end
+valid_end = beta.flight.time(diff(beta.flight.valid)==-1);
+if beta.flight.valid(end);valid_end = [valid_end; beta.flight.time(end)];end
+for i=1:length(valid_start)
+beta.flight.valid_times{i} = [valid_start(i) valid_end(i)];
+end
+
 %% Comparing pitot airspeed and estimated pitot airspeed
 if graph
     figure;
     plot(airspeed_estimation.time,airspeed_estimation.data.*(cos(alpha.flight.data).*cos(beta.flight.data)))
     hold on
     plot(airspeed_pitot.flight.time,airspeed_pitot.flight.data)
+    
+    for i=1:length(beta.flight.valid_times)
+        patch([beta.flight.valid_times{i}(1) beta.flight.valid_times{i}(1) beta.flight.valid_times{i}(2) beta.flight.valid_times{i}(2)],...
+              [min(airspeed_pitot.flight.data),max(airspeed_pitot.flight.data),max(airspeed_pitot.flight.data),min(airspeed_pitot.flight.data)],'green','LineStyle',"none",'FaceAlpha',.1);
+    end
+    
     title('Airspeed Estimation Using Constant Wind')
     xlabel('Time [s]')
     ylabel('Airspeed [m/s]')
-    legend('Estimation','Measured')
+    legend('Estimation','Measured','Valid beta')
     grid on
 end
 error_airspeed = error_quantification(airspeed_estimation.data.*(cos(alpha.flight.data).*cos(beta.flight.data)),airspeed_pitot.flight.data);

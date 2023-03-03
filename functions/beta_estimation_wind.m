@@ -1,4 +1,4 @@
-function [beta] = beta_estimation_wind(Vg_NED,IMU_angle,wind,graph)
+function [beta_est] = beta_estimation_wind(Vg_NED,IMU_angle,wind,graph)
 %BETA_ESTIMATION Using ground speed, heading and wind, estimate sideslip
 %angle
 %
@@ -17,8 +17,6 @@ beta_est = psi_a-IMU_angle.data(:,3);
 
 % Beta set on [-pi,pi] interval
 beta_est = beta_est-ceil(beta_est/(2*pi)-0.5)*2*pi; 
-
-beta.data = beta_est;
 
 if graph
     figure

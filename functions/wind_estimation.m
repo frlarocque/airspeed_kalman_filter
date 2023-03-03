@@ -10,7 +10,7 @@ function [wind,airspeed_estimation] = wind_estimation(Vg_NED,IMU_angle,airspeed_
 %           -graph: 1 to plot graph of wind speed
 %
 % Outputs:
-%           -wind: struct with wind information [m/s, rad]
+%           -wind: struct with wind information in NED [m/s, rad]
 %           -airspeed_estimation: struct with airspeed (not pitot tube 
 %               airspeed) estimated using
 %           constant wind assumption [m/s]

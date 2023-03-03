@@ -1,4 +1,4 @@
-function trajectory(position_NED,velocity_NED,IMU_angle,dt)
+function trajectory(position_NED,velocity_NED,IMU_angle,dt,wind_vect)
 %TRAJECTORY Plots vehicle trajectory and velocity vector in NED Frame
 %
 % Inputs:
@@ -46,4 +46,9 @@ q2 = quiver(Y,X,psi_v,psi_u,0.5,'c','linewidth',2);
 axis('equal')
 legend([p1,q1,q2],{'Trajectory','Ground Speed','Orientation'})
 
+if nargin>4
+    % Plot wind if available
+    axes('Position',[.75 .15 0.1 0.1])
+    q3 = quiver(0,0,wind_vect(2),wind_vect(1),'color',[0.8500 0.3250 0.0980],'linewidth',2);
+    title('Wind')
 end
