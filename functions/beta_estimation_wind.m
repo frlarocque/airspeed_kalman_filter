@@ -12,7 +12,7 @@ function [beta] = beta_estimation_wind(Vg_NED,IMU_angle,wind,graph)
 
 % Calculate ground track, air track
 psi_gnd = atan2(Vg_NED.data(:,2),Vg_NED.data(:,1));
-psi_a = atan2(Vg_NED.data(:,2)-wind.vect(1),Vg_NED.data(:,1)-wind.vect(2));
+psi_a = atan2(Vg_NED.data(:,2)-wind.vect(2),Vg_NED.data(:,1)-wind.vect(1));
 beta_est = psi_a-IMU_angle.data(:,3);
 
 % Beta set on [-pi,pi] interval
