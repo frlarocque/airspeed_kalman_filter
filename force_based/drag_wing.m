@@ -193,7 +193,7 @@ ff_db = test_db(test_db.Skew_sp==deg2rad(90),:);
 
 % Fx = (k1+k2*alpha+k3*alpha^2)*V^2
 % k  = [k1 k2 k3 k4]
-% x = [pprz,V]
+% x = [AoA,V]
 x = [ff_db.Turn_Table,ff_db.Windspeed];
 y = [ff_db.Fx_wing];
 
@@ -258,7 +258,7 @@ fit_5 = @(k,x)  x(:,2).^2.*( (k(1)+k(2).*x(:,1)+k(3).*x(:,1).^2) .* (sin(x(:,3))
 skew_db = test_db(test_db.Windspeed<12 & test_db.Windspeed>9,:);
 
 % k  = [k1 k2 k3 k4]
-% x = [pprz,V]
+% x = [AoA,V,skew]
 x = [skew_db.Turn_Table,skew_db.Windspeed,skew_db.Skew_sp];
 y = [skew_db.Fx_wing];
 
@@ -446,7 +446,7 @@ RMS_quad_ff_5 = sqrt(mean((fit_5(s_skew_5,x) - y).^2))
 % Fx5 = ((k1+k2*alpha+k3*alpha^2)             *(sin(skew)^2+k4)+k5)*V^2
 
 % k  = [k1 k2 k3 k4]
-% x = [pprz,V]
+% x = [AoA,V,skew]
 x = [test_db.Turn_Table,test_db.Windspeed,test_db.Skew_sp];
 y = [test_db.Fx_wing];
 

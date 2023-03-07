@@ -178,7 +178,7 @@ quad_db = test_db(test_db.Skew_sp==deg2rad(0),:);
 
 % Fx = (k1+k2*alpha+k3*alpha^2)*V^2
 % k  = [k1 k2 k3 k4]
-% x = [pprz,V]
+% x = [AoA,V]
 x = [quad_db.Turn_Table,quad_db.Windspeed];
 y = [quad_db.Fx];
 
@@ -229,7 +229,7 @@ quad_low_db = test_db(test_db.Windspeed<9 & test_db.Skew_sp==deg2rad(0),:);
 
 % Fx = (k1+k2*alpha+k3*alpha^2)*V^2
 % k  = [k1 k2 k3 k4]
-% x = [pprz,V]
+% x = [AoA,V]
 x = [quad_low_db.Turn_Table,quad_low_db.Windspeed];
 y = [quad_low_db.Fx];
 
@@ -325,7 +325,7 @@ skew_db = test_db;
 
 % Fx = (k1*cos(skew)+k2+k3*alpha+k4*alpha^2)*V^2
 % k  = [k1 k2 k3 k4]
-% x = [pprz,V]
+% x = [AoA,V,Skew]
 x = [skew_db.Turn_Table,skew_db.Windspeed,skew_db.Skew_sp];
 y = [skew_db.Fx];
 
