@@ -273,11 +273,14 @@ ylabel('K3')
 sgtitle('Variation of best gain for different skew angles')
 
 %% Defining fit functions
+% Fx0 = ((k1+k2*alpha+k3*alpha^2)*(k4*sin(skew)^2+k5)*V^2
 % Fx1 = (k1*sin(skew)+k1*k4 +alpha*(k2*sin(skew)^2+k2*k4) +alpha^2*(k3*sin(skew)^2+k3*k4))*V^2 = ((k1+k2*alpha+k3*alpha^2)*(sin(skew)^2+k4)*V^2
 % Fx2 = (k1*sin(skew)^2     +alpha*(k2*sin(skew)^2+k3)    +alpha^2*k4                    )*V^2
 % Fx3 = (k1*sin(skew)^2     +alpha*(k2*sin(skew)^2+k3)    +alpha^2*(k4*sin(skew)^2+k5)   )*V^2
 % Fx4 = (k1*sin(skew)^2     +alpha*(k2*sin(skew)^2+k3)    +alpha^2*(k4*sin(skew)  +k5)   )*V^2
 % Fx5 = (k1*sin(skew)^2     +alpha*(k2*sin(skew)  +k3)    +alpha^2*(k4*sin(skew)  +k5)   )*V^2
+
+fit_0 = @(k,x)  x(:,2).^2.*((k(1)+ k(2).*x(:,1)+k(3).*x(:,1).^2) .* (k(4)*sin(x(:,3)).^2+k(5)) ); % Function to fit
 
 fit_1 = @(k,x)  x(:,2).^2.*((k(1)+ k(2).*x(:,1)+k(3).*x(:,1).^2) .* (sin(x(:,3)).^2+k(4)) ); % Function to fit
 
@@ -295,6 +298,9 @@ fit_5 = @(k,x)  x(:,2).^2.*(k(1).*sin(x(:,3)).^2+x(:,1).*(k(2).*sin(x(:,3))+k(3)
 % x = [AoA,V,skew]
 x = [test_db.Turn_Table,test_db.Windspeed,test_db.Skew_sp];
 y = [test_db.Fz_wing];
+
+fcn_0 = @(k) sqrt(mean((fit_0(k,x) - y).^2));           % Least-Squares cost function
+[s_all_0,RMS_all_0,~,~] = fminsearchbnd(fcn_0,[-6E-2;-1E0;2E-1;1;5E-1],[-inf -inf -inf 0.25 -inf],[inf inf inf 1.75 inf],options)
 
 fcn_1 = @(k) sqrt(mean((fit_1(k,x) - y).^2));           % Least-Squares cost function
 [s_all_1,RMS_all_1] = fminsearch(fcn_1,[-0.1;-0.8;0.8;0],options)

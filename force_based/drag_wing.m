@@ -238,11 +238,14 @@ axis([-inf inf -inf inf])
 grid on
 
 %% Defining fit functions
+% Fx0 = (k1+k2*alpha+k3*alpha^2)             *(k4*sin(skew)^2+k5)*V^2
 % Fx1 = (k1   +         (k2*alpha+k3*alpha^2))*(sin(skew)^2+k4)*V^2
 % Fx2 = (k1*(1+k5*skew)+(k2*alpha+k3*alpha^2))*(sin(skew)^2+k4)*V^2
 % Fx3 = ((k1+k2*alpha+k3*alpha^2)             *(sin(skew)^2+k4)*V^2
 % Fx4 = ((k1+k2*alpha+k3*alpha^2)             *(sin(skew)^2)+k4)*V^2
 % Fx5 = ((k1+k2*alpha+k3*alpha^2)             *(sin(skew)^2+k4)+k5)*V^2
+
+fit_0 = @(k,x)  x(:,2).^2.*(k(1)+ k(2).*x(:,1)+k(3).*x(:,1).^2) .* (k(4)*sin(x(:,3)).^2+k(5)); % Function to fit
 
 fit_1 = @(k,x)  x(:,2).^2.*(k(1)+ (k(2).*x(:,1)+k(3).*x(:,1).^2) .* (sin(x(:,3)).^2+k(4)) ); % Function to fit
 
@@ -262,6 +265,9 @@ skew_db = test_db(test_db.Windspeed<12 & test_db.Windspeed>9,:);
 x = [skew_db.Turn_Table,skew_db.Windspeed,skew_db.Skew_sp];
 y = [skew_db.Fx_wing];
 
+fcn_0 = @(k) sqrt(mean((fit_0(k,x) - y).^2));           % Least-Squares cost function
+[s_skew_0,RMS_skew_0,~,~] = fminsearchbnd(fcn_0,[-7E-3;2E-1;8E-1;1;-2E-1],[-inf -inf -inf 0.25 -inf],[inf inf inf 1.75 inf],options)
+
 fcn_1 = @(k) sqrt(mean((fit_1(k,x) - y).^2));           % Least-Squares cost function
 [s_skew_1,RMS_skew_1] = fminsearch(fcn_1,[0;0;0;-4E-2],options) 
 
@@ -272,11 +278,24 @@ fcn_3 = @(k) sqrt(mean((fit_3(k,x) - y).^2));           % Least-Squares cost fun
 [s_skew_3,RMS_skew_3] = fminsearch(fcn_3,[-2E-2;1E-1;8E-1;1E-1],options) 
 
 fcn_4 = @(k) sqrt(mean((fit_4(k,x) - y).^2));           % Least-Squares cost function
-[s_skew_4,RMS_skew_4] = fminsearch(fcn_4,[0;0;0;0;0],options) 
+[s_skew_4,RMS_skew_4] = fminsearch(fcn_4,[0;0;0;0],options) 
 
 fcn_5 = @(k) sqrt(mean((fit_5(k,x) - y).^2));           % Least-Squares cost function
 [s_skew_5,RMS_skew_5] = fminsearch(fcn_5,[0;0;0;0;0],options) 
 
+% s_skew_0 =
+% 
+%   -0.007386181905416
+%    0.183436211685844
+%    0.885769175324839
+%    0.941204978063043
+%   -0.183577798541005
+% 
+% 
+% RMS_skew_0 =
+% 
+%    0.779649638134149
+%    
 % s_skew_1 =
 % 
 %   -0.007875783089360
@@ -323,7 +342,6 @@ fcn_5 = @(k) sqrt(mean((fit_5(k,x) - y).^2));           % Least-Squares cost fun
 %    0.145783480638893
 %    0.668221743019729
 %   -0.008776655411892
-%   -0.056951442846835
 % 
 % 
 % RMS_skew_4 =
@@ -373,12 +391,17 @@ grid on
 % RMS on all airspeeds when gains are calculated using only one airspeed
 x = [test_db.Turn_Table,test_db.Windspeed,test_db.Skew_sp];
 y = [test_db.Fx_wing];
+RMS_all_0 = sqrt(mean((fit_0(s_skew_0,x) - y).^2))
 RMS_all_1 = sqrt(mean((fit_1(s_skew_1,x) - y).^2))
 RMS_all_2 = sqrt(mean((fit_2(s_skew_2,x) - y).^2))
 RMS_all_3 = sqrt(mean((fit_3(s_skew_3,x) - y).^2))
 RMS_all_4 = sqrt(mean((fit_4(s_skew_4,x) - y).^2))
 RMS_all_5 = sqrt(mean((fit_5(s_skew_5,x) - y).^2))
 
+% RMS_all_0 =
+% 
+%    0.659145547010621
+%    
 % RMS_all_1 =
 % 
 %    0.404281197138023
@@ -408,12 +431,16 @@ verif_db = test_db(test_db.Skew_sp==deg2rad(0) | test_db.Skew_sp==deg2rad(90),:)
 
 x = [verif_db.Turn_Table,verif_db.Windspeed,verif_db.Skew_sp];
 y = [verif_db.Fx_wing];
+RMS_quad_ff_0 = sqrt(mean((fit_0(s_skew_0,x) - y).^2))
 RMS_quad_ff_1 = sqrt(mean((fit_1(s_skew_1,x) - y).^2))
 RMS_quad_ff_2 = sqrt(mean((fit_2(s_skew_2,x) - y).^2))
 RMS_quad_ff_3 = sqrt(mean((fit_3(s_skew_3,x) - y).^2))
 RMS_quad_ff_4 = sqrt(mean((fit_4(s_skew_4,x) - y).^2))
 RMS_quad_ff_5 = sqrt(mean((fit_5(s_skew_5,x) - y).^2))
 
+% RMS_quad_ff_0 =
+% 
+%    0.659145547010621
 % RMS_quad_ff_1 =
 % 
 %    0.400126297257944
@@ -439,6 +466,7 @@ RMS_quad_ff_5 = sqrt(mean((fit_5(s_skew_5,x) - y).^2))
 %    0.404946329442834
 
 %% Fit on all Airspeed
+% Fx0 = (k1+k2*alpha+k3*alpha^2)             *(k4*sin(skew)^2+k5)*V^2
 % Fx1 = (k1   +         (k2*alpha+k3*alpha^2))*(sin(skew)^2+k4)*V^2
 % Fx2 = (k1*(1+k5*skew)+(k2*alpha+k3*alpha^2))*(sin(skew)^2+k4)*V^2
 % Fx3 = ((k1+k2*alpha+k3*alpha^2)             *(sin(skew)^2+k4)*V^2
@@ -449,6 +477,9 @@ RMS_quad_ff_5 = sqrt(mean((fit_5(s_skew_5,x) - y).^2))
 % x = [AoA,V,skew]
 x = [test_db.Turn_Table,test_db.Windspeed,test_db.Skew_sp];
 y = [test_db.Fx_wing];
+
+fcn_0 = @(k) sqrt(mean((fit_0(k,x) - y).^2));           % Least-Squares cost function
+[s_all_0,RMS_all_0] = fminsearchbnd(fcn_0,[-7E-3;2E-1;8E-1;1;-2E-1],[-inf -inf -inf 0.25 -inf],[inf inf inf 1.75 inf],options)
 
 fcn_1 = @(k) sqrt(mean((fit_1(k,x) - y).^2));           % Least-Squares cost function
 [s_all_1,RMS_all_1] = fminsearch(fcn_1,[0;0;0;-4E-2],options)
@@ -465,6 +496,19 @@ fcn_4 = @(k) sqrt(mean((fit_4(k,x) - y).^2));           % Least-Squares cost fun
 fcn_5 = @(k) sqrt(mean((fit_5(k,x) - y).^2));           % Least-Squares cost function
 [s_all_5,RMS_all_5] = fminsearch(fcn_5,[0;0;0;0;0],options) 
 
+% s_all_0 =
+% 
+%   -0.009696894872385
+%    0.188653721021480
+%    0.796271349427999
+%    0.964916228654309
+%   -0.126964056435609
+% 
+% 
+% RMS_all_0 =
+% 
+%    0.591305496523635
+%
 % s_all_1 =
 % 
 %   -0.006849932988326
@@ -537,12 +581,17 @@ verif_db = test_db(test_db.Skew_sp==deg2rad(0) | test_db.Skew_sp==deg2rad(90),:)
 
 x = [verif_db.Turn_Table,verif_db.Windspeed,verif_db.Skew_sp];
 y = [verif_db.Fx_wing];
+RMS_quad_ff_0 = sqrt(mean((fit_0(s_all_0,x) - y).^2))
 RMS_quad_ff_1 = sqrt(mean((fit_1(s_all_1,x) - y).^2))
 RMS_quad_ff_2 = sqrt(mean((fit_2(s_all_2,x) - y).^2))
 RMS_quad_ff_3 = sqrt(mean((fit_3(s_all_3,x) - y).^2))
 RMS_quad_ff_4 = sqrt(mean((fit_4(s_all_4,x) - y).^2))
 RMS_quad_ff_5 = sqrt(mean((fit_5(s_all_5,x) - y).^2))
 
+% RMS_quad_ff_0 =
+% 
+%    0.835419515709920
+%
 % RMS_quad_ff_1 =
 % 
 %    0.445554691403407
