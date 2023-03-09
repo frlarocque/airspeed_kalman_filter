@@ -89,51 +89,26 @@ for i=1:size(test_db,1)
     test_db.Drag(i) = temp_x(2);
 end
 
-%% Obtaining elevator Fz
-% Fz = body lift + wing lift + elevator lift
-% @ 0 elevator command, elevator not creating any lift (symmetric airfoil)
-% offset everything by 0 elevator command lift
+%% Obtaining elevator Fx
+% Fx = body drag + wing drag + elevator drag
+% @ 0 elevator command, elevator creating minimal drag
+% offset everything by 0 elevator command drag
 
 windspeed_bins = unique(round(test_db.Windspeed,0));
 test_db.Windspeed_bin = round(test_db.Windspeed,0);
 
 for i=1:size(test_db,1)
-    offset = interp1(test_db.elev_angle(test_db.Windspeed_bin==test_db.Windspeed_bin(i)),test_db.Fz(test_db.Windspeed_bin==test_db.Windspeed_bin(i)),0);
-    test_db.Fz_elev(i) = test_db.Fz(i)-offset;
-    test_db.Lift_elev(i) = test_db.Lift(i)-offset;
+    offset = interp1(test_db.elev_angle(test_db.Windspeed_bin==test_db.Windspeed_bin(i)),test_db.Fx(test_db.Windspeed_bin==test_db.Windspeed_bin(i)),0);
+    test_db.Fx_elev(i) = test_db.Fx(i)-offset;
+    test_db.Drag_elev(i) = test_db.Drag(i)-offset;
 end
 
 % Calculating std dev of new Fz_pusher
 % Mean C = mean A - mean B --> Variance C = Variance A + Variance B - 2*Correlation(A,B)*SD A * SD B
 % Assumming uncorrelated
-test_db.std_Fz_elev = sqrt(test_db.std_Fz.^2+test_db.std_Fz.^2);
+test_db.std_Fx_elev = sqrt(test_db.std_Fx.^2+test_db.std_Fx.^2);
 
-%% Plot Fz
-
-windspeed_bins = unique(round(test_db.Windspeed,0));
-test_db.Windspeed_bin = round(test_db.Windspeed,0);
-
-figure
-legend_lbl = {};
-col=linspecer(length(windspeed_bins));
-hdls = [];
-for i=1:length(windspeed_bins)
-    temp_db = test_db(test_db.Windspeed_bin==windspeed_bins(i),:);
-
-    hdls(i) = plot(rad2deg(temp_db.elev_angle),temp_db.Fz_elev,'*','color',col(i,:));
-    hold on
-
-    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
-end
-
-xlabel('Elevator angle [deg]')
-ylabel('F_z [N]')
-lgd1 = legend(hdls,legend_lbl,'location','southeast');
-title(lgd1,'Airspeed') % add legend title
-sgtitle('Fz Lift Data from Wind Tunnel tests')
-grid on
-
-%% Plot Lift
+%% Plot Fx
 
 windspeed_bins = unique(round(test_db.Windspeed,0));
 test_db.Windspeed_bin = round(test_db.Windspeed,0);
@@ -145,41 +120,42 @@ hdls = [];
 for i=1:length(windspeed_bins)
     temp_db = test_db(test_db.Windspeed_bin==windspeed_bins(i),:);
 
-    hdls(i) = plot(rad2deg(temp_db.elev_angle),temp_db.Lift_elev,'*','color',col(i,:));
+    hdls(i) = plot(rad2deg(temp_db.elev_angle),temp_db.Fx_elev,'*','color',col(i,:));
     hold on
 
     legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
 end
 
 xlabel('Elevator angle [deg]')
-ylabel('Lift [N]')
+ylabel('F_x [N]')
 lgd1 = legend(hdls,legend_lbl,'location','southeast');
 title(lgd1,'Airspeed') % add legend title
-sgtitle('Lift Data from Wind Tunnel tests')
+sgtitle('Fx Drag Data from Wind Tunnel tests')
 grid on
 
 %% Select elevator command not stalled
-lin_db = test_db(abs(test_db.elev_angle)<deg2rad(15),:);
+lin_db = test_db(abs(test_db.elev_angle)<deg2rad(25),:);
 
-% Fz = (k1+k2*alpha)*V^2
+% Fz = (k1+k2*alpha+k3*alpha^2)*V^2
 % k  = [k1 k2]
 % x = [AoA,V]
 x = [lin_db.elev_angle,lin_db.Windspeed];
-y = [lin_db.Fz_elev];
+y = [lin_db.Fx_elev];
 
-fit_elev = @(k,x)  (k(1)+k(2).*x(:,1)).*x(:,2).^2; % Function to fit
+fit_elev = @(k,x)  (k(1)+k(2).*x(:,1)+k(3).*x(:,1).^2).*x(:,2).^2; % Function to fit
 fcn_elev = @(k) sqrt(mean((fit_elev(k,x) - y).^2));           % Least-Squares cost function
-[s_elev,RMS_elev] = fminsearch(fcn_elev,[0;1E-3],options) %bound first coefficient to negative value
+[s_elev,RMS_elev] = fminsearch(fcn_elev,[0;1E-3;-1E-5],options) %bound first coefficient to negative value
 
 % s_elev =
 % 
-%    0.001095783351808
-%   -0.214593908091671
+%   -0.002608468213419
+%   -0.030215146812742
+%   -0.000271549151544
 % 
 % 
 % RMS_elev =
 % 
-%    0.431208898300762
+%    0.512552710574194
 
 figure
 windspeed_bins = unique(round(test_db.Windspeed,0));
@@ -191,8 +167,8 @@ for i=1:length(windspeed_bins)
     temp_db = test_db(test_db.Windspeed_bin==windspeed_bins(i),:);
     temp_x = [linspace(min(lin_db.elev_angle),max(lin_db.elev_angle),10)',ones(10,1).*windspeed_bins(i)];
 
-    if show_error_bar; hdls(i) = errorbar(rad2deg(temp_db.elev_angle),temp_db.Fz_elev,temp_db.std_Fz,'*','color',col(i,:));
-    else; hdls(i) = plot(rad2deg(temp_db.elev_angle),temp_db.Fz_elev,'*','color',col(i,:)); end
+    if show_error_bar; hdls(i) = errorbar(rad2deg(temp_db.elev_angle),temp_db.Fx_elev,temp_db.std_Fx,'*','color',col(i,:));
+    else; hdls(i) = plot(rad2deg(temp_db.elev_angle),temp_db.Fx_elev,'*','color',col(i,:)); end
     
     hold on
     plot(rad2deg(linspace(min(lin_db.elev_angle),max(lin_db.elev_angle),10)),fit_elev(s_elev,temp_x),'--','color',col(i,:))
@@ -200,11 +176,10 @@ for i=1:length(windspeed_bins)
 end
 lgd1 = legend(hdls,legend_lbl,'location','southwest');
 title(lgd1,'Airspeed') % add legend title
-title(sprintf('Elevator Fit\nFz = (k1+k2*alpha)*V^2\nK1 = %2.2e K2 = %2.2e  |  RMS = %2.2f',s_elev(1),s_elev(2),RMS_elev))
+title(sprintf('Elevator Fit\nFx = (k1+k2*alpha+k3*alpha^2)*V^2\nK1 = %2.2e K2 = %2.2e K3 = %2.2e  |  RMS = %2.2f',s_elev(1),s_elev(2),s_elev(3),RMS_elev))
 xlabel('Elevator angle [deg]')
-ylabel('Elevator F_z [N]')
+ylabel('Elevator F_x [N]')
 axis([-inf inf -inf inf])
 grid on
 
-%Fz = (1.095783351807783E-3+-2.145939080916709E-1*alpha)*V^2
-
+%Fx = (-2.608468213419211E-3  + -3.021514681274200E-2*alpha+ -2.715491515441531E4*alpha^2)*V^2
