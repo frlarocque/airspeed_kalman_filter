@@ -3,6 +3,7 @@ clear all
 close all
 clc
 
+format long
 % Add all paths
 addpath('/home/frederic/Documents/thesis/tools/airspeed_estimation/functions/');
 
@@ -15,8 +16,9 @@ load(fullfile(path,file))
 % Setup Options
 graph = 0;
 beta_est = 0;
+alpha_est = 0;
 recalculate_variance = false;
-pitot_correction = 1.1;
+pitot_correction = 1.0;
 
 % Run setup
 wind_triangle_setup
@@ -40,7 +42,7 @@ wind_triangle_setup
 epsi = 1E-2;
 
 t = airspeed_pitot.flight.time;
-dt = mean(t(2:end)-t(1:end-1));
+dt = mean(diff(t));
 
 f_fh = str2func('f_2');
 g_fh = str2func('g_2');
@@ -49,21 +51,25 @@ x_0 = [0 0 0 0 0 0]';
 u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data]';
 z_list = [Vg_NED.flight.data alpha.flight.data beta.flight.data]'; %measurement
 
+% Filter Data coming in
+filter_freq = 10.0; %[Hz]
+[b,a] = butter(4,2*filter_freq*dt,'low');
+u_list = filter(b,a,u_list,[],2);
+z_list = filter(b,a,z_list,[],2);
 
 cov_list = 7.8E-8;%1.43E-6; %7.8E-8; ;
 kalman_res = {};
 
-    
 wind_var = [1 1 1]*cov_list(1);
 Q = diag([IMU_accel.var,IMU_rate.var,wind_var]); %process noise
 P_0 = diag([1E-2 1E-2 1E-2 wind_var]); %covariance
-R = diag([Vg_NED.var IMU_angle.var(2) 1E-6]); %measurement noise
+R = diag([Vg_NED.var IMU_angle.var(2) 1E-5]); %measurement noise
 
 kalman_res{1} = run_EKF(epsi,t,Q,R,P_0,x_0,u_list,z_list,f_fh,g_fh);
 kalman_res{1}.error = error_quantification(kalman_res{1}.x(1,:)',airspeed_pitot.flight.data);
 
 %% Plot
-plot_EKF_result(kalman_res{1},airspeed_estimation,airspeed_pitot,wind)
+plot_EKF_result(kalman_res{1},airspeed_estimation,airspeed_pitot.flight,wind)
 fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(sqrt(kalman_res{select}.x(4,:).^2+kalman_res{select}.x(5,:).^2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
 
 %% Plot covariance
