@@ -18,5 +18,6 @@ if graph
     xlabel('Time [s]')
     ylabel('Angle [deg]')
     grid on
+end
 
 end
