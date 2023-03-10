@@ -6,6 +6,13 @@ function L = L(f_fh,x,u,epsi)
 %           -x: states
 %           -u: inputs
 %           -epsi: epsilon to perform numerical derivative
+%
+% L = [] nxm where n=number of states, m=number of noise
+%
+% L = [ dx_1/dw_1 dx_1/dw_2 ... dx_1/dw_m ;
+%       dx_2/dw_1 dx_2/dw_2 ....dx_2/dw_m ;
+%       ...                               ;
+%       dx_n/dw_1 dx_n/dw_2 ....dx_n/dw_m ];
 
 noise_length = 9;
 

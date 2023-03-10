@@ -6,6 +6,13 @@ function F = F(f_fh,x,u,epsi)
 %           -x: states
 %           -u: inputs
 %           -epsi: epsilon to perform numerical derivative
+%
+% F = [] nxn where n=number of states, n=number of states
+%
+% F = [ dx_1/dx_1 dx_1/dx_2 ... dx_1/dx_n ;
+%       dx_2/dx_1 dx_2/dx_2 ....dx_2/dx_n ;
+%       ...                               ;
+%       dx_n/dx_1 dx_n/dx_2 ....dx_n/dx_n ];
 
 F = zeros(length(x),length(x));
 for i=1:length(x)

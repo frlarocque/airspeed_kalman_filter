@@ -6,6 +6,14 @@ function G = G(g_fh,x,u,epsi)
 %           -x: states
 %           -u: inputs
 %           -epsi: epsilon to perform numerical derivative
+%
+% G = [] nxm where n=number of outputs, m=number of states
+%
+% G = [ dg_1/dx_1 dg_1/dx_2 ... dg_1/dx_m ;
+%       dg_2/dx_1 dg_2/dx_2 ....dg_2/dx_m ;
+%       ...                               ;
+%       dg_n/dx_1 dg_n/dx_2 ....dg_n/dx_m ];
+
 
 y = g_fh(x,u);
 G = zeros(length(y),length(x));
