@@ -6,7 +6,7 @@ ax1=subplot(3,1,1);
 plot(airspeed_estimation.time,airspeed_estimation.data)
 hold on
 plot(kalman_res.t,kalman_res.x(1,:));
-plot(airspeed_pitot.flight.time,airspeed_pitot.flight.data)
+plot(airspeed_pitot.time,airspeed_pitot.data)
 title('Airspeed Estimation Kalman')
 xlabel('Time [s]')
 ylabel('Speed [m/s]')
@@ -32,8 +32,18 @@ xlabel('Time [s]')
 ylabel('Speed [m/s]')
 legend('u_b','v_b','w_b')
 grid on
-
 linkaxes([ax1,ax2,ax3],'x')
+
+if isfield(airspeed_pitot,'valid_times')
+    subplot(3,1,1)
+    for i=1:length(airspeed_pitot.valid_times)
+        patch([airspeed_pitot.valid_times{i}(1) airspeed_pitot.valid_times{i}(1) airspeed_pitot.valid_times{i}(2) airspeed_pitot.valid_times{i}(2)],...
+              [min(airspeed_pitot.data),max(airspeed_pitot.data),max(airspeed_pitot.data),min(airspeed_pitot.data)],'green','LineStyle',"none",'FaceAlpha',.1);
+    end
+    legend('Estimation Knowing wind','Kalman Estimation','Measured Airspeed','Valid Pitot Tube')
+end
+
+
 
 sgtitle(sprintf('Wind Covariance %.1d | RMS error %.2f',kalman_res.Q(end,end),kalman_res.error.error_RMS))
 end
