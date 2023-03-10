@@ -57,9 +57,12 @@ filter_freq = 10.0; %[Hz]
 u_list = filter(b,a,u_list,[],2);
 z_list = filter(b,a,z_list,[],2);
 
-% beta_est_0 = beta_estimation_acc(5,u_list(2,:)',airspeed_pitot.flight.data,0,0);
-% beta_est_1 = beta_estimation_acc(5,u_list(2,:)',airspeed_pitot.flight.data,1,0);
-% beta_est_2 = beta_estimation_acc(5,u_list(2,:)',airspeed_pitot.flight.data,2,0);
+% figure
+% plot(t,u_list(2,:))
+% 
+% beta_est_0 = beta_estimation_acc(1,u_list(2,:)',airspeed_pitot.flight.data,0,0);
+% beta_est_1 = beta_estimation_acc(1,u_list(2,:)',airspeed_pitot.flight.data,1,0);
+% beta_est_2 = beta_estimation_acc(1,u_list(2,:)',airspeed_pitot.flight.data,2,0);
 % 
 % figure
 % subplot(3,1,1)
@@ -100,13 +103,21 @@ for k=1:length(t)
     
     R_variable = R;
 
-    if ~airspeed_pitot.flight.valid(k)
-        R_variable(4,4) = 1E6.*R_variable(4,4);
+%     if ~airspeed_pitot.flight.valid(k)
+%         R_variable(4,4) = 1E6.*R_variable(4,4);
+%     end
+%     if x(1)<0.5
+%         beta_est=0;
+%     else
+%         beta_est = (u(2)./(x(1).^2))./-5E0;
+%         beta_est = beta_est-ceil(beta_est/(2*pi)-0.5)*2*pi;
+%     end
+%     z(4) = beta_est;
+% 
+    if abs(z(4))>deg2rad(25)
+        R_variable(4,4) = 1E2.*R_variable(4,4);
     end
 
-%     if abs(beta_est(k))>deg2rad(30)
-%         R_variable(5,5) = 1E4.*R_variable(5,5);
-%     end
 %     if vecnorm(z(1:2))<1.5
 %         R_variable = zeros(size(R));
 %     end
