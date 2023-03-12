@@ -138,7 +138,7 @@ if graph
     trajectory(position_NED.flight,Vg_NED.flight,IMU_angle.flight,10,wind.vect)
 end
 %% Beta estimation using Wind
-pitot_critical_angle = deg2rad(30);
+pitot_critical_angle = deg2rad(25);
 
 if beta_est
     [beta.flight.data] = beta_estimation_wind(Vg_NED.flight,IMU_angle.flight,wind,graph);
@@ -245,6 +245,7 @@ else
     Vg_NED.var    =1E-05.*[7.16084294336657 1.64270323320975 2.02350600895777];
     IMU_angle.var =1E-06.*[0.08797774563941 0.11256199212189 5.52264453785610];
 end
+pusher_prop_rpm.var = 75.^2; %Taken from wind tunnel test data
 
 %% Visualize data going in Kalman
 if graph

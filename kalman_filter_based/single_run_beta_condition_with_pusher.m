@@ -15,7 +15,7 @@ load(fullfile(path,file))
 %% Setup
 % Setup Options
 graph = 0;
-beta_est = 0;
+beta_est = 1;
 alpha_est = 0;
 recalculate_variance = false;
 pitot_correction = 1.0;
@@ -45,7 +45,7 @@ t = airspeed_pitot.flight.time;
 dt = mean(diff(t));
 
 f_fh = str2func('f_2');
-g_fh = str2func('g_5');
+g_fh = str2func('g_6');
 
 % Get beta estimation from accel
 filter_freq = 0.1; %[Hz]
@@ -54,36 +54,21 @@ beta_est_accel = min(max((filter(b,a,IMU_accel.flight.data(:,2))./filter(b,a,air
 
 x_0 = [0 0 0 0 0 0]';%[0 0 0 -1.6 -4 0]';
 u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data]';
-z_list = [Vg_NED.flight.data beta.flight.data]'; %measurement
+z_list = [Vg_NED.flight.data beta_est_accel pusher_prop_rpm.flight.data]'; %measurement
 
 % Filter Data coming in
 filter_freq = 10.0; %[Hz]
-[b,a] = butter(4,2*filter_freq*dt,'low');
+[b,a] = butter(2,2*filter_freq*dt,'low');
 u_list = filter(b,a,u_list,[],2);
 z_list = filter(b,a,z_list,[],2);
-
-% figure
-% plot(t,u_list(2,:))
-% 
-% beta_est_0 = beta_estimation_acc(1,u_list(2,:)',airspeed_pitot.flight.data,0,0);
-% beta_est_1 = beta_estimation_acc(1,u_list(2,:)',airspeed_pitot.flight.data,1,0);
-% beta_est_2 = beta_estimation_acc(1,u_list(2,:)',airspeed_pitot.flight.data,2,0);
-% 
-% figure
-% subplot(3,1,1)
-% plot(t,rad2deg(beta_est_0))
-% subplot(3,1,2)
-% plot(t,rad2deg(beta_est_1))
-% subplot(3,1,3)
-% plot(t,rad2deg(beta_est_2))
 
 cov_list = 7.8E-7;%1.43E-6; %7.8E-8; ;
 kalman_res = {};
 
 wind_var = [1 1 1E-1]*cov_list(1);
 Q = diag([IMU_accel.var,IMU_rate.var,wind_var]); %process noise
-P_0 = diag([1E-2 1E-2 1E-2 wind_var]); %covariance
-R = diag([Vg_NED.var 1E-5]); %measurement noise
+P_0 = diag([1E-2 1E-2 1E-2 1E1.*wind_var]); %covariance
+R = diag([Vg_NED.var 1E-3 6E2]); %measurement noise
 
 %%
 EKF_res = {};
@@ -123,11 +108,18 @@ for k=1:length(t)
     if abs(z(4))>deg2rad(25)
         R_variable{k}(4,4) = 1E2.*R_variable{k}(4,4);
     end
+    
+    if z(5)<500
+        R_variable{k}(5,5) = 1E4.*R_variable{k}(5,5);
+    end
 
 %     if vecnorm(z(1:2))<1.5
 %         R_variable = zeros(size(R));
 %     end
 
+    %if t(k)>410 && t(k)<411
+    %    fprintf('410 s\n')
+    %end
 
     F_val = F(f_fh,x,u,epsi);
     G_val = G(g_fh,x,u,epsi);
@@ -170,7 +162,6 @@ fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',me
 
 %% Plot covariance
 
-
 P_temp = zeros(length(kalman_res{select}.P),length(kalman_res{select}.P{1}));
 for k=1:length(kalman_res{select}.P)
     P_temp(k,:) = kalman_res{select}.P{k}(sub2ind(size(kalman_res{select}.P{k}),1:size(kalman_res{select}.P{k},1),1:size(kalman_res{select}.P{k},2))); %get diagonal elements
@@ -178,20 +169,21 @@ end
 
 figure
 ax1 = subplot(2,1,1);
-semilogy(kalman_res{select}.t,P_temp(:,[1:3]))
+semilogy(kalman_res{select}.t,P_temp(:,[1:2]))
 xlabel('Time [s]')
 ylabel('Covariance')
 title('Body Velocity')
-legend('u','v','w')
+legend('u','v')
 grid on
 
 ax2 = subplot(2,1,2);
-semilogy(kalman_res{select}.t,P_temp(:,[4:6]))
+semilogy(kalman_res{select}.t,P_temp(:,[4:5]))
 xlabel('Time [s]')
 ylabel('Covariance')
 title('Wind Velocity')
-legend('mu_x','mu_y','mu_z')
+legend('mu_x','mu_y')
 grid on
 
 linkaxes([ax1,ax2],'x')
 sgtitle(sprintf('Wind Covariance %.1d | RMS error %.2f',cov_list(select),kalman_res{select}.error.error_RMS))
+
