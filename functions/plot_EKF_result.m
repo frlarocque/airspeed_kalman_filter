@@ -3,10 +3,10 @@ function plot_EKF_result(kalman_res,airspeed_estimation,airspeed_pitot,wind)
 
 figure
 ax1=subplot(3,1,1);
-plot(airspeed_estimation.time,airspeed_estimation.data)
+s1 = plot(airspeed_estimation.time,airspeed_estimation.data);
 hold on
-plot(kalman_res.t,kalman_res.x(1,:));
-plot(airspeed_pitot.time,airspeed_pitot.data)
+s2 = plot(kalman_res.t,kalman_res.x(1,:));
+s3 = plot(airspeed_pitot.time,airspeed_pitot.data);
 title('Airspeed Estimation Kalman')
 xlabel('Time [s]')
 ylabel('Speed [m/s]')
@@ -37,10 +37,12 @@ linkaxes([ax1,ax2,ax3],'x')
 if isfield(airspeed_pitot,'valid_times')
     subplot(3,1,1)
     for i=1:length(airspeed_pitot.valid_times)
-        patch([airspeed_pitot.valid_times{i}(1) airspeed_pitot.valid_times{i}(1) airspeed_pitot.valid_times{i}(2) airspeed_pitot.valid_times{i}(2)],...
+        P = patch([airspeed_pitot.valid_times{i}(1) airspeed_pitot.valid_times{i}(1) airspeed_pitot.valid_times{i}(2) airspeed_pitot.valid_times{i}(2)],...
               [min(airspeed_pitot.data),max(airspeed_pitot.data),max(airspeed_pitot.data),min(airspeed_pitot.data)],'green','LineStyle',"none",'FaceAlpha',.1);
+        uistack(P, 'bottom');
     end
-    legend('Estimation Knowing wind','Kalman Estimation','Measured Airspeed','Valid Pitot Tube')
+    
+    legend([s1 s2 s3 P],'Estimation Knowing wind','Kalman Estimation','Measured Airspeed','Valid Pitot Tube')
 end
 
 
