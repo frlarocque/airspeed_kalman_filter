@@ -60,6 +60,25 @@ elseif strcmp(conditions,'OUTDOOR')
     %IMU_rate.raw.data = deg2rad([ac_data.IMU_GYRO_SCALED.gp_alt ac_data.IMU_GYRO_SCALED.gq_alt ac_data.IMU_GYRO_SCALED.gr_alt]); IMU_rate.raw.time = ac_data.IMU_GYRO_SCALED.timestamp;
     %IMU_accel.raw.data = [ac_data.IMU_ACCEL_SCALED.ax_alt ac_data.IMU_ACCEL_SCALED.ay_alt ac_data.IMU_ACCEL_SCALED.az_alt]; IMU_accel.raw.time = ac_data.IMU_ACCEL_SCALED.timestamp;
     
+    act_values = double(string(ac_data.ACTUATORS.values));
+    control_surface_pprz.raw.data = act_values(:,2:4);control_surface_pprz.raw.time = ac_data.ACTUATORS.timestamp;
+    hover_prop_pprz.raw.data = act_values(:,5:8);hover_prop_pprz.raw.time = ac_data.ACTUATORS.timestamp;
+    pusher_prop_pprz.raw.data = act_values(:,9);pusher_prop_pprz.raw.time = ac_data.ACTUATORS.timestamp;
+    
+    hover_prop_rpm.raw.time = ac_data.ESC_PER_MOTOR.motor_0.timestamp;
+    hover_prop_rpm.raw.data(:,1) = ac_data.ESC_PER_MOTOR.motor_0.rpm;
+    temp_data = resample(timeseries(ac_data.ESC_PER_MOTOR.motor_1.rpm,ac_data.ESC_PER_MOTOR.motor_1.timestamp), hover_prop_rpm.raw.time);
+    hover_prop_rpm.raw.data(:,2) = temp_data.data;
+    temp_data = resample(timeseries(ac_data.ESC_PER_MOTOR.motor_2.rpm,ac_data.ESC_PER_MOTOR.motor_2.timestamp), hover_prop_rpm.raw.time);
+    hover_prop_rpm.raw.data(:,3) = temp_data.data;
+    temp_data = resample(timeseries(ac_data.ESC_PER_MOTOR.motor_3.rpm,ac_data.ESC_PER_MOTOR.motor_3.timestamp), hover_prop_rpm.raw.time);
+    hover_prop_rpm.raw.data(:,4) = temp_data.data;
+
+    pusher_prop_rpm.raw.data = ac_data.ESC_PER_MOTOR.motor_4.rpm;pusher_prop_rpm.raw.time = ac_data.ESC_PER_MOTOR.motor_4.timestamp;
+
+    skew.raw.data = round(ac_data.ROT_WING_CONTROLLER.wing_angle_deg);skew.raw.time = ac_data.ROT_WING_CONTROLLER.timestamp;
+
+
 else
     fprintf('Wrong or No Condition')
 end
@@ -78,6 +97,18 @@ cut_condition = [ac_data.motors_on(end-1),ac_data.motors_on(end)];
 [Vg_NED.flight.data,Vg_NED.flight.time] = cut_resample(Vg_NED.raw.data,Vg_NED.raw.time,resample_time,cut_condition);
 [IMU_angle.flight.data,IMU_angle.flight.time] = cut_resample(IMU_angle.raw.data,IMU_angle.raw.time,resample_time,cut_condition);
 [position_NED.flight.data,position_NED.flight.time] = cut_resample(position_NED.raw.data,position_NED.raw.time,resample_time,cut_condition);
+[control_surface_pprz.flight.data,control_surface_pprz.flight.time] = cut_resample(control_surface_pprz.raw.data,control_surface_pprz.raw.time,resample_time,cut_condition);
+[hover_prop_pprz.flight.data,hover_prop_pprz.flight.time] = cut_resample(hover_prop_pprz.raw.data,hover_prop_pprz.raw.time,resample_time,cut_condition);
+[pusher_prop_pprz.flight.data,pusher_prop_pprz.flight.time] = cut_resample(pusher_prop_pprz.raw.data,pusher_prop_pprz.raw.time,resample_time,cut_condition);
+
+[hover_prop_rpm.flight.data,hover_prop_rpm.flight.time] = cut_resample(hover_prop_rpm.raw.data,hover_prop_rpm.raw.time,resample_time,cut_condition);
+hover_prop_rpm.flight.data(isnan(hover_prop_rpm.flight.data)) = 0;
+
+[pusher_prop_rpm.flight.data,pusher_prop_rpm.flight.time] = cut_resample(pusher_prop_rpm.raw.data,pusher_prop_rpm.raw.time,resample_time,cut_condition);
+pusher_prop_rpm.flight.data(isnan(pusher_prop_rpm.flight.data)) = 0;
+
+[skew.flight.data,skew.flight.time] = cut_resample(skew.raw.data,skew.raw.time,resample_time,cut_condition);
+skew.flight.data(isnan(skew.flight.data)) = 0;
 
 % Arbitrarly set so far
     % To add a square wave: +deg2rad(10*square(IMU_angle.flight.time./10))

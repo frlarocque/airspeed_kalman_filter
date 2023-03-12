@@ -2,6 +2,13 @@ function x_axis_related_plot(IMU_accel,airspeed_pitot,pusher_prop_RPM,IMU_angle,
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
+% Remove NAN
+IMU_accel.data(isnan(IMU_accel.data))=0;
+airspeed_pitot.data(isnan(airspeed_pitot.data))=0;
+pusher_prop_RPM.data(isnan(pusher_prop_RPM.data))=0;
+IMU_angle.data(isnan(IMU_angle.data))=0;
+
+% Filter
 IMU_accel.data = low_butter(IMU_accel.data,low_pass_value,1/mean(diff(IMU_accel.time)),0,4);
 airspeed_pitot.data = low_butter(airspeed_pitot.data,low_pass_value,1/mean(diff(airspeed_pitot.time)),0,4);
 pusher_prop_RPM.data = low_butter(pusher_prop_RPM.data,low_pass_value,1/mean(diff(pusher_prop_RPM.time)),0,4);
