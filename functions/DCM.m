@@ -9,6 +9,11 @@ function DCM = DCM(phi,theta,psi)
 %       [x_b;y_b;z_b] = inv(DCM(phi,theta,psi))*[x_NED;y_NED;z_NED]
 %
 % Angles in RAD
+%
+% [c(psi)*c(theta)  -s(psi)*c(phi)+c(psi)*s(theta)*s(phi) s(psi)*s(phi)+c(psi)*s(theta)*c(phi  ;
+%  s(psi)*c(theta)  c(psi)c(phi)+s(psi)*s(theta)*s(phi)   -c(psi)*s(phi)+s(psi)*s(theta)*c(phi);
+%  s(theta)         c(theta)*s(phi)                       c(theta)*c(phi)                      ];
+%
 
 DCM = ...
 [cos(psi)     -sin(psi) 0;
