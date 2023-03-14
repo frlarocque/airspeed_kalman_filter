@@ -61,9 +61,9 @@ elseif strcmp(conditions,'OUTDOOR')
     %IMU_accel.raw.data = [ac_data.IMU_ACCEL_SCALED.ax_alt ac_data.IMU_ACCEL_SCALED.ay_alt ac_data.IMU_ACCEL_SCALED.az_alt]; IMU_accel.raw.time = ac_data.IMU_ACCEL_SCALED.timestamp;
     
     act_values = double(string(ac_data.ACTUATORS.values));
-    control_surface_pprz.raw.data = act_values(:,2:4);control_surface_pprz.raw.time = ac_data.ACTUATORS.timestamp;
-    hover_prop_pprz.raw.data = act_values(:,5:8);hover_prop_pprz.raw.time = ac_data.ACTUATORS.timestamp;
-    pusher_prop_pprz.raw.data = act_values(:,9);pusher_prop_pprz.raw.time = ac_data.ACTUATORS.timestamp;
+    control_surface_pprz.raw.data = act_values(:,[1:3,9]);control_surface_pprz.raw.time = ac_data.ACTUATORS.timestamp;
+    hover_prop_pprz.raw.data = act_values(:,4:7);hover_prop_pprz.raw.time = ac_data.ACTUATORS.timestamp;
+    pusher_prop_pprz.raw.data = act_values(:,8);pusher_prop_pprz.raw.time = ac_data.ACTUATORS.timestamp;
     clear act_values
 
     hover_prop_rpm.raw.time = ac_data.ESC_PER_MOTOR.motor_0.timestamp;

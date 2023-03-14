@@ -62,10 +62,11 @@ elseif strcmp(conditions,'OUTDOOR')
     IMU_angle.raw.data = deg2rad([ac_data.ROTORCRAFT_FP.phi_alt,ac_data.ROTORCRAFT_FP.theta_alt,ac_data.ROTORCRAFT_FP.psi_alt]);IMU_angle.raw.time=ac_data.ROTORCRAFT_FP.timestamp;
     
     act_values = double(string(ac_data.ACTUATORS.values));
-    control_surface_pprz.raw.data = act_values(:,2:4);control_surface_pprz.raw.time = ac_data.ACTUATORS.timestamp;
-    hover_prop_pprz.raw.data = act_values(:,5:8);hover_prop_pprz.raw.time = ac_data.ACTUATORS.timestamp;
-    pusher_prop_pprz.raw.data = act_values(:,9);pusher_prop_pprz.raw.time = ac_data.ACTUATORS.timestamp;
-    
+    control_surface_pprz.raw.data = act_values(:,[1:3,9]);control_surface_pprz.raw.time = ac_data.ACTUATORS.timestamp;
+    hover_prop_pprz.raw.data = act_values(:,4:7);hover_prop_pprz.raw.time = ac_data.ACTUATORS.timestamp;
+    pusher_prop_pprz.raw.data = act_values(:,8);pusher_prop_pprz.raw.time = ac_data.ACTUATORS.timestamp;
+    clear act_values
+
     hover_prop_rpm.raw.time = ac_data.ESC_PER_MOTOR.motor_0.timestamp;
     hover_prop_rpm.raw.data(:,1) = ac_data.ESC_PER_MOTOR.motor_0.rpm;
     temp_data = resample(timeseries(ac_data.ESC_PER_MOTOR.motor_1.rpm,ac_data.ESC_PER_MOTOR.motor_1.timestamp), hover_prop_rpm.raw.time);
@@ -113,7 +114,6 @@ skew.flight.data(isnan(skew.flight.data)) = 0;
 
 
 % Arbitrarly set so far
-    % To add a square wave: +deg2rad(10*square(IMU_angle.flight.time./10))
 alpha.flight.data = IMU_angle.flight.data(:,2);alpha.flight.time = IMU_angle.flight.time;
 beta.flight.data = 0*ones(length(IMU_angle.flight.data),1);beta.flight.time = IMU_angle.flight.time;
 
@@ -174,11 +174,12 @@ airspeed_pitot.flight.valid_times{i} = [valid_start(i) valid_end(i)];
 end
 
 %% Comparing pitot airspeed and estimated pitot airspeed
-ub_airspeed = airspeed_estimation.data.*(cos(alpha.flight.data).*cos(beta.flight.data)); 
+airspeed_estimation.ub_airspeed = airspeed_estimation.data.*(cos(alpha.flight.data).*cos(beta.flight.data)); 
+airspeed_estimation.vb_airspeed = airspeed_estimation.data.*(cos(alpha.flight.data).*sin(beta.flight.data)); 
 
 if graph
     figure;
-    plot(airspeed_estimation.time,ub_airspeed)
+    plot(airspeed_estimation.time,airspeed_estimation.ub_airspeed)
     hold on
     plot(airspeed_pitot.flight.time,airspeed_pitot.flight.data)
     
@@ -193,5 +194,5 @@ if graph
     legend('Estimation','Measured','Valid Pitot')
     grid on
 end
-error_airspeed_all = error_quantification(ub_airspeed,airspeed_pitot.flight.data);
-error_airspeed_valid = error_quantification(ub_airspeed(airspeed_pitot.flight.valid),airspeed_pitot.flight.data(airspeed_pitot.flight.valid));
+error_airspeed_all = error_quantification(airspeed_estimation.ub_airspeed,airspeed_pitot.flight.data);
+error_airspeed_valid = error_quantification(airspeed_estimation.ub_airspeed(airspeed_pitot.flight.valid),airspeed_pitot.flight.data(airspeed_pitot.flight.valid));
