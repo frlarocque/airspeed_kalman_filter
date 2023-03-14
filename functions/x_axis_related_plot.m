@@ -9,10 +9,12 @@ pusher_prop_RPM.data(isnan(pusher_prop_RPM.data))=0;
 IMU_angle.data(isnan(IMU_angle.data))=0;
 
 % Filter
-IMU_accel.data = low_butter(IMU_accel.data,low_pass_value,1/mean(diff(IMU_accel.time)),0,4);
-airspeed_pitot.data = low_butter(airspeed_pitot.data,low_pass_value,1/mean(diff(airspeed_pitot.time)),0,4);
-pusher_prop_RPM.data = low_butter(pusher_prop_RPM.data,low_pass_value,1/mean(diff(pusher_prop_RPM.time)),0,4);
-IMU_angle.data = low_butter(IMU_angle.data,low_pass_value,1/mean(diff(IMU_angle.time)),0,4);
+dt = mean(diff(airspeed_pitot.time));
+[b,a] = butter(2,2*low_pass_value*dt,'low');
+IMU_accel.data = filtfilt(b,a,IMU_accel.data);
+airspeed_pitot.data = filtfilt(b,a,airspeed_pitot.data);
+pusher_prop_RPM.data = filtfilt(b,a,pusher_prop_RPM.data);
+IMU_angle.data = filtfilt(b,a,IMU_angle.data);
 
 if nargin==5
     cut_condition = [0 0];
