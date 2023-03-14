@@ -49,10 +49,10 @@ g_fh = str2func('g_6');
 
 % Get beta estimation from accel
 filter_freq = 0.1; %[Hz]
-[b,a] = butter(2,2*filter_freq*dt,'low');
-beta_est_accel = min(max((filter(b,a,IMU_accel.flight.data(:,2))./filter(b,a,airspeed_pitot.flight.data).^2)./-2E-1,-pi),pi);
+[b_accel_y,a_accel_y] = butter(2,2*filter_freq*dt,'low');
+beta_est_accel = min(max((filter(b,a,IMU_accel.flight.data(:,2))./filter(b_accel_y,a_accel_y,airspeed_pitot.flight.data).^2)./-2E-1,-pi),pi);
 
-x_0 = [0 0 0 0 0 0]';%[0 0 0 -1.6 -4 0]';
+x_0 = [5 0 0 -4.2 -3.5 0]';%[0 0 0 -1.6 -4 0]';
 u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data]';
 z_list = [Vg_NED.flight.data beta_est_accel pusher_prop_rpm.flight.data]'; %measurement
 
@@ -68,7 +68,7 @@ kalman_res = {};
 wind_var = [1 1 1E-1]*cov_list(1);
 Q = diag([IMU_accel.var,IMU_rate.var,wind_var]); %process noise
 P_0 = diag([1E-2 1E-2 1E-2 1E1.*wind_var]); %covariance
-R = diag([Vg_NED.var 1E-3 6E2]); %measurement noise
+R = diag([Vg_NED.var 1E-4 2E2]); %measurement noise
 
 %%
 EKF_res = {};
@@ -79,6 +79,9 @@ y_list = zeros(size(z_list,1),length(z_list));
 K = cell(1,length(t));
 P = cell(1,length(t));
 R_variable = cell(1,length(t));
+Q_variable = cell(1,length(t));
+
+acc_y_filt = filter_discrete(b,a)
 
 for k=1:length(t)
     if k==1
@@ -89,6 +92,14 @@ for k=1:length(t)
         P_last = P{k-1};
     end
         
+    Q_variable{k} = Q;
+
+    if t(k)-t(1)<10
+        Q_variable{k}(end,end)     = 1E1*Q(end,end);
+        Q_variable{k}(end-1,end-1) = 1E1*Q(end-1,end-1);
+        Q_variable{k}(end-2,end-2) = 1E1*Q(end-2,end-2);
+    end
+
     u=u_list(:,k);
     z=z_list(:,k);
     
@@ -109,7 +120,7 @@ for k=1:length(t)
         R_variable{k}(4,4) = 1E2.*R_variable{k}(4,4);
     end
     
-    if z(5)<500
+    if z(5)<1000
         R_variable{k}(5,5) = 1E4.*R_variable{k}(5,5);
     end
 
@@ -128,7 +139,7 @@ for k=1:length(t)
 
     % Prediction
     x_pred = x + dt*f_fh(x,u);      
-    P_pred = F_val*P_last*F_val'+L_val*Q*L_val';
+    P_pred = F_val*P_last*F_val'+L_val*Q_variable{k}*L_val';
 
     % Update
     y_list(:,k) = z-g_fh(x,u);
@@ -147,7 +158,7 @@ EKF_res.y = y_list;
 EKF_res.u = u_list;
 EKF_res.z = z_list;
 EKF_res.P = P;
-EKF_res.Q = Q;
+EKF_res.Q = Q_variable;
 EKF_res.R = R_variable;
 EKF_res.K = K;
 
@@ -157,7 +168,8 @@ kalman_res{1}.error = error_quantification(kalman_res{1}.x(1,airspeed_pitot.flig
 
 %% Plot
 select = 1;
-plot_EKF_result(kalman_res{select},airspeed_estimation,airspeed_pitot.flight,wind)
+%plot_EKF_result(kalman_res{select},airspeed_pitot.flight,wind)
+plot_EKF_result_full(kalman_res{select},airspeed_pitot.flight,beta.flight,wind)
 fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(sqrt(kalman_res{select}.x(4,:).^2+kalman_res{select}.x(5,:).^2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
 
 %% Plot covariance
