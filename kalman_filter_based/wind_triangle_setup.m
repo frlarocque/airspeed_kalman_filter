@@ -90,7 +90,7 @@ airspeed_pitot.raw.data = pitot_correction.*airspeed_pitot.raw.data;
 % Resample Choice 
 resample_time = airspeed_pitot.raw.time; %Airspeed has the lowest dt
 cut_condition = [ac_data.motors_on(end-1),ac_data.motors_on(end)];
-cut_condition = [215 235];
+
 
 % Resampling
 [IMU_accel.flight.data,IMU_accel.flight.time] = cut_resample(IMU_accel.raw.data,IMU_accel.raw.time,resample_time,cut_condition);
