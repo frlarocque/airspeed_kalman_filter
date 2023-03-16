@@ -15,8 +15,8 @@ load(fullfile(path,file))
 %% Setup
 % Setup Options
 graph = 0;
-beta_est = 0;
-alpha_est = 0;
+beta_est = 1;
+alpha_est = 1;
 recalculate_variance = false;
 pitot_correction = 1.0;
 
@@ -69,7 +69,7 @@ kalman_res{1} = run_EKF(epsi,t,Q,R,P_0,x_0,u_list,z_list,f_fh,g_fh);
 kalman_res{1}.error = error_quantification(kalman_res{1}.x(1,:)',airspeed_pitot.flight.data);
 
 %% Plot
-plot_EKF_result(kalman_res{1},airspeed_estimation,airspeed_pitot.flight,wind)
+plot_EKF_result(kalman_res{1},airspeed_pitot.flight,wind)
 fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(sqrt(kalman_res{select}.x(4,:).^2+kalman_res{select}.x(5,:).^2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
 
 %% Plot covariance

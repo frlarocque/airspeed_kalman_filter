@@ -185,7 +185,6 @@ end
 airspeed_estimation.ub_airspeed = airspeed_estimation.data.*(cos(alpha.flight.data).*cos(beta.flight.data)); 
 airspeed_estimation.vb_airspeed = airspeed_estimation.data.*(cos(alpha.flight.data).*sin(beta.flight.data)); 
 
-
 if graph
     figure;
     plot(airspeed_estimation.time,airspeed_estimation.ub_airspeed)

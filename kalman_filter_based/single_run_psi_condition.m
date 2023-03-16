@@ -47,7 +47,7 @@ dt = mean(diff(t));
 f_fh = str2func('f_2');
 g_fh = str2func('g_7');
 
-x_0 = [0 0 0 0 0 0]';%[0 0 0 -1.6 -4 0]';
+x_0 = [0 0 0 -1.6 -4.2 0]';%[0 0 0 -1.6 -4 0]';
 u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data]';
 z_list = [Vg_NED.flight.data IMU_angle.flight.data(:,3)]'; %measurement
 
@@ -75,6 +75,8 @@ K = cell(1,length(t));
 P = cell(1,length(t));
 R_variable = cell(1,length(t));
 
+Q_variable = cell(1,length(t));
+
 for k=1:length(t)
     if k==1
         x = x_0;
@@ -88,33 +90,8 @@ for k=1:length(t)
     z=z_list(:,k);
     
     R_variable{k} = R;
+    Q_variable{k} = Q;
 
-%     if ~airspeed_pitot.flight.valid(k)
-%         R_variable(4,4) = 1E6.*R_variable(4,4);
-%     end
-%     if x(1)<0.5
-%         beta_est=0;
-%     else
-%         beta_est = (u(2)./(x(1).^2))./-5E0;
-%         beta_est = beta_est-ceil(beta_est/(2*pi)-0.5)*2*pi;
-%     end
-%     z(4) = beta_est;
-% 
-%     if abs(z(4))>deg2rad(25)
-%         R_variable{k}(4,4) = 1E2.*R_variable{k}(4,4);
-%     end
-%     
-%     if z(5)<500
-%         R_variable{k}(5,5) = 1E4.*R_variable{k}(5,5);
-%     end
-
-%     if vecnorm(z(1:2))<1.5
-%         R_variable = zeros(size(R));
-%     end
-
-    %if t(k)>410 && t(k)<411
-    %    fprintf('410 s\n')
-    %end
 
     F_val = F(f_fh,x,u,epsi);
     G_val = G(g_fh,x,u,epsi);
@@ -123,7 +100,7 @@ for k=1:length(t)
 
     % Prediction
     x_pred = x + dt*f_fh(x,u);      
-    P_pred = F_val*P_last*F_val'+L_val*Q*L_val';
+    P_pred = F_val*P_last*F_val'+L_val*Q_variable{k}*L_val';
 
     % Update
     y_list(:,k) = z-g_fh(x,u);
@@ -142,7 +119,7 @@ EKF_res.y = y_list;
 EKF_res.u = u_list;
 EKF_res.z = z_list;
 EKF_res.P = P;
-EKF_res.Q = Q;
+EKF_res.Q = Q_variable;
 EKF_res.R = R_variable;
 EKF_res.K = K;
 
@@ -152,7 +129,8 @@ kalman_res{1}.error = error_quantification(kalman_res{1}.x(1,airspeed_pitot.flig
 
 %% Plot
 select = 1;
-plot_EKF_result(kalman_res{select},airspeed_estimation,airspeed_pitot.flight,wind)
+%plot_EKF_result(kalman_res{select},airspeed_pitot.flight,wind)
+plot_EKF_result_full(kalman_res{select},airspeed_pitot.flight,beta.flight,alpha.flight,wind)
 fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(sqrt(kalman_res{select}.x(4,:).^2+kalman_res{select}.x(5,:).^2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
 
 %% Plot covariance
