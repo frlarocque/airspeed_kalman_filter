@@ -94,12 +94,12 @@ if size(kalman_res.z,1)>=5
     grid on
 end
 
-if size(kalman_res.z,1)>=4
-    linkaxes([ax1,ax2,ax3,ax5,ax6,ax7],'x')
-elseif size(kalman_res.z,1)>=5
-    linkaxes([ax1,ax2,ax3,ax5,ax6,ax7,ax8],'x')  
+if size(kalman_res.z,1)>=5
+    linkaxes([ax1,ax2,ax3,ax4,ax5,ax6,ax7,ax8],'x')
+elseif size(kalman_res.z,1)>=4
+    linkaxes([ax1,ax2,ax3,ax4,ax5,ax6,ax7],'x')
 else
-    linkaxes([ax1,ax2,ax3,ax5,ax6],'x')
+    linkaxes([ax1,ax2,ax3,ax4,ax5,ax6],'x')
 end
 
 sgtitle(sprintf('Wind Covariance %.1d | RMS error %.2f',kalman_res.Q{end}(end,end),kalman_res.error.error_RMS))
