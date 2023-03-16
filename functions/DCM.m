@@ -7,6 +7,7 @@ function DCM = DCM(phi,theta,psi)
 %
 % Convert from NED earth to body:
 %       [x_b;y_b;z_b] = inv(DCM(phi,theta,psi))*[x_NED;y_NED;z_NED]
+%       [x_b;y_b;z_b] = DCM(phi,theta,psi)'*[x_NED;y_NED;z_NED]
 %
 % Angles in RAD
 %
