@@ -16,7 +16,7 @@ load(fullfile(path,file))
 % Setup Options
 graph = 0;
 beta_est = 1;
-alpha_est = 0;
+alpha_est = 1;
 recalculate_variance = false;
 pitot_correction = 1.0;
 
@@ -53,7 +53,7 @@ filter_freq = 0.1; %[Hz]
 a_y_filt = filter(b,a,IMU_accel.flight.data(:,2));
 a_x_filt = filter(b,a,IMU_accel.flight.data(:,1));
 
-x_0 = [0 0 0 0 0 0]';%[0 0 0 -1.6 -4 0]';
+x_0 = [2 0 0 -3.9 -4.3 0]';
 u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data pusher_prop_rpm.flight.data]';
 z_list = [Vg_NED.flight.data a_y_filt a_x_filt]'; %measurement
 
@@ -106,33 +106,6 @@ for k=1:length(t)
 
     %if abs(asin(x(2)./vecnorm(x(1:3))))> deg2rad(20)
     %    R_variable{k}(4,4) = 1E2.*R_variable{k}(4,4);
-    %end
-
-%     if ~airspeed_pitot.flight.valid(k)
-%         R_variable(4,4) = 1E6.*R_variable(4,4);
-%     end
-%     if x(1)<0.5
-%         beta_est=0;
-%     else
-%         beta_est = (u(2)./(x(1).^2))./-5E0;
-%         beta_est = beta_est-ceil(beta_est/(2*pi)-0.5)*2*pi;
-%     end
-%     z(4) = beta_est;
-% 
-    %if abs(z(4))>deg2rad(25)
-    %    R_variable{k}(4,4) = 1E2.*R_variable{k}(4,4);
-    %end
-    
-    %if z(5)<1000
-    %    R_variable{k}(5,5) = 1E4.*R_variable{k}(5,5);
-    %end
-
-%     if vecnorm(z(1:2))<1.5
-%         R_variable = zeros(size(R));
-%     end
-
-    %if t(k)>410 && t(k)<411
-    %    fprintf('410 s\n')
     %end
 
     F_val = F(f_fh,x,u,epsi);

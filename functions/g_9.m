@@ -35,16 +35,23 @@ k(1) = 3.680278471152158e-07; %pusher_RPM2Fx_coeff(1);
 k(2)= -4.391797235636297e-05; %pusher_RPM2Fx_coeff(2);
 k(3) = -0.086517700632897; %pusher_RPM2Fx_coeff(3);
 k(4) = 0;
-k(5) = -0.083946669313987; %b2;
+k(5) = -0.083946669313987*0.8; %b2;
 m = 5;
 
 if RPM_pusher<500
     F_pusher = 0;
 else
-    F_pusher = k(1).*RPM_pusher.^2+k(2).*RPM_pusher.*u+k(3).*u;
+    F_pusher = Fx_pusher(RPM_pusher,u);
 end
+
+%F_fuselage = Fx_fuselage(0,theta,u);
+%F_hover_prop = Fx_hover_prop(RPM_pusher,u);
+%a_x = (F_pusher+F_fuselage+F_hover_prop)./m;
+
 F_drag = k(4).*u+k(5).*u.^2;
 a_x = (F_pusher+F_drag)./m;
+
+
 
 g = [speed;a_y;a_x]+v_noise;
 
