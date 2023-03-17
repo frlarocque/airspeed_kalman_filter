@@ -62,7 +62,7 @@ grid on
 axis([-inf inf -90 90])
 
 ax6 = subplot(4,2,6);
-plot(kalman_res.t,atan2(kalman_res.x(3,:),kalman_res.x(1,:)));
+plot(kalman_res.t,rad2deg(atan2(kalman_res.x(3,:),kalman_res.x(1,:))));
 hold on
 plot(alpha.time,rad2deg(alpha.data),'--')
 title('Angle of attack')
