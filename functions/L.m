@@ -14,7 +14,7 @@ function L = L(f_fh,x,u,epsi)
 %       ...                               ;
 %       dx_n/dw_1 dx_n/dw_2 ....dx_n/dw_m ];
 
-noise_length = 9;
+noise_length = length(x)+3;
 
 L = zeros(length(x),noise_length);
 for i=1:noise_length
