@@ -48,25 +48,31 @@ f_fh = str2func('f_4');
 g_fh = str2func('g_11');
 
 % Get filter accel agressively
-filter_freq = 0.1; %[Hz]
+filter_freq = 0.2; %[Hz]
 [b,a] = butter(2,2*filter_freq*dt,'low');
 
 a_x_filt = filter(b,a,IMU_accel.flight.data(:,1));
 a_y_filt = filter(b,a,IMU_accel.flight.data(:,2));
 a_z_filt = filter(b,a,IMU_accel.flight.data(:,3));
+pusher_prop_rpm_filt = filter(b,a,pusher_prop_rpm.flight.data);
+hover_prop_rpm_filt = filter(b,a,mean(hover_prop_rpm.flight.data,2));
+skew_filt = filter(b,a,skew.flight.data);
+elevator_pprz_filt = filter(b,a,control_surface_pprz.flight.data(:,4));
 
-x_0 = [0 0 0 0 0 0 0 0 -1]';
+% Initial conditions
+x_0 = [0 0 0   0 0 0   0 0 0]';
+
 u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data ...
-            pusher_prop_rpm.flight.data mean(hover_prop_rpm.flight.data,2) skew.flight.data control_surface_pprz.flight.data(:,4)]';
+            pusher_prop_rpm_filt hover_prop_rpm_filt skew_filt elevator_pprz_filt]';
 z_list = [Vg_NED.flight.data a_x_filt a_y_filt a_z_filt]'; %measurement
 
 % Filter Data coming in
 filter_freq = 10.0; %[Hz]
 [b,a] = butter(2,2*filter_freq*dt,'low');
-u_list = filter(b,a,u_list,[],2);
-z_list = filter(b,a,z_list,[],2);
+u_list(1:6,:) = filter(b,a,u_list(1:6,:),[],2);
+z_list(1:3,:) = filter(b,a,z_list(1:3,:),[],2);
 
-cov_list = 7.8E-7;%1.43E-6; %7.8E-8; ;
+cov_list = 7.8E-7; %7.8E-7;%1.43E-6;
 kalman_res = {};
 
 wind_var = [1 1 1E-1].*cov_list(1);
@@ -150,7 +156,7 @@ kalman_res{1}.error = error_quantification(kalman_res{1}.x(1,airspeed_pitot.flig
 select = 1;
 %plot_EKF_result(kalman_res{select},airspeed_pitot.flight,wind)
 plot_EKF_result_full(kalman_res{select},airspeed_pitot.flight,beta.flight,alpha.flight,wind)
-fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(sqrt(kalman_res{select}.x(4,:).^2+kalman_res{select}.x(5,:).^2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
+fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(vecnorm(kalman_res{select}.x(4:6,:),2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
 
 %% Plot covariance
 
