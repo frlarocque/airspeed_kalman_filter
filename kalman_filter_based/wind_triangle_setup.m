@@ -77,7 +77,7 @@ elseif strcmp(conditions,'OUTDOOR')
 
     pusher_prop_rpm.raw.data = ac_data.ESC_PER_MOTOR.motor_4.rpm;pusher_prop_rpm.raw.time = ac_data.ESC_PER_MOTOR.motor_4.timestamp;
 
-    skew.raw.data = round(ac_data.ROT_WING_CONTROLLER.wing_angle_deg);skew.raw.time = ac_data.ROT_WING_CONTROLLER.timestamp;
+    skew.raw.data = deg2rad(round(ac_data.ROT_WING_CONTROLLER.wing_angle_deg));skew.raw.time = ac_data.ROT_WING_CONTROLLER.timestamp;
 
 
 else
