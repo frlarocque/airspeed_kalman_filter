@@ -32,7 +32,7 @@ wind_triangle_setup
 % alpha, beta = angle of attack and sideslip angle
 
 %x = [u v w mu_x mu_y mu_z];
-%u = [a_x a_y a_z p q r phi theta psi];
+%u = [a_x a_y a_z p q r phi theta psi pusher_RPM hover_RPM skew elevator_pprz];
 %z = [V_x V_y V_z beta];
 
 %w_w = [0;0;0]; %noise angular rate
@@ -45,26 +45,32 @@ t = airspeed_pitot.flight.time;
 dt = mean(diff(t));
 
 f_fh = str2func('f_2');
-g_fh = str2func('g_10');
+g_fh = str2func('g_10_cst');
 
 % Get filter accel agressively
-filter_freq = 0.1; %[Hz]
+filter_freq = 0.2; %[Hz]
 [b,a] = butter(2,2*filter_freq*dt,'low');
 
 a_x_filt = filter(b,a,IMU_accel.flight.data(:,1));
 a_y_filt = filter(b,a,IMU_accel.flight.data(:,2));
 a_z_filt = filter(b,a,IMU_accel.flight.data(:,3));
+pusher_prop_rpm_filt = filter(b,a,pusher_prop_rpm.flight.data);
+hover_prop_rpm_filt = filter(b,a,mean(hover_prop_rpm.flight.data,2));
+skew_filt = filter(b,a,skew.flight.data);
+elevator_pprz_filt = filter(b,a,control_surface_pprz.flight.data(:,4));
 
-x_0 = [2 0 0 -3.9 -4.3 0]';
+% Initial conditions
+x_0 = [0 0 0 -1.66 -4.18 0]'; %x_0 = [0 0 0 0 0 0]';
+
 u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data ...
-            pusher_prop_rpm.flight.data mean(hover_prop_rpm.flight.data,2) skew.flight.data control_surface_pprz.flight.data(:,4)]';
+            pusher_prop_rpm_filt hover_prop_rpm_filt skew_filt elevator_pprz_filt]';
 z_list = [Vg_NED.flight.data a_x_filt a_y_filt a_z_filt]'; %measurement
 
 % Filter Data coming in
-filter_freq = 10.0; %[Hz]
+filter_freq = 1.0; %[Hz]
 [b,a] = butter(2,2*filter_freq*dt,'low');
-u_list = filter(b,a,u_list,[],2);
-z_list = filter(b,a,z_list,[],2);
+u_list(1:6,:) = filter(b,a,u_list(1:6,:),[],2);
+z_list(1:3,:) = filter(b,a,z_list(1:3,:),[],2);
 
 cov_list = 7.8E-7;%1.43E-6; %7.8E-8; ;
 kalman_res = {};
@@ -72,7 +78,7 @@ kalman_res = {};
 wind_var = [1 1 1E-1]*cov_list(1);
 Q = diag([IMU_accel.var,IMU_rate.var,wind_var]); %process noise
 P_0 = diag([1E-2 1E-2 1E-2 1E1.*wind_var]); %covariance
-R = diag([Vg_NED.var 1E-1.*IMU_accel.var(1) IMU_accel.var(2) IMU_accel.var(3)]); %measurement noise
+R = diag([Vg_NED.var 1E-1.*IMU_accel.var(1) IMU_accel.var(2) 1E2.*IMU_accel.var(3)]); %measurement noise
 
 %%
 EKF_res = {};
@@ -96,7 +102,7 @@ for k=1:length(t)
         
     Q_variable{k} = Q;
 
-    if t(k)-t(1)<10
+    if t(k)-t(1)<0
         Q_variable{k}(end,end)     = 1E1*Q(end,end);
         Q_variable{k}(end-1,end-1) = 1E1*Q(end-1,end-1);
         Q_variable{k}(end-2,end-2) = 1E1*Q(end-2,end-2);
@@ -106,10 +112,11 @@ for k=1:length(t)
     z=z_list(:,k);
     
     R_variable{k} = R;
-
-    %if abs(asin(x(2)./vecnorm(x(1:3))))> deg2rad(20)
-    %    R_variable{k}(4,4) = 1E2.*R_variable{k}(4,4);
-    %end
+    
+    % Don't use A_z if skew smaller than 60 deg
+    if u(12)< deg2rad(60)
+        R_variable{k}(6,6) = 1E2.*R(6,6);
+    end
 
     F_val = F(f_fh,x,u,epsi);
     G_val = G(g_fh,x,u,epsi);
