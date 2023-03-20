@@ -60,7 +60,7 @@ skew_filt = filter(b,a,skew.flight.data);
 elevator_pprz_filt = filter(b,a,control_surface_pprz.flight.data(:,4));
 
 % Initial conditions
-x_0 = [0 0 0 -1.66 -4.18 0]'; %x_0 = [0 0 0 0 0 0]';
+x_0 = [0 0 0 0 0 0]'; %x_0 = [0 0 0 0 0 0]';
 
 u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data ...
             pusher_prop_rpm_filt hover_prop_rpm_filt skew_filt elevator_pprz_filt]';
