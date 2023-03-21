@@ -188,7 +188,7 @@ fcn_quad = @(k) sqrt(mean((fit_quad(k,x) - y).^2));           % Least-Squares co
 
 % s_quad =
 % 
-%   -0.004983959523938
+%    0.004983959523938
 %    0.233567635513373
 %   -0.045035223960415
 % 
@@ -237,10 +237,10 @@ fcn_skew = @(k) sqrt(mean((fit_skew(k,x) - y).^2));           % Least-Squares co
 
 % s_skew =
 % 
-%    0.001569295267630
-%   -0.005989742907274
-%    0.234671274859478
-%   -0.066122038350159
+%    -0.001569295267630
+%    0.005989742907274
+%    -0.234671274859478
+%    0.066122038350159
 % 
 % 
 % RMS_skew =
@@ -287,4 +287,4 @@ title(lgd1,'Airspeed') % add legend title
 sgtitle(sprintf('Fit for all airspeed, AoA and skew\nFz = (K1*cos(skew)+K2+K3*alpha+K4*alpha^2)*V^2\nK1 = %2.2e K2 = %2.2e K3 = %2.2e K4 = %2.2e|  RMS = %2.2f',s_skew(1),s_skew(2),s_skew(3),s_skew(4),RMS_skew))
 
 
-% Fz = 1.569286184145456E-3*cos(skew)+-5.989835400355119E-3+2.346715949355502E-1*alpha+-6.611857425073364E-2*alpha^2)*V^2
+% Fz = -1.569286184145456E-3*cos(skew)+5.989835400355119E-3+-2.346715949355502E-1*alpha+6.611857425073364E-2*alpha^2)*V^2

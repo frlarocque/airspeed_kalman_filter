@@ -74,7 +74,7 @@ fprintf(sprintf('Corrected RPM %d times\n',correction))
 % Hover_motors lift = Fz-body lift
 %Drag without hover props (only body drag)
 
-lift_body_coeff = [1.569286184145456E-3 -5.989835400355119E-3 2.346715949355502E-1 -6.611857425073364E-2]; %all airspeeds without hover props with skew
+lift_body_coeff = [-1.569286184145456E-3 5.989835400355119E-3 -2.346715949355502E-1 6.611857425073364E-2]; %all airspeeds without hover props with skew
 
 Fz_body = @(alpha,skew,V) (lift_body_coeff(1)  .*  cos(skew)+...
                            lift_body_coeff(2)+...
@@ -130,12 +130,12 @@ fcn_same = @(k) sqrt(mean((fit_same(k,x) - y).^2));           % Least-Squares co
 
 % s_same =
 % 
-%     -3.589843749999992e-06
+%     -3.650781249999991e-06
 % 
 % 
 % RMS_same =
 % 
-%    2.036971398488984
+%    2.634024249118863
 
 windspeed_bins = unique(round(all_motors_db.Windspeed,0));
 all_motors_db.Windspeed_bin = round(all_motors_db.Windspeed,0);
@@ -177,12 +177,12 @@ fcn_all = @(k) sqrt(mean((fit_all(k,x) - y).^2));           % Least-Squares cost
 % 
 %    1.0e-06 *
 % 
-%   -0.860837964793260
-%   -0.945014166165622
-%   -0.879672747114793
-%   -0.839096487406381
+%   -0.873870581108021
+%   -0.951740938617989
+%   -0.894621788336263
+%   -0.852055641614473
 % 
 % 
 % RMS_all =
 % 
-%    1.670030715025816
+%    2.117587085260848

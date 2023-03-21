@@ -72,7 +72,7 @@ end
 % Wing lift = Fz-body lift
 %Drag without hover props (only body drag)
 
-lift_body_coeff = [1.569286184145456E-3 -5.989835400355119E-3 2.346715949355502E-1 -6.611857425073364E-2]; %all airspeeds without hover props with skew
+lift_body_coeff = [-1.569286184145456E-3 5.989835400355119E-3 -2.346715949355502E-1 6.611857425073364E-2]; %all airspeeds without hover props with skew
 
 Fz_body = @(alpha,skew,V) (lift_body_coeff(1)  .*  cos(skew)+...
                            lift_body_coeff(2)+...
@@ -154,14 +154,14 @@ fcn_quad = @(k) sqrt(mean((fit_quad(k,x) - y).^2));           % Least-Squares co
 
 % s_quad =
 % 
-%    0.003489822606242
-%   -0.531968372883990
-%   -0.628608139163131
+%   -0.005351242978305
+%   -0.062624686872132
+%   -0.760848309199772
 % 
 % 
 % RMS_quad =
 % 
-%    0.259777761148356
+%    0.259777761115678
 
 figure
 windspeed_bins = unique(round(quad_db.Windspeed,0));
@@ -203,14 +203,14 @@ fcn_ff = @(k) sqrt(mean((fit_ff(k,x) - y).^2));           % Least-Squares cost f
 
 % s_ff =
 % 
-%    0.003489753225178
-%   -0.531965819833103
-%   -0.628615594989476
+%   -0.133058953887821
+%   -0.974792873867665
+%    0.002072362592607
 % 
 % 
 % RMS_ff =
 % 
-%    0.259777761358903
+%    0.574136641510675
 
 figure
 windspeed_bins = unique(round(ff_db.Windspeed,0));
@@ -241,9 +241,9 @@ grid on
 
 % Different skew angles are fitted and the gains are listed below
 angles = deg2rad([90 75 60 45 30 15 0]);
-k1 = [-12 -9.97 -8.34 -5.62 -3.35 -0.932 0.349]*1E-2; %constant
-k2 = [-1.42 -1.41 -1.36 -1.11 -0.916 -0.676 -0.532]; %alpha
-k3 = [3.86E-3 1.69E-3 5.76E-1 1.74E-3 1.38E-3 -4.96E-1 -6.29E-1]; %alpha^2
+k1 = [-1.33E-1 -1.11E-1 -9.38E-2 -7.02E-2 -4.38E-2 -1.83E-2 -5.35E-3]; %constant
+k2 = [-9.75 -9.64 -8.87 -7.72 -4.67 -2.06 -0.626]*1E-1; %alpha
+k3 = [2.07E-3 5.06E-3 4.4438E-1 3.85E-1 1.69E-3 -6.28E-1 -7.61E-1]; %alpha^2
 
 figure
 subplot(1,3,1)
@@ -302,83 +302,96 @@ y = [test_db.Fz_wing];
 fcn_0 = @(k) sqrt(mean((fit_0(k,x) - y).^2));           % Least-Squares cost function
 [s_all_0,RMS_all_0,~,~] = fminsearchbnd(fcn_0,[-6E-2;-1E0;2E-1;1;5E-1],[-inf -inf -inf 0.25 -inf],[inf inf inf 1.75 inf],options)
 
+% s_all_0 =
+% 
+%   -0.088598603570368
+%   -0.769895263990865
+%    0.129061287269501
+%    1.129567235352637
+%    0.246854021808693
+% 
+% 
+% RMS_all_0 =
+% 
+%    1.227204499661779
+
 fcn_1 = @(k) sqrt(mean((fit_1(k,x) - y).^2));           % Least-Squares cost function
 [s_all_1,RMS_all_1] = fminsearch(fcn_1,[-0.1;-0.8;0.8;0],options)
 
 % s_all_1 =
 % 
-%   -0.064260709110356
-%   -1.047985886559624
-%    0.187628429983977
-%    0.518664673679778
+%   -0.100077872757405
+%   -0.869647996437125
+%    0.145783145637766
+%    0.218539487824641
 % 
 % 
 % RMS_all_1 =
 % 
-%    2.172550519553044
+%    1.227204499687460
 
 fcn_2 = @(k) sqrt(mean((fit_2(k,x) - y).^2));           % Least-Squares cost function
 [s_all_2,RMS_all_2] = fminsearch(fcn_2,[-0.1;-0.8;0.7;-0.6],options) 
 
 % s_all_2 =
 % 
-%   -0.112965901222621
-%   -0.749189625262820
-%   -0.710563262512707
-%    0.045305428048873
+%   -0.125708085064488
+%   -0.711254893378571
+%   -0.254762016195191
+%   -0.190315739294444
 % 
 % 
 % RMS_all_2 =
 % 
-%    1.128976161776015
+%    1.337347388746325
 
 fcn_3 = @(k) sqrt(mean((fit_3(k,x) - y).^2));           % Least-Squares cost function
 [s_all_3,RMS_all_3] = fminsearch(fcn_3,[-0.1;-0.8;0.7;0.6;-0.6],options) 
 
 % s_all_3 =
 % 
-%   -0.116026114728738
-%   -0.902644784288129
-%   -0.636155932589878
-%    0.875945032662472
-%   -0.349369978247064
+%   -0.129845590798654
+%   -0.918740289699189
+%   -0.154156533824267
+%    1.184349238090133
+%   -0.723954204896201
 % 
 % 
 % RMS_all_3 =
 % 
-%    0.992882851589595
+%    1.122757273818692
 
 fcn_4 = @(k) sqrt(mean((fit_4(k,x) - y).^2));           % Least-Squares cost function
 [s_all_4,RMS_all_4] = fminsearch(fcn_4,[-0.1;-0.8;0.7;0.6;-0.6],options) 
 
 % s_all_4 =
 % 
-%   -0.114451684911900
-%   -0.823686145052124
-%   -0.674440219785424
-%    0.473659185248544
-%   -0.224495617411443
+%   -0.128026468497919
+%   -0.827500133975459
+%   -0.198396099544368
+%    0.739095225415133
+%   -0.611312529183582
 % 
 % 
 % RMS_all_4 =
 % 
-%    1.087590786590827
+%    1.251055890465767
 
 fcn_5 = @(k) sqrt(mean((fit_5(k,x) - y).^2));           % Least-Squares cost function
 [s_all_5,RMS_all_5] = fminsearch(fcn_5,[-0.1;-0.8;0.7;0.6;-0.6],options) 
 
 % s_all_5 =
 % 
-%   -0.115403226638272
-%   -0.847144004303374
-%   -0.566753927042227
-%    0.273592587023742
-%   -0.057550327019873
+%   -0.129199158031542
+%   -0.859057657321430
+%   -0.085466879762789
+%    0.559106759298114
+%   -0.421036286758122
 % 
 % 
 % RMS_all_5 =
 % 
-%    1.214742492305251
+%    1.349486437524914
 
 
 % RMS without low skew angle
@@ -386,17 +399,25 @@ verif_db = test_db(test_db.Skew_sp>=deg2rad(45),:);
 
 x = [verif_db.Turn_Table,verif_db.Windspeed,verif_db.Skew_sp];
 y = [verif_db.Fz_wing];
+RMS_0 = sqrt(mean((fit_0(s_all_0,x) - y).^2))
 RMS_1 = sqrt(mean((fit_1(s_all_1,x) - y).^2))
 RMS_2 = sqrt(mean((fit_2(s_all_2,x) - y).^2))
 RMS_3 = sqrt(mean((fit_3(s_all_3,x) - y).^2))
 RMS_4 = sqrt(mean((fit_4(s_all_4,x) - y).^2))
 RMS_5 = sqrt(mean((fit_5(s_all_5,x) - y).^2))
 
-% RMS_1 = 1.612292505177897
-% RMS_2 = 1.003820690880607
-% RMS_3 = 0.962232645399909
-% RMS_4 = 0.950147222347073
-% RMS_5 = 1.235200785412435
+% RMS_0 =
+%    1.035394983771238
+% RMS_1 =
+%    1.035395833187440
+% RMS_2 =
+%    1.098208295671669
+% RMS_3 =
+%    1.000523894611924
+% RMS_4 =
+%    0.988966592638393
+% RMS_5 =
+%    1.287629604297610
 
 %% Verification of fit
 
