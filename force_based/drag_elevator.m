@@ -108,6 +108,7 @@ end
 % Assumming uncorrelated
 test_db.std_Fx_elev = sqrt(test_db.std_Fx.^2+test_db.std_Fx.^2);
 
+save('db_Fx_elevator.mat','test_db')
 %% Plot Fx
 
 windspeed_bins = unique(round(test_db.Windspeed,0));
@@ -183,3 +184,11 @@ axis([-inf inf -inf inf])
 grid on
 
 %Fx = (-2.608468213419211E-3  + -3.021514681274200E-2*alpha+ -2.715491515441531E4*alpha^2)*V^2
+
+%% Analyze result of fit
+RMS = sqrt(mean((fit_elev(s_elev,x) - y).^2))
+range = max(y)-min(y)
+RMS_percentage_range = RMS./range
+max_error = max(abs((fit_elev(s_elev,x) - y)))
+max_error_percentage_range = max_error./range
+

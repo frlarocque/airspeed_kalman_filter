@@ -86,6 +86,7 @@ test_db.Fz_wing = test_db.Fz-Fz_body(test_db.Turn_Table,test_db.Skew_sp,test_db.
 % Assumming uncorrelated
 test_db.std_Fz_wing = sqrt(test_db.std_Fz.^2+test_db.std_Fz.^2);
 
+save('db_Fz_wing.mat','test_db')
 %% Plot Fz wing
 windspeed_bins = unique(round(test_db.Windspeed,0));
 test_db.Windspeed_bin = round(test_db.Windspeed,0);
@@ -454,3 +455,9 @@ end
 title(lgd1,'Airspeed') % add legend title
 sgtitle(sprintf('Fz = ((k1+k2*alpha+k3*alpha^2)*(sin(skew)^2+k4)*V^2\nK1 = %2.2e K2 = %2.2e K3 = %2.2e K4 = %2.2e  |  RMS = %2.2f',s_all_1(1),s_all_1(2),s_all_1(3),s_all_1(4),RMS_all_1))
 
+%% Analyze result of fit
+RMS = sqrt(mean((fit_1(s_all_1,x) - y).^2))
+range = max(y)-min(y)
+RMS_percentage_range = RMS./range
+max_error = max(abs((fit_1(s_all_1,x) - y)))
+max_error_percentage_range = max_error./range

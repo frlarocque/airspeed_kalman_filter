@@ -21,20 +21,24 @@ skew_list = deg2rad([0:30:90]);
 theta_list = deg2rad([-5:0.5:15]);
 
 [SKEW_LIST,THETA_LIST] = meshgrid(skew_list,theta_list);
-%% Compare Wing 
+%% Compare Wing Fx
+load('db_Fx_wing.mat')
+test_db.Windspeed_bin = round(test_db.Windspeed,0);
+test_db.skew_bin = deg2rad(round(rad2deg(test_db.Skew_sp),0));
 
-%Fx
 figure;
 legend_lbl = {};
 col=linspecer(length(u_list));
 hdls = [];
-Ax = []; 
+Ax = [];
 for j=1:length(skew_list)
     Ax(end+1) = subplot(ceil(sqrt(length(skew_list))),ceil(sqrt(length(skew_list))),j);
     title(sprintf('Skew %2.0f deg',rad2deg(skew_list(j))))
-
+    
     for i=1:length(u_list)
+        temp_db = test_db(test_db.skew_bin==skew_list(j) &test_db.Windspeed_bin ==u_list(i),:);
         hold on
+        plot(rad2deg(temp_db.Turn_Table),temp_db.Fx_wing,'*','color',col(i,:))
         hdls(i) = plot(rad2deg(theta_list),Fx_wing_TO(u_list(i),skew_list(j),theta_list),'-','color',col(i,:));
         plot(rad2deg(theta_list),Fx_wing(skew_list(j),theta_list,u_list(i)),'--','color',col(i,:))
         legend_lbl{i} = [mat2str(u_list(i)),' m/s'];
@@ -51,13 +55,14 @@ for j=1:length(skew_list)
         
         % plot helper data, but invisible
         hold on
+        H0 = plot([NaN NaN],[NaN NaN], '*', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(j+1));
         H1 = plot([NaN NaN],[NaN NaN], '-', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(j+1));
         H2 = plot([NaN NaN],[NaN NaN], '--', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(j+1));
         hold off
         % make second axes invisible
         set(Ax(j+1), 'Color', 'none', 'XTick', [], 'YAxisLocation', 'right', 'Box', 'Off', 'Visible', 'off')
         % add linestyle legend
-        lgd2 = legend([H1 H2], 'Tomaso', 'Frédéric', 'Location', 'northwest');
+        lgd2 = legend([H0 H1 H2], 'Data Point','Tomaso', 'Frédéric', 'Location', 'northwest');
         title(lgd2,'Fit Source') % add legend title
         set(lgd2,'color','none')
     end
@@ -83,7 +88,11 @@ zlabel('Error (T-F) [%]')
 zlim([-1 1])
 sgtitle('Difference between models: Fx Wing')
 
-%Fz
+%% Compare Wing Fz
+load('db_Fz_wing.mat')
+test_db.Windspeed_bin = round(test_db.Windspeed,0);
+test_db.skew_bin = deg2rad(round(rad2deg(test_db.Skew_sp),0));
+
 figure;
 legend_lbl = {};
 col=linspecer(length(u_list));
@@ -94,7 +103,9 @@ for j=1:length(skew_list)
     title(sprintf('Skew %2.0f deg',rad2deg(skew_list(j))))
 
     for i=1:length(u_list)
+        temp_db = test_db(test_db.skew_bin==skew_list(j) &test_db.Windspeed_bin ==u_list(i),:);
         hold on
+        plot(rad2deg(temp_db.Turn_Table),temp_db.Fz_wing,'*','color',col(i,:))
         hdls(i) = plot(rad2deg(theta_list),Fz_wing_TO(u_list(i),skew_list(j),theta_list),'-','color',col(i,:));
         plot(rad2deg(theta_list),Fz_wing(skew_list(j),theta_list,u_list(i)),'--','color',col(i,:))
         legend_lbl{i} = [mat2str(u_list(i)),' m/s'];
@@ -111,13 +122,14 @@ for j=1:length(skew_list)
         
         % plot helper data, but invisible
         hold on
+        H0 = plot([NaN NaN],[NaN NaN], '*', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(j+1));
         H1 = plot([NaN NaN],[NaN NaN], '-', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(j+1));
         H2 = plot([NaN NaN],[NaN NaN], '--', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(j+1));
         hold off
         % make second axes invisible
         set(Ax(j+1), 'Color', 'none', 'XTick', [], 'YAxisLocation', 'right', 'Box', 'Off', 'Visible', 'off')
         % add linestyle legend
-        lgd2 = legend([H1 H2], 'Tomaso', 'Frédéric', 'Location', 'northwest');
+        lgd2 = legend([H0 H1 H2], 'Data Point', 'Tomaso', 'Frédéric', 'Location', 'northwest');
         title(lgd2,'Fit Source') % add legend title
         set(lgd2,'color','none')
     end
@@ -143,9 +155,11 @@ ylabel('Angle of attack [deg]')
 zlabel('Error (T-F) [N]')
 sgtitle('Difference between models: Fz Wing')
 
-%% Compare Fuselage
+%% Compare Fuselage Fx
+load('db_Fx_fuselage.mat')
+test_db.Windspeed_bin = round(test_db.Windspeed,0);
+test_db.skew_bin = deg2rad(round(rad2deg(test_db.Skew_sp),0));
 
-%Fx
 figure;
 legend_lbl = {};
 col=linspecer(length(u_list));
@@ -156,7 +170,9 @@ for j=1:length(skew_list)
     title(sprintf('Skew %2.0f deg',rad2deg(skew_list(j))))
 
     for i=1:length(u_list)
+        temp_db = test_db(test_db.skew_bin==skew_list(j) &test_db.Windspeed_bin ==u_list(i),:);
         hold on
+        plot(rad2deg(temp_db.Turn_Table),temp_db.Fx,'*','color',col(i,:))
         hdls(i) = plot(rad2deg(theta_list),Fx_fuse_TO(u_list(i),skew_list(j),theta_list),'-','color',col(i,:));
         plot(rad2deg(theta_list),Fx_fuselage(skew_list(j),theta_list,u_list(i)),'--','color',col(i,:))
         legend_lbl{i} = [mat2str(u_list(i)),' m/s'];
@@ -173,13 +189,14 @@ for j=1:length(skew_list)
         
         % plot helper data, but invisible
         hold on
+        H0 = plot([NaN NaN],[NaN NaN], '*', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(j+1));
         H1 = plot([NaN NaN],[NaN NaN], '-', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(j+1));
         H2 = plot([NaN NaN],[NaN NaN], '--', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(j+1));
         hold off
         % make second axes invisible
         set(Ax(j+1), 'Color', 'none', 'XTick', [], 'YAxisLocation', 'right', 'Box', 'Off', 'Visible', 'off')
         % add linestyle legend
-        lgd2 = legend([H1 H2], 'Tomaso', 'Frédéric', 'Location', 'northwest');
+        lgd2 = legend([H0 H1 H2], 'Data Point','Tomaso', 'Frédéric', 'Location', 'northwest');
         title(lgd2,'Fit Source') % add legend title
         set(lgd2,'color','none')
     end
@@ -205,7 +222,11 @@ zlabel('Error (T-F) [%]')
 zlim([-1 1])
 sgtitle('Difference between models: Fx Fuselage')
 
-%Fz
+%% Compare Fuselage Fz
+load('db_Fz_fuselage.mat')
+test_db.Windspeed_bin = round(test_db.Windspeed,0);
+test_db.skew_bin = deg2rad(round(rad2deg(test_db.Skew_sp),0));
+
 figure;
 legend_lbl = {};
 col=linspecer(length(u_list));
@@ -216,7 +237,9 @@ for j=1:length(skew_list)
     title(sprintf('Skew %2.0f deg',rad2deg(skew_list(j))))
 
     for i=1:length(u_list)
+        temp_db = test_db(test_db.skew_bin==skew_list(j) &test_db.Windspeed_bin ==u_list(i),:);
         hold on
+        plot(rad2deg(temp_db.Turn_Table),temp_db.Fz,'*','color',col(i,:))
         hdls(i) = plot(rad2deg(theta_list),Fz_fuse_TO(u_list(i),theta_list),'-','color',col(i,:));
         plot(rad2deg(theta_list),Fz_fuselage(skew_list(j),theta_list,u_list(i)),'--','color',col(i,:))
         legend_lbl{i} = [mat2str(u_list(i)),' m/s'];
@@ -233,13 +256,14 @@ for j=1:length(skew_list)
         
         % plot helper data, but invisible
         hold on
+        H0 = plot([NaN NaN],[NaN NaN], '*', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(j+1));
         H1 = plot([NaN NaN],[NaN NaN], '-', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(j+1));
         H2 = plot([NaN NaN],[NaN NaN], '--', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(j+1));
         hold off
         % make second axes invisible
         set(Ax(j+1), 'Color', 'none', 'XTick', [], 'YAxisLocation', 'right', 'Box', 'Off', 'Visible', 'off')
         % add linestyle legend
-        lgd2 = legend([H1 H2], 'Tomaso', 'Frédéric', 'Location', 'northwest');
+        lgd2 = legend([H0 H1 H2], 'Data Point','Tomaso', 'Frédéric', 'Location', 'northwest');
         title(lgd2,'Fit Source') % add legend title
         set(lgd2,'color','none')
     end
@@ -265,8 +289,10 @@ zlabel('Error (T-F) [%]')
 zlim([-1 1])
 sgtitle('Difference between models: Fz Fuselage')
 
-%% Compare elevator
-%Fz
+%% Compare elevator Fz
+load('db_Fz_elevator.mat')
+test_db.Windspeed_bin = round(test_db.Windspeed,0);
+
 f1 = figure;
 legend_lbl = {};
 col=linspecer(length(u_list));
@@ -274,7 +300,9 @@ hdls = [];
 Ax = axes(f1); 
 
 for i=1:length(u_list)
+    temp_db = test_db(test_db.Windspeed_bin ==u_list(i),:);
     hold on
+    plot(rad2deg(temp_db.elev_angle),temp_db.Fz_elev,'*','color',col(i,:))
     hdls(i) = plot(rad2deg(theta_list),Fz_ele_TO(u_list(i),theta_list),'-','color',col(i,:));
     plot(rad2deg(theta_list),Fz_elevator(theta_list,u_list(i),0),'--','color',col(i,:))
     legend_lbl{i} = [mat2str(u_list(i)),' m/s'];
@@ -290,13 +318,14 @@ end
     
     % plot helper data, but invisible
     hold on
+    H0 = plot([NaN NaN],[NaN NaN], '*', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2));
     H1 = plot([NaN NaN],[NaN NaN], '-', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2));
     H2 = plot([NaN NaN],[NaN NaN], '--', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2));
     hold off
     % make second axes invisible
     set(Ax(2), 'Color', 'none', 'XTick', [], 'YAxisLocation', 'right', 'Box', 'Off', 'Visible', 'off')
     % add linestyle legend
-    lgd2 = legend([H1 H2], 'Tomaso', 'Frédéric', 'Location', 'northwest');
+    lgd2 = legend([H0 H1 H2], 'Data Point','Tomaso', 'Frédéric', 'Location', 'northwest');
     title(lgd2,'Fit Source') % add legend title
     set(lgd2,'color','none')
 

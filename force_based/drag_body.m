@@ -67,6 +67,8 @@ for i=1:size(test_db,1)
     test_db.Drag(i) = temp_x(2);
 end
 
+save('db_Fx_fuselage.mat','test_db')
+
 %% Plot Fx
 windspeed_bins = unique(round(test_db.Windspeed,0));
 test_db.Windspeed_bin = round(test_db.Windspeed,0);
@@ -384,6 +386,12 @@ lgd1 = legend(hdls,legend_lbl,'location','southeast');
 title(lgd1,'Airspeed') % add legend title
 sgtitle(sprintf('Fit for all airspeed, AoA and skew\nFx = (K1*cos(skew)+K2+K3*alpha+K3*alpha^2)*V^2\nK1 = %2.2e K2 = %2.2e K3 = %2.2e K4 = %2.2e|  RMS = %2.2f',s_skew(1),s_skew(2),s_skew(3),s_skew(4),RMS_skew))
 
+%% Analyze result of fit
+RMS = sqrt(mean((fit_skew(s_skew,x) - y).^2))
+range = max(y)-min(y)
+RMS_percentage_range = RMS./range
+max_error = max(abs((fit_skew(s_skew,x) - y)))
+max_error_percentage_range = max_error./range
 %% Compare Skew Angle 90 deg and 0 deg on sample plot
 
 windspeed_bins = unique(round(skew_db.Windspeed,0));

@@ -1,8 +1,16 @@
-function F_z = Fz_elevator(elevator_pprz,V)
+function F_z = Fz_elevator(elevator_cmd,V,isPPRZ)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
-angle = elevator_pprz2angle(elevator_pprz);
+if nargin<3
+    angle = elevator_pprz2angle(elevator_cmd);
+else
+    if isPPRZ
+        angle = elevator_pprz2angle(elevator_cmd);
+    else
+    angle = elevator_cmd;
+    end
+end
 
 % Saturate at +- 15 deg for stall condition
 angle = max(min(angle,deg2rad(15)),deg2rad(-15));

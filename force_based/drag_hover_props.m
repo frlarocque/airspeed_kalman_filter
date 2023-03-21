@@ -87,6 +87,8 @@ test_db.Fx_hover = test_db.Fx-Fx_body(test_db.Turn_Table,test_db.Skew_sp,test_db
 % Assumming uncorrelated
 test_db.std_Fx_hover = sqrt(test_db.std_Fx.^2+test_db.std_Fx.^2);
 
+save('db_Fx_hover_prop.mat','test_db')
+
 %% Fit Hover Prop Fx Drag depending on airspeed and RPM
 %Different airspeed and different hover prop values
 hover_prop_db = test_db(test_db.Turn_Table==deg2rad(0) & test_db.Skew_sp==deg2rad(0),:);
@@ -160,6 +162,13 @@ title(lgd1,'Airspeed') % add legend title
 title(sprintf('All AOA\nFx hover props = K1*V^{2}+K2*V^{1/2}*RPM^{2}\nK1 = %2.2e K2 = %2.2e |  RMS = %2.2f',s_hover(1),s_hover(2),RMS))
 axis([0 inf -inf 0])
 grid on
+
+%% Analyze result of fit
+RMS = sqrt(mean((fit_hover(s_hover,x) - y).^2))
+range = max(y)-min(y)
+RMS_percentage_range = RMS./range
+max_error = max(abs((fit_hover(s_hover,x) - y)))
+max_error_percentage_range = max_error./range
 
 %% Fit hover prop Fx Drag depending on V^2 and RPM alone
 %Different airspeed and different hover prop values

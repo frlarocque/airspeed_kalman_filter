@@ -88,6 +88,7 @@ test_db.Fz_hover = test_db.Fz-Fz_body(test_db.Turn_Table,test_db.Skew_sp,test_db
 % Assumming uncorrelated
 test_db.std_Fz_hover = sqrt(test_db.std_Fz.^2+test_db.std_Fz.^2);
 
+save('db_Fz_hover_prop.mat','test_db')
 %% Plot
 
 % Hover prop lift function:
@@ -162,6 +163,13 @@ title(lgd1,'Airspeed') % add legend title
 title(sprintf('4 motors at the same time\nFz hover props = K1*RPM^{2}\nK1 = %2.2e |  RMS = %2.2f',s_same(1),RMS_same))
 axis([0 inf -inf 0])
 grid on
+
+%% Analyze result of fit
+RMS = sqrt(mean((fit_same(s_same,x) - y).^2))
+range = max(y)-min(y)
+RMS_percentage_range = RMS./range
+max_error = max(abs((fit_same(s_same,x) - y)))
+max_error_percentage_range = max_error./range
 
 %% Fit all motor separately
 % Fz = K1*RPM_F^2+K2*RPM_R^2+K3*RPM_B^2+K4*RPM_L^2

@@ -67,6 +67,7 @@ for i=1:size(test_db,1)
     test_db.Drag(i) = temp_x(2);
 end
 
+save('db_Fz_fuselage.mat','test_db')
 %% Plot Fz
 windspeed_bins = unique(round(test_db.Windspeed,0));
 test_db.Windspeed_bin = round(test_db.Windspeed,0);
@@ -288,3 +289,10 @@ sgtitle(sprintf('Fit for all airspeed, AoA and skew\nFz = (K1*cos(skew)+K2+K3*al
 
 
 % Fz = -1.569286184145456E-3*cos(skew)+5.989835400355119E-3+-2.346715949355502E-1*alpha+6.611857425073364E-2*alpha^2)*V^2
+
+%% Analyze result of fit
+RMS = sqrt(mean((fit_skew(s_skew,x) - y).^2))
+range = max(y)-min(y)
+RMS_percentage_range = RMS./range
+max_error = max(abs((fit_skew(s_skew,x) - y)))
+max_error_percentage_range = max_error./range
