@@ -16,9 +16,11 @@ Fz_fuse_TO = @ (u,the) (-1181.4327.*k_fuse.*the.*u.^2./10000);
 
 %% Compare parameters
 u_list = [5,8,11,14];
+select = 3;
 skew_list = deg2rad([0:30:90]);
-theta_list = deg2rad([-5:0.1:15]);
+theta_list = deg2rad([-5:0.5:15]);
 
+[SKEW_LIST,THETA_LIST] = meshgrid(skew_list,theta_list);
 %% Compare Wing 
 
 %Fx
@@ -66,6 +68,21 @@ end
 sgtitle('Wing x-axis')
 %linkaxes(Ax(1:end-1),'y')
 
+% Difference between models
+figure
+subplot(1,2,1)
+surf(rad2deg(SKEW_LIST),rad2deg(THETA_LIST),(Fx_wing_TO(u_list(select),SKEW_LIST,THETA_LIST)-Fx_wing(SKEW_LIST,THETA_LIST,u_list(select))))
+xlabel('Skew [deg]')
+ylabel('Angle of attack [deg]')
+zlabel('Error (T-F) [N]')
+subplot(1,2,2)
+surf(rad2deg(SKEW_LIST),rad2deg(THETA_LIST),(Fx_wing_TO(u_list(select),SKEW_LIST,THETA_LIST)-Fx_wing(SKEW_LIST,THETA_LIST,u_list(select)))./Fx_wing_TO(u_list(select),SKEW_LIST,THETA_LIST))
+xlabel('Skew [deg]')
+ylabel('Angle of attack [deg]')
+zlabel('Error (T-F) [%]')
+zlim([-1 1])
+sgtitle('Difference between models: Fx Wing')
+
 %Fz
 figure;
 legend_lbl = {};
@@ -110,6 +127,21 @@ for j=1:length(skew_list)
 end
 sgtitle('Wing z-axis')
 %linkaxes(Ax(1:end-1),'y')
+
+% Difference between models
+figure
+subplot(1,2,1)
+surf(rad2deg(SKEW_LIST),rad2deg(THETA_LIST),(Fz_wing_TO(u_list(select),SKEW_LIST,THETA_LIST)-Fz_wing(SKEW_LIST,THETA_LIST,u_list(select))))
+xlabel('Skew [deg]')
+ylabel('Angle of attack [deg]')
+zlabel('Error (T-F) [%]')
+zlim([-1 1])
+subplot(1,2,2)
+surf(rad2deg(SKEW_LIST),rad2deg(THETA_LIST),(Fz_wing_TO(u_list(select),SKEW_LIST,THETA_LIST)-Fz_wing(SKEW_LIST,THETA_LIST,u_list(select)))./Fz_wing_TO(u_list(select),SKEW_LIST,THETA_LIST))
+xlabel('Skew [deg]')
+ylabel('Angle of attack [deg]')
+zlabel('Error (T-F) [N]')
+sgtitle('Difference between models: Fz Wing')
 
 %% Compare Fuselage
 
@@ -158,6 +190,21 @@ end
 sgtitle('Fuselage x-axis')
 %linkaxes(Ax(1:end-1),'y')
 
+% Difference between models
+figure
+subplot(1,2,1)
+surf(rad2deg(SKEW_LIST),rad2deg(THETA_LIST),(Fx_fuse_TO(u_list(select),SKEW_LIST,THETA_LIST)-Fx_fuselage(SKEW_LIST,THETA_LIST,u_list(select))))
+xlabel('Skew [deg]')
+ylabel('Angle of attack [deg]')
+zlabel('Error (T-F) [N]')
+subplot(1,2,2)
+surf(rad2deg(SKEW_LIST),rad2deg(THETA_LIST),(Fx_wing_TO(u_list(select),SKEW_LIST,THETA_LIST)-Fx_wing(SKEW_LIST,THETA_LIST,u_list(select)))./Fx_wing_TO(u_list(select),SKEW_LIST,THETA_LIST))
+xlabel('Skew [deg]')
+ylabel('Angle of attack [deg]')
+zlabel('Error (T-F) [%]')
+zlim([-1 1])
+sgtitle('Difference between models: Fx Fuselage')
+
 %Fz
 figure;
 legend_lbl = {};
@@ -203,6 +250,21 @@ end
 sgtitle('Fuselage z-axis')
 %linkaxes(Ax(1:end-1),'y')
 
+% Difference between models
+figure
+subplot(1,2,1)
+surf(rad2deg(SKEW_LIST),rad2deg(THETA_LIST),(Fz_fuse_TO(u_list(select),THETA_LIST)-Fx_fuselage(SKEW_LIST,THETA_LIST,u_list(select))))
+xlabel('Skew [deg]')
+ylabel('Angle of attack [deg]')
+zlabel('Error (T-F) [N]')
+subplot(1,2,2)
+surf(rad2deg(SKEW_LIST),rad2deg(THETA_LIST),(Fz_fuse_TO(u_list(select),THETA_LIST)-Fx_fuselage(SKEW_LIST,THETA_LIST,u_list(select)))./Fx_wing_TO(u_list(select),SKEW_LIST,THETA_LIST))
+xlabel('Skew [deg]')
+ylabel('Angle of attack [deg]')
+zlabel('Error (T-F) [%]')
+zlim([-1 1])
+sgtitle('Difference between models: Fz Fuselage')
+
 %% Compare elevator
 %Fz
 f1 = figure;
@@ -243,3 +305,16 @@ ylabel('Force [N]')
 grid on
 
 title('Elevator z-axis')
+
+% Difference between models
+figure
+subplot(1,2,1)
+plot(rad2deg(theta_list),Fz_ele_TO(u_list(select),theta_list)-Fz_elevator(theta_list,u_list(select),0))
+xlabel('Angle of attack [deg]')
+ylabel('Error (T-F) [N]')
+subplot(1,2,2)
+plot(rad2deg(theta_list),Fz_ele_TO(u_list(select),theta_list)-Fz_elevator(theta_list,u_list(select),0))
+xlabel('Angle of attack [deg]')
+ylabel('Error (T-F) [%]')
+ylim([-1 1])
+sgtitle('Difference between models: Fz Elevator')
