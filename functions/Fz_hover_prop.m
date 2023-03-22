@@ -13,7 +13,7 @@ if size(hover_prop_RPM,2)>=4
 else
     % Supposes same constant for all motors
     %Fz = K1*RPM^2
-    Fz_hover_prop_coeff = [-3.650781249999991e-06];
+    Fz_hover_prop_coeff = 1.1.*[-3.650781249999991e-06];
     F_z = Fz_hover_prop_coeff(1).*hover_prop_RPM.^2;
 
 end

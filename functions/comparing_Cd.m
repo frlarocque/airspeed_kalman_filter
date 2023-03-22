@@ -15,6 +15,23 @@ for j=1:length(u)
 
 end
 
+%%
+Fx_fus = Fx_fuselage(0,0,u);
+Fx_elev = Fx_elevator(8100,u);
+
+drag = Fx_fus+Fx_elev+-0.66.*u;
+
+figure
+plot(u,-0.095.*u.^2)
+hold on
+plot(u,-0.053.*u.^2)
+plot(u,-0.0289.*u.^2)
+plot(u,-0.0289.*u.^2+-0.4.*u)
+%plot(u,drag)
+legend('0.095','0.053','0.029','something')
+
+
+%%
 u_crit = 6;
 k_1 = -0.095;
 k_2 = -0.053;

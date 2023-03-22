@@ -31,8 +31,8 @@ wind_triangle_setup
 % 𝑉𝑥 , 𝑉𝑦, 𝑉𝑧 = Velocity in Earth Fixed Frame
 % alpha, beta = angle of attack and sideslip angle
 
-%x = [u v w mu_x mu_y mu_z k_x k_y k_z];
-%u = [a_x a_y a_z p q r phi theta psi];
+%x = [u v w mu_x mu_y mu_z];
+%u = [a_x a_y a_z p q r phi theta psi pusher_RPM hover_RPM skew elevator_pprz];
 %z = [V_x V_y V_z beta];
 
 %w_w = [0;0;0]; %noise angular rate
@@ -44,8 +44,8 @@ epsi = 1E-2;
 t = airspeed_pitot.flight.time;
 dt = mean(diff(t));
 
-f_fh = str2func('f_4');
-g_fh = str2func('g_11_ident');
+f_fh = str2func('f_2');
+g_fh = str2func('g_12_cst_2');
 
 % Get filter accel agressively
 filter_freq = 0.2; %[Hz]
@@ -60,11 +60,11 @@ skew_filt = filter(b,a,skew.flight.data);
 elevator_pprz_filt = filter(b,a,control_surface_pprz.flight.data(:,4));
 
 % Initial conditions
-x_0 = [0 0 0   -3.9368 -4.345 0   -0.45 0 0]';
+x_0 = [0 0 0 0 0 0]'; %x_0 = [0 0 0 0 0 0]';
 
 u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data ...
             pusher_prop_rpm_filt hover_prop_rpm_filt skew_filt elevator_pprz_filt]';
-z_list = [Vg_NED.flight.data a_x_filt a_y_filt a_z_filt]'; %measurement
+z_list = [Vg_NED.flight.data a_x_filt a_y_filt a_z_filt airspeed_pitot.flight.data]'; %measurement
 
 % Filter Data coming in
 filter_freq = 10.0; %[Hz]
@@ -72,14 +72,13 @@ filter_freq = 10.0; %[Hz]
 u_list(1:6,:) = filter(b,a,u_list(1:6,:),[],2);
 z_list(1:3,:) = filter(b,a,z_list(1:3,:),[],2);
 
-cov_list = 7.8E-10; %7.8E-7;%1.43E-6;
+cov_list = 7.8E-6;%1.43E-6; %7.8E-8;
 kalman_res = {};
 
-wind_var = [1 1 1E-1].*cov_list(1);
-offset_var = [1 1 1].*1E-5;
-Q = diag([IMU_accel.var,IMU_rate.var,wind_var,offset_var]); %process noise
-P_0 = diag([1E-2 1E-2 1E-2 1E1.*wind_var offset_var]); %covariance
-R = diag([Vg_NED.var 1E-1.*IMU_accel.var(1) IMU_accel.var(2) 1E1.*IMU_accel.var(3)]); %measurement noise
+wind_var = [1 1 1E-1]*cov_list(1);
+Q = diag([IMU_accel.var,IMU_rate.var,wind_var]); %process noise
+P_0 = diag([1E-2 1E-2 1E-2 1E1.*wind_var]); %covariance
+R = diag([Vg_NED.var 5E-2.*1E-2 1E-0.*6E-2 2E-1 1E-4]); %measurement noise
 
 %%
 EKF_res = {};
@@ -89,6 +88,7 @@ y_list = zeros(size(z_list,1),length(z_list));
 
 K = cell(1,length(t));
 P = cell(1,length(t));
+S = cell(1,length(t));
 R_variable = cell(1,length(t));
 Q_variable = cell(1,length(t));
 
@@ -103,10 +103,10 @@ for k=1:length(t)
         
     Q_variable{k} = Q;
 
-    if t(k)-t(1)<10
-        Q_variable{k}(7,7) = 1E1*Q(7,7);
-        Q_variable{k}(8,8) = 1E1*Q(8,8);
-        Q_variable{k}(9,9) = 1E1*Q(9,9);
+    if t(k)-t(1)<0
+        Q_variable{k}(end,end)     = 1E1*Q(end,end);
+        Q_variable{k}(end-1,end-1) = 1E1*Q(end-1,end-1);
+        Q_variable{k}(end-2,end-2) = 1E1*Q(end-2,end-2);
     end
 
     u=u_list(:,k);
@@ -114,9 +114,14 @@ for k=1:length(t)
     
     R_variable{k} = R;
 
-    %if abs(asin(x(2)./vecnorm(x(1:3))))> deg2rad(20)
-    %    R_variable{k}(4,4) = 1E2.*R_variable{k}(4,4);
-    %end
+    if t(k)-t(1)>10
+        R_variable{k}(7,7)     = 1E10*R(7,7);
+    end
+    
+    % Don't use A_z if skew smaller than 60 deg
+    if u(12)< deg2rad(60)
+        R_variable{k}(6,6) = 1E2.*R(6,6);
+    end
 
     F_val = F(f_fh,x,u,epsi);
     G_val = G(g_fh,x,u,epsi);
@@ -131,7 +136,8 @@ for k=1:length(t)
     y_list(:,k) = z-g_fh(x,u);
 
     %Kalman gain
-    K{k} = P_pred*G_val'*inv(G_val*P_pred*G_val'+M_val*R_variable{k}*M_val');
+    S{k} = G_val*P_pred*G_val'+M_val*R_variable{k}*M_val';
+    K{k} = P_pred*G_val'*inv(S{k});
 
     x_list(:,k) = x_pred+K{k}*y_list(:,k);
     P{k} = (eye(length(x))-K{k}*G_val)*P_pred;
@@ -147,6 +153,7 @@ EKF_res.P = P;
 EKF_res.Q = Q_variable;
 EKF_res.R = R_variable;
 EKF_res.K = K;
+EKF_res.S = S;
 
 kalman_res{1} = EKF_res;
 
@@ -156,7 +163,48 @@ kalman_res{1}.error = error_quantification(kalman_res{1}.x(1,airspeed_pitot.flig
 select = 1;
 %plot_EKF_result(kalman_res{select},airspeed_pitot.flight,wind)
 plot_EKF_result_full(kalman_res{select},airspeed_pitot.flight,beta.flight,alpha.flight,wind)
-fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(vecnorm(kalman_res{select}.x(4:6,:),2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
+fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(sqrt(kalman_res{select}.x(4,:).^2+kalman_res{select}.x(5,:).^2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
+
+%% Plot innovation
+
+q = zeros(1,length(kalman_res{1}.S));
+innov_std = zeros(length(kalman_res{1}.S{1}),length(kalman_res{1}.S));
+
+for i=1:length(kalman_res{1}.S)
+    q(i) = kalman_res{1}.y(:,i)'*inv(kalman_res{1}.S{i})*kalman_res{1}.y(:,i);
+    for j=1:length(kalman_res{1}.S{i})
+        innov_std(j,i) = kalman_res{1}.S{i}(j,j);
+    end
+end
+%q = q./length(q);
+
+select_innov = 6;
+figure
+subplot(1,3,1)
+plot(kalman_res{1}.t,kalman_res{1}.y(select_innov,:))
+hold on
+plot(kalman_res{1}.t,2.*sqrt(innov_std(select_innov,:)),'--')
+plot(kalman_res{1}.t,-2.*sqrt(innov_std(select_innov,:)),'--')
+xlabel('Time [s]')
+title('Innovation')
+axis([-inf inf -8.*sqrt(max(innov_std(select_innov,:))) 8.*sqrt(max(innov_std(select_innov,:)))])
+
+subplot(1,3,2)
+plot(kalman_res{1}.t,q)
+title('Normalized innovation squared')
+axis([-inf inf 0 3*sqrt(var(q))])
+xlabel('Time [s]')
+mean(q);
+chi2inv(0.975,length(q));
+chi2inv(0.025,length(q));
+
+subplot(1,3,3)
+[C,shifts] = xcorr(kalman_res{1}.y(select_innov,:),'normalized');
+plot([rot90(rot90(kalman_res{1}.t-kalman_res{1}.t(1)))' (kalman_res{1}.t(2:end)-kalman_res{1}.t(1))'],C)
+axis([0 inf -inf inf])
+xaxis('Offset [s]')
+title('Normalized autocorrelation')
+sgtitle(sprintf('Innovation %d',select_innov))
 
 %% Plot covariance
 
