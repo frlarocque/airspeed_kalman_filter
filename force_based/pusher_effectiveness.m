@@ -1,5 +1,3 @@
-%% NOT VALID FOR USE ONLY FOR PUSHER ONLY AS IT DOES INCLUDES VEHICLE DRAG
-
 %% Init
 clear all
 
@@ -32,103 +30,44 @@ full_db = readtable(fullfile(path,file));
 
 test_codes = unique(full_db.Code);
 
-test = 'AE';
-idx = contains(full_db.Code,test);
+test_AE = 'AE';
+test_LP1 = 'LP1';
+idx_1 = contains(full_db.Code,test_AE);
+idx_2 = contains(full_db.Code,test_LP1);
 
-pusher_db = full_db(idx,:);
+test_db_AE = full_db(idx_1,:);
+% Remove all entries with actuators active
+test_db_AE = test_db_AE(test_db_AE.Turn_Table==0 &test_db_AE.Rud==0 & test_db_AE.Elev==0 & test_db_AE.Ail_R==0 & test_db_AE.Ail_L==0 & test_db_AE.Mot_F<1000 &test_db_AE.Mot_R<1000 &test_db_AE.Mot_B<1000 & test_db_AE.Mot_L<1000,:);
+% Select skew = 0
+test_db_AE = test_db_AE(test_db_AE.Skew_sp==0,:);
+% Remove 0 command from fit
+test_db_AE = test_db_AE(test_db_AE.Mot_Push>0,:);
+
+test_db_LP1 = full_db(idx_2,:);
+
+forces_columns = {'Mx','My','Mz','Fx','Fy','Fz',};
+
+% Substract db2 and db3 from db1
+test_db = table();
+tol = 1;
+for i=1:size(test_db_AE,1)
+    idx_LP1 = find(abs(test_db_LP1.Windspeed-test_db_AE.Windspeed(i))<tol & abs(test_db_LP1.Turn_Table-test_db_AE.Turn_Table(i))<tol & abs(test_db_LP1.Skew_sp-test_db_AE.Skew_sp(i))<tol,1,'first');
+    if ~isempty(idx_LP1)
+        test_db(end+1,:) = test_db_AE(i,:);
+        test_db{end,forces_columns} = test_db_AE{i,forces_columns} -test_db_LP1{idx_LP1,forces_columns};
+        test_db.Code{end} = [test_AE '-' test_LP1];
+    end
+end
 
 % Transform all angles in rad
 deg_columns = {'Turn_Table','Skew','Skew_sp','Pitch','AoA','std_AoA'};
-pusher_db{:,deg_columns} = deg2rad(pusher_db{:,deg_columns});
+test_db{:,deg_columns} = deg2rad(test_db{:,deg_columns});
 
 % Save
-save(['db_',test,'.mat'],'pusher_db')
+%save(['db_',test_1,'.mat'],'test_db')
 
-%% Drag caused by body
-test = 'LP1';
-idx = contains(full_db.Code,test);
-
-body_db = full_db(idx,:);
-
-% Transform all angles in rad
-deg_columns = {'Turn_Table','Skew','Skew_sp','Pitch','AoA','std_AoA'};
-body_db{:,deg_columns} = deg2rad(body_db{:,deg_columns});
-
-% Remove all entries with actuators active
-body_db = body_db(body_db.Turn_Table==0 &body_db.Rud==0 & body_db.Elev==0 & body_db.Ail_R==0 & body_db.Ail_L==0 & body_db.Mot_F<1000 &body_db.Mot_R<1000 &body_db.Mot_B<1000 & body_db.Mot_L<1000,:);
-
-% Plot results
-figure
-skew_bins = deg2rad(unique(round(rad2deg(body_db.Skew_sp),0)));
-body_db.skew_bin = deg2rad(round(rad2deg(body_db.Skew_sp),0));
-legend_lbl = {};
-col=linspecer(length(skew_bins));
-hdls = [];
-title('Body Drag depending on skew')
-for i=1:length(skew_bins)
-    temp_db = body_db(body_db.skew_bin==skew_bins(i),:);
-
-    if show_error_bar; hdls(i) = errorbar(temp_db.Windspeed,temp_db.Fx,temp_db.std_Fx,'*','color',col(i,:));
-    else; hdls(i) = plot(temp_db.Windspeed,temp_db.Fx,'*','color',col(i,:)); end
-    hold on
-    legend_lbl{i} = [mat2str(rad2deg(skew_bins(i))),' deg'];
-end
-lgd1 = legend(hdls,legend_lbl,'location','best');
-title(lgd1,'Skew') % add legend title
-xlabel('Winspeed [m/s]')
-ylabel('Fx [N]')
-grid on
-
-% Select skew = 0 deg
-body_db = body_db(body_db.Skew_sp==0,:);
-
-% Fit data
-% Fx = 0.5*rho*S*CD0*V^2
-% Fx = K1*V^2
-% k  = [k1]
-% x = [V]
-x = [body_db.Windspeed];
-y = [body_db.Fx];
-
-fit_body = @(k,x)  k(1).*x(:,1).^2;    % Function to fit
-fcn_body = @(k) sqrt(mean((fit_body(k,x) - y).^2));           % Least-Squares cost function
-[s_body,RMS_body] = fminsearch(fcn_body,[-1E-1])
-
-% s_body =
-% 
-%    -0.0466
-% 
-% 
-% RMS_body =
-% 
-%     0.2598
-
-% Plot fit
-figure
-if show_error_bar; errorbar(body_db.Windspeed,body_db.Fx,body_db.std_Fx,'*')
-else; plot(body_db.Windspeed,body_db.Fx,'*'); end
-hold on
-plot(linspace(0,max(body_db.Windspeed),10),fit_body(s_body,linspace(0,max(body_db.Windspeed),10)'),'--')
-axis([0 inf -inf 0])
-xlabel('Winspeed [m/s]')
-ylabel('Fx [N]')
-grid on
-title(sprintf('Skew = 0 deg\nFbody = K1*V^2  |  K1 = %2.2e  |  RMS = %2.2f',s_body(1),RMS_body));
-
-%Hence
-%
-% Fx_body = -4.6641E-2*V^2
-
-%% Remove entries from pusher db
-% Remove all entries where actuators are used, except Mot_Push
-pusher_db = pusher_db(pusher_db.Rud==0 & pusher_db.Elev==0 & pusher_db.Ail_R==0 & pusher_db.Ail_L==0 & pusher_db.Mot_F<1000 &pusher_db.Mot_R<1000 &pusher_db.Mot_B<1000 & pusher_db.Mot_L<1000,:);
-
-% Select skew = 0
-pusher_db = pusher_db(pusher_db.Skew_sp==0,:);
-
-% Remove 0 command from fit
-pusher_db = pusher_db(pusher_db.Mot_Push>0,:);
-
+pusher_db = test_db;
+pusher_db.Fx_pusher = pusher_db.Fx;
 %% Plot Pusher Thrust depending on windspeed and pprz signal
 figure
 windspeed_bins = unique(round(pusher_db.Windspeed,0));
@@ -151,39 +90,6 @@ ylabel('F_x [N]')
 grid on
 title({'Fx depending on airspeed and pusher command'})
 axis([0 inf -inf inf])
-
-%% Correct for body drag
-% Pusher_db.Fx = body drag + pusher force
-% Pusher force = Pusher_db.fx-body drag
-pusher_db.Fx_pusher = pusher_db.Fx-fit_body(s_body,pusher_db.Windspeed);
-
-% Calculating std dev of new Fx_pusher
-% Mean C = mean A - mean B --> Variance C = Variance A + Variance B - 2*Correlation(A,B)*SD A * SD B
-% Assumming uncorrelated
-pusher_db.std_Fx_pusher = sqrt(pusher_db.std_Fx.^2+pusher_db.std_Fx.^2);
-
-figure
-windspeed_bins = unique(round(pusher_db.Windspeed,0));
-pusher_db.Windspeed_bin = round(pusher_db.Windspeed,0);
-legend_lbl = {};
-col=linspecer(length(windspeed_bins));
-hdls = [];
-for i=1:length(windspeed_bins)
-    temp_db = pusher_db(pusher_db.Windspeed_bin==windspeed_bins(i),:);
-
-    if show_error_bar; hdls(i) = errorbar(temp_db.Mot_Push,temp_db.Fx_pusher,temp_db.std_Fx_pusher,'*','color',col(i,:));
-    else; hdls(i) = plot(temp_db.Mot_Push,temp_db.Fx_pusher,'*','color',col(i,:)); end
-    
-    hold on
-    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
-end
-lgd1 = legend(hdls,legend_lbl,'location','best');
-title(lgd1,'Airspeed') % add legend title
-xlabel('Pusher Command [pprz]')
-ylabel('Pusher F_x [N]')
-grid on
-title('Corrected Pusher Thrust depending on airspeed and command')
-axis([0 inf 0 inf])
 
 %% Fit on pprz to RPM
 
@@ -241,7 +147,7 @@ axis([0 inf 0 inf])
 
 %% Fit on all RPM
 
-% Fx = k1*V*RPM+k_2*RPM^2
+% Fx = k1*V*RPM+k_2*RPM^2+k_3*V
 % k  = [k1 k_2]
 % x = [pprz,V]
 x = [pusher_db.rpm_Mot_Push,pusher_db.Windspeed];
@@ -253,14 +159,14 @@ fcn_all_rpm = @(k) sqrt(mean((fit_all_rpm(k,x) - y).^2));           % Least-Squa
 
 % s_all_rpm =
 % 
-%    0.000000368027847
-%   -0.000043917972356
-%   -0.086517700632897
+%    0.000000368865338
+%   -0.000045422156524
+%   -0.084830356821562
 % 
 % 
 % RMS_all_rpm =
 % 
-%    0.404753339914599
+%    0.419639350722040
 
 figure
 windspeed_bins = unique(round(pusher_db.Windspeed,0));
@@ -286,12 +192,6 @@ xlabel('RPM [rotation per minute]')
 ylabel('Pusher F_x [N]')
 axis([0 inf 0 inf])
 grid on
-
-% Hence:
-%
-% Fx pusher =  3.680278471152158e-07 * rpm^2 [rpm] +
-% -4.391797235636297e-05*rpm [rpm] * v [m/s] + -8.651770063289748E-2 * v
-% [m/s]
 
 %% Plot pprz-->RPM-->T
 figure
@@ -337,17 +237,6 @@ fit_all_pprz = @(k,x)  k(1).*x(:,1).^2+k(2).*x(:,1).*x(:,2);    % Function to fi
 fcn_all_pprz = @(k) sqrt(mean((fit_all_pprz(k,x) - y).^2));           % Least-Squares cost function
 [s_all_pprz,RMS_all_pprz] = fminsearch(fcn_all_pprz,[1E-5;1E-5])
 
-% s_all_pprz =
-% 
-%    1.0e-04 *
-% 
-%    0.004002013847311
-%   -0.186387227588874
-% 
-% 
-% RMS_all_pprz =
-% 
-%    1.036952334246392
 
 figure
 windspeed_bins = unique(round(pusher_db.Windspeed,0));
@@ -374,6 +263,3 @@ ylabel('Pusher F_x [N]')
 axis([0 inf 0 inf])
 grid on
 
-% Hence:
-%
-% Fx =  4.002013847311274e-07 * pprz^2 [pprz] + -1.863872275888742e-05*pprz [pprz] * v [m/s]
