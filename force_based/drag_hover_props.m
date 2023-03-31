@@ -122,7 +122,7 @@ end
 
 xlabel('Hover Prop RPM [RPM]')
 ylabel('Hover Prop F_x [N]')
-lgd1 = legend(hdls,legend_lbl,'location','southeast');
+lgd1 = legend(hdls,legend_lbl,'location','southwest');
 title(lgd1,'Airspeed') % add legend title
 title(sprintf('AoA = 0 deg\nFx hover props = K1*V^{2}+K2*V^{1/2}*RPM^{2}\nK1 = %2.2e K2 = %2.2e |  RMS = %2.2f',s_hover(1),s_hover(2),RMS_hover))
 axis([0 inf -inf 0])

@@ -30,17 +30,33 @@ full_db = readtable(fullfile(path,file));
 
 test_codes = unique(full_db.Code);
 
-test = 'LP5';
-idx = contains(full_db.Code,test);
+test_1 = 'LP1';
+test_2 = 'LP3';
+idx_1 = contains(full_db.Code,test_1);
+idx_2 = contains(full_db.Code,test_2);
 
-test_db = full_db(idx,:);
+test_db_1 = full_db(idx_1,:);
+test_db_2 = full_db(idx_2,:);
+
+forces_columns = {'Mx','My','Mz','Fx','Fy','Fz',};
+
+% Substract db2 from db1
+test_db = table();
+for i=1:size(test_db_1,1)
+    id = test_db_1.ID{i}(length(test_1)+2:end);
+    if any(contains(test_db_2.ID,id))
+        test_db(end+1,:) = test_db_1(i,:);
+        test_db{end,forces_columns} = test_db_1{i,forces_columns} -test_db_2{contains(test_db_2.ID,id),forces_columns};
+        test_db.Code{end} = [test_1 '-' test_2];
+    end
+end
 
 % Transform all angles in rad
 deg_columns = {'Turn_Table','Skew','Skew_sp','Pitch','AoA','std_AoA'};
 test_db{:,deg_columns} = deg2rad(test_db{:,deg_columns});
 
 % Save
-save(['db_',test,'.mat'],'test_db')
+%save(['db_',test_1,'.mat'],'test_db')
 
 %% Remove entries
 
@@ -68,23 +84,7 @@ for i=1:size(test_db,1)
 end
 
 %% Obtaining wing Fz
-% Fz = body lift + wing lift
-% Wing lift = Fz-body lift
-%Drag without hover props (only body drag)
-
-lift_body_coeff = [-1.569286184145456E-3 5.989835400355119E-3 -2.346715949355502E-1 6.611857425073364E-2]; %all airspeeds without hover props with skew
-
-Fz_body = @(alpha,skew,V) (lift_body_coeff(1)  .*  cos(skew)+...
-                           lift_body_coeff(2)+...
-                           lift_body_coeff(3)  .*  alpha+...
-                           lift_body_coeff(4)  .*  alpha.^2).*V.^2;
-
-test_db.Fz_wing = test_db.Fz-Fz_body(test_db.Turn_Table,test_db.Skew_sp,test_db.Windspeed);
-
-% Calculating std dev of new Fz_pusher
-% Mean C = mean A - mean B --> Variance C = Variance A + Variance B - 2*Correlation(A,B)*SD A * SD B
-% Assumming uncorrelated
-test_db.std_Fz_wing = sqrt(test_db.std_Fz.^2+test_db.std_Fz.^2);
+test_db.Fz_wing = test_db.Fz;
 
 save('db_Fz_wing.mat','test_db')
 %% Plot Fz wing

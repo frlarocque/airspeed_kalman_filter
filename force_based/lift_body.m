@@ -30,17 +30,36 @@ full_db = readtable(fullfile(path,file));
 
 test_codes = unique(full_db.Code);
 
-test = 'LP4';
-idx = contains(full_db.Code,test);
+test_1 = 'LP1';
+test_2 = 'LP3';
+test_3 = 'LP5';
+idx_1 = contains(full_db.Code,test_1);
+idx_2 = contains(full_db.Code,test_2);
+idx_3 = contains(full_db.Code,test_3);
 
-test_db = full_db(idx,:);
+test_db_1 = full_db(idx_1,:);
+test_db_2 = full_db(idx_2,:);
+test_db_3 = full_db(idx_3,:);
+
+forces_columns = {'Mx','My','Mz','Fx','Fy','Fz',};
+
+% Substract db2 and db3 from db1
+test_db = table();
+for i=1:size(test_db_1,1)
+    id = test_db_1.ID{i}(length(test_1)+2:end);
+    if any(contains(test_db_2.ID,id)) && any(contains(test_db_3.ID,id))
+        test_db(end+1,:) = test_db_1(i,:);
+        test_db{end,forces_columns} = -(test_db_1{i,forces_columns} -test_db_2{contains(test_db_2.ID,id),forces_columns} -test_db_3{contains(test_db_3.ID,id),forces_columns});
+        test_db.Code{end} = ['-(' test_1 '-' test_2 '-' test_3 ')'];
+    end
+end
 
 % Transform all angles in rad
 deg_columns = {'Turn_Table','Skew','Skew_sp','Pitch','AoA','std_AoA'};
 test_db{:,deg_columns} = deg2rad(test_db{:,deg_columns});
 
 % Save
-save(['db_',test,'.mat'],'test_db')
+%save(['db_',test_1,'.mat'],'test_db')
 
 %% Remove entries
 
@@ -187,17 +206,6 @@ fit_quad = @(k,x)  (k(1)+k(2).*x(:,1)+k(3).*x(:,1).^2).*x(:,2).^2; % Function to
 fcn_quad = @(k) sqrt(mean((fit_quad(k,x) - y).^2));           % Least-Squares cost function
 [s_quad,RMS_quad,~,~] = fminsearch(fcn_quad,[0;0;0],options) %bound first coefficient to negative value
 
-% s_quad =
-% 
-%    0.004983959523938
-%    0.233567635513373
-%   -0.045035223960415
-% 
-% 
-% RMS_quad =
-% 
-%    0.313701973247118
-
 figure
 windspeed_bins = unique(round(quad_db.Windspeed,0));
 quad_db.Windspeed_bin = round(quad_db.Windspeed,0);
@@ -226,7 +234,7 @@ grid on
 %% Fz Lift for all airspeeds, for all skews
 skew_db = test_db;
 
-% Fx = (k1*cos(skew)+k2+k3*alpha+k4*alpha^2)*V^2
+% Fz= (k1*cos(skew)+k2+k3*alpha+k4*alpha^2)*V^2
 % k  = [k1 k2 k3 k4]
 % x = [AoA,V,Skew]
 x = [skew_db.Turn_Table,skew_db.Windspeed,skew_db.Skew_sp];
@@ -238,15 +246,15 @@ fcn_skew = @(k) sqrt(mean((fit_skew(k,x) - y).^2));           % Least-Squares co
 
 % s_skew =
 % 
-%    -0.001569295267630
-%    0.005989742907274
-%    -0.234671274859478
-%    0.066122038350159
+%   -0.004010655576495
+%   -0.000721901291023
+%   -0.112383214091401
+%    0.077819486465484
 % 
 % 
 % RMS_skew =
 % 
-%    0.337581651106928
+%    0.918013367932760
 
 
 windspeed_bins = unique(round(skew_db.Windspeed,0));
@@ -286,9 +294,6 @@ end
 lgd1 = legend(hdls,legend_lbl,'location','northwest');
 title(lgd1,'Airspeed') % add legend title
 sgtitle(sprintf('Fit for all airspeed, AoA and skew\nFz = (K1*cos(skew)+K2+K3*alpha+K4*alpha^2)*V^2\nK1 = %2.2e K2 = %2.2e K3 = %2.2e K4 = %2.2e|  RMS = %2.2f',s_skew(1),s_skew(2),s_skew(3),s_skew(4),RMS_skew))
-
-
-% Fz = -1.569286184145456E-3*cos(skew)+5.989835400355119E-3+-2.346715949355502E-1*alpha+6.611857425073364E-2*alpha^2)*V^2
 
 %% Analyze result of fit
 RMS = sqrt(mean((fit_skew(s_skew,x) - y).^2))

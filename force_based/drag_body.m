@@ -30,17 +30,36 @@ full_db = readtable(fullfile(path,file));
 
 test_codes = unique(full_db.Code);
 
-test = 'LP4';
-idx = contains(full_db.Code,test);
+test_1 = 'LP1';
+test_2 = 'LP3';
+test_3 = 'LP5';
+idx_1 = contains(full_db.Code,test_1);
+idx_2 = contains(full_db.Code,test_2);
+idx_3 = contains(full_db.Code,test_3);
 
-test_db = full_db(idx,:);
+test_db_1 = full_db(idx_1,:);
+test_db_2 = full_db(idx_2,:);
+test_db_3 = full_db(idx_3,:);
+
+forces_columns = {'Mx','My','Mz','Fx','Fy','Fz',};
+
+% Substract db2 and db3 from db1
+test_db = table();
+for i=1:size(test_db_1,1)
+    id = test_db_1.ID{i}(length(test_1)+2:end);
+    if any(contains(test_db_2.ID,id)) && any(contains(test_db_3.ID,id))
+        test_db(end+1,:) = test_db_1(i,:);
+        test_db{end,forces_columns} = -(test_db_1{i,forces_columns} -test_db_2{contains(test_db_2.ID,id),forces_columns} -test_db_3{contains(test_db_3.ID,id),forces_columns});
+        test_db.Code{end} = ['-(' test_1 '-' test_2 '-' test_3 ')'];
+    end
+end
 
 % Transform all angles in rad
 deg_columns = {'Turn_Table','Skew','Skew_sp','Pitch','AoA','std_AoA'};
 test_db{:,deg_columns} = deg2rad(test_db{:,deg_columns});
 
 % Save
-save(['db_',test,'.mat'],'test_db')
+%save(['db_',test_1,'.mat'],'test_db')
 
 %% Remove entries
 
@@ -188,16 +207,6 @@ fit_quad = @(k,x)  (k(1)+k(2).*x(:,1)+k(3).*x(:,1).^2).*x(:,2).^2; % Function to
 fcn_quad = @(k) sqrt(mean((fit_quad(k,x) - y).^2));           % Least-Squares cost function
 [s_quad,RMS_quad,~,~] = fminsearchbnd(fcn_quad,[-1E-1;1E-1;1E-1],[-inf;0;0],[0;inf;inf],options) %bound first coefficient to negative value
 
-% s_quad =
-% 
-%   -0.038433561803693
-%    0.003393031925358
-%    0.139999863562600
-% 
-% 
-% RMS_quad =
-% 
-%    0.307578791253760
 
 figure
 windspeed_bins = unique(round(quad_db.Windspeed,0));
@@ -239,16 +248,6 @@ fit_quad_low = @(k,x)  (k(1)+k(2).*x(:,1)+k(3).*x(:,1).^2).*x(:,2).^2; % Functio
 fcn_quad_low = @(k) sqrt(mean((fit_quad_low(k,x) - y).^2));           % Least-Squares cost function
 [s_quad_low,RMS_quad_low,~,~] = fminsearchbnd(fcn_quad_low,[-1E-1;1E-1;1E-1],[-inf;0;0],[0;inf;inf],options) %bound first coefficient to negative value
 
-% s_quad_low =
-% 
-%   -0.046135525959578
-%    0.011078740302910
-%    0.147716740626664
-% 
-% 
-% RMS_quad_low =
-% 
-%    0.074319397173294
 
 figure
 windspeed_bins = unique(round(quad_low_db.Windspeed,0));
@@ -337,15 +336,15 @@ fcn_skew = @(k) sqrt(mean((fit_skew(k,x) - y).^2));           % Least-Squares co
 
 % s_skew =
 % 
-%   -0.009013405108487
-%   -0.019880356084256
-%    0.000985004818838
-%    0.144397520747447
+%   -0.008111212221499
+%   -0.024771353274546
+%   -0.008297633291171
+%    0.177246306723145
 % 
 % 
 % RMS_skew =
 % 
-%    0.240686078575435
+%    0.323963710192727
 
 
 windspeed_bins = unique(round(skew_db.Windspeed,0));
