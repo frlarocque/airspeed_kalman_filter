@@ -31,7 +31,7 @@ deg_columns = {'Turn_Table','Skew','Skew_sp','Pitch','AoA','std_AoA'};
 test_db{:,deg_columns} = deg2rad(test_db{:,deg_columns});
 
 % Save
-save(['db_',test,'.mat'],'test_db')
+%save(['db_',test,'.mat'],'test_db')
 
 %% Delete unecessary columns
 all_columns = test_db.Properties.VariableNames;
@@ -40,7 +40,7 @@ test_db(:,~ismember(all_columns,columnsToKeep)) = [];
 
 %% Select only sideslip smaller than +-90 deg
 
-test_db = test_db(abs(test_db.Turn_Table)<deg2rad(90),:);
+test_db = test_db(abs(test_db.Turn_Table)<deg2rad(95),:);
 
 %% Plot
 windspeed_bins = unique(round(test_db.Windspeed,0));
@@ -463,4 +463,47 @@ for i=1:length(windspeed_bins)
 
 end
 
+%% Plot and fit sideforce depending on v (side velocity)
+
+x = [sin(-test_db.Turn_Table).*test_db.Windspeed];
+y = [test_db.Fy];
+
+% Fy = (K1*v^2*-sign(v))
+fit_v = @(k,x)  x(:,1).^2.*k(1).*sign(x(:,1)); % Function to fit
+fcn_v = @(k) sqrt(mean((fit_v(k,x) - y).^2));           % Least-Squares cost function
+[s_v,RMS_v] = fminsearch(fcn_v,[0.1],options) %bound first coefficient to negative value
+
+% s_v =
+% 
+%   -0.320878906249999
+% 
+% 
+% RMS_v =
+% 
+%    3.359814374020583
+
+skew_bins = unique(deg2rad(round(rad2deg(test_db.Skew_sp),0)));
+test_db.skew_bins = deg2rad(round(rad2deg(test_db.Skew_sp),0));
+
+legend_lbl = {};
+col=linspecer(length(skew_bins));
+hdls = [];
+
+figure
+for i=1:length(skew_bins)
+    temp_db = test_db(test_db.skew_bins==skew_bins(i),:);
+    temp_x = [linspace(min(sin(-test_db.Turn_Table).*test_db.Windspeed),max(sin(-test_db.Turn_Table).*test_db.Windspeed),20)'];
+    
+    hdls(i) = plot((sin(-temp_db.Turn_Table).*temp_db.Windspeed),temp_db.Fy,'*','color',col(i,:));
+    hold on
+    
+    legend_lbl{i} = [mat2str(rad2deg(skew_bins(i))),' deg'];
+end
+plot(temp_x,fit_v(s_v,temp_x),'-')
+xlabel('v [m/s]')
+ylabel('F_y [N]')
+
+lgd1 = legend(hdls(:),legend_lbl,'location','southeast');
+title(lgd1,'Skew Angle') % add legend title
+sgtitle('Sideforce Data from Wind Tunnel tests')
 
