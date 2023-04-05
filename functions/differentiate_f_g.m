@@ -1,10 +1,16 @@
+%% Init
+clear all
+close all
+clc
+
 %% Define syms for f
 
 syms u v w mu_x mu_y mu_z k_x k_y k_z a_x a_y a_z p q r phi theta psi RPM_pusher RPM_hover_1 RPM_hover_2 RPM_hover_3 RPM_hover_4 skew elevator_angle
+syms sign_u sign_v
 syms g
 syms w_accel_x w_accel_y w_accel_z w_gyro_x w_gyro_y w_gyro_z w_mu_x w_mu_y w_mu_z w_k_x w_k_y w_k_z
 
-assume([u v w mu_x mu_y mu_z k_x k_y k_z a_x a_y a_z p q r phi theta psi RPM_pusher RPM_hover_1 RPM_hover_2 RPM_hover_3 RPM_hover_4 skew elevator_angle g],'real')
+assume([u v w mu_x mu_y mu_z k_x k_y k_z a_x a_y a_z p q r phi theta psi RPM_pusher RPM_hover_1 RPM_hover_2 RPM_hover_3 RPM_hover_4 skew elevator_angle g sign_u sign_v],'real')
 assume([w_accel_x w_accel_y w_accel_z w_gyro_x w_gyro_y w_gyro_z w_mu_x w_mu_y w_mu_z w_k_x w_k_y w_k_z],'real')
 
 %% Define var for g
@@ -20,18 +26,22 @@ syms k1_Fx_hprop k2_Fx_hprop
 syms k1_Fx_w k2_Fx_w k3_Fx_w k4_Fx_w k5_Fx_w
 syms k1_Fx_elev k2_Fx_elev k3_Fx_elev
 
-syms k_beta
+
+syms k_beta k_v
 
 syms k1_Fz_hprop
 syms k1_Fz_fus k2_Fz_fus k3_Fz_fus k4_Fz_fus
 syms k1_Fz_w k2_Fz_w k3_Fz_w k4_Fz_w
 syms k1_Fz_elev k2_Fz_elev k3_Fz_elev
 
+syms k1_drag k2_drag Fz_hprop k_Fz_fus k_Fz_w k_Fz_elev
+
 assume([V_gnd_x V_gnd_y V_gnd_z a_x_filt a_y_filt a_z_filt V_pitot],'real')
 assume([w_V_gnd_x w_V_gnd_y w_V_gnd_z w_a_x_filt w_a_y_filt w_a_z_filt w_V_pitot m],'real')
 assume([k1_Fx_push k2_Fx_push k3_Fx_push k1_Fx_fus k2_Fx_fus k3_Fx_fus k4_Fx_fus k1_Fx_hprop k2_Fx_hprop k1_Fx_w k2_Fx_w k3_Fx_w k4_Fx_w k5_Fx_w k1_Fx_elev k2_Fx_elev k3_Fx_elev],'real')
-assume([k_beta],'real')
+assume([k_beta,k_v],'real')
 assume([k1_Fz_hprop k1_Fz_fus k2_Fz_fus k3_Fz_fus k4_Fz_fus k1_Fz_w k2_Fz_w k3_Fz_w k4_Fz_w k1_Fz_elev k2_Fz_elev k3_Fz_elev],'real')
+assume([k1_drag k2_drag Fz_hprop k_Fz_fus k_Fz_w k_Fz_elev],'real')
 
 %% Define dimensions
 x = [u v w mu_x mu_y mu_z k_x k_y k_z];
@@ -89,14 +99,9 @@ end
 fprintf(', EKF_AW_Q_SIZE\n')
 
 %% Define f (f_4.m)
-%u=state(1);v=state(2);w=state(3);mu_x=state(4);mu_y=state(5);mu_z=state(6);k_x = state(7);k_y = state(8);k_z = state(9);
-%a_x=input(1);a_y=input(2);a_z=input(3);
-%p=input(4);q=input(5);r=input(6);
-%phi=input(7);theta=input(8);psi=input(9);
-%RPM_pusher = input(10); RPM_hover = input(11);
-%skew = input(12); elevator_angle = input(13);
-
-%g= 9.81;
+% x = [u v w mu_x mu_y mu_z k_x k_y k_z];
+% u = [a_x a_y a_z p q r phi theta psi RPM_pusher RPM_hover skew elevator_angle];
+% z = [V_x V_y V_z a_x a_y a_z];
 
 % [u_dot v_dot w_dot]'
 velocity_body = [0 -w  v;
@@ -223,22 +228,11 @@ for i=1:size(P_pred,1)
     end
 end
 
-%% Define g (g_11.m)
+%% Define g
 
 % x = [u v w mu_x mu_y mu_z k_x k_y k_z];
 % u = [a_x a_y a_z p q r phi theta psi RPM_pusher RPM_hover skew elevator_angle];
 % z = [V_x V_y V_z a_x a_y a_z];
-
-%u=state(1);v=state(2);w=state(3);
-%mu_x=state(4);mu_y=state(5);mu_z=state(6);
-%k_x = state(7);k_y = state(8);k_z = state(9);
-
-%a_x=input(1);a_y=input(2);a_z=input(3);
-%p=input(4);q=input(5);r=input(6);
-%phi=input(7);theta=input(8);psi=input(9);
-%RPM_pusher = input(10); RPM_hover = input(11);
-%skew = input(12); elevator_pprz = input(13);
-%V_pitot = input(14);
 
 % V_x V_y V_z
 speed = DCM(phi,theta,psi)*[u;v;w]+[mu_x;mu_y;mu_z];
@@ -256,8 +250,9 @@ V_a = sqrt(u.^2+v.^2+w.^2);
 
 Fx_push = k1_Fx_push.*RPM_pusher.^2+k2_Fx_push.*RPM_pusher.*u+k3_Fx_push.*u;
 Fx_fus = (k1_Fx_fus.*cos(skew)+k2_Fx_fus+k3_Fx_fus.*alpha+k4_Fx_fus.*alpha.^2).*V_a.^2;
-Fx_hprop = k1_Fx_hprop.*u.^2+k2_Fx_hprop.*((RPM_hover_1+RPM_hover_2+RPM_hover_3+RPM_hover_4)./4).^2.*sqrt(u);
-Fx_w = (k1_Fx_w.*(1+k5_Fx_w.*skew)+(k2_Fx_w.*alpha+k3_Fx_w.*alpha.^2)).*(sin(skew).^2+k4_Fx_w).*V_a.^2;
+Fx_hprop = k1_Fx_hprop.*u.^2.*sign_u+k2_Fx_hprop.*((RPM_hover_1+RPM_hover_2+RPM_hover_3+RPM_hover_4)./4).^2.*sqrt(u).*sign_u;
+
+Fx_w = ((k1_Fx_w+k5_Fx_w.*skew)+(k2_Fx_w.*alpha+k3_Fx_w.*alpha.^2).*(sin(skew).^2+k4_Fx_w)).*V_a.^2;
 Fx_elev = (k1_Fx_elev+k2_Fx_elev.*elevator_angle+k3_Fx_elev.*elevator_angle.^2).*V_a.^2;
 a_x_filt = (Fx_push+Fx_fus+Fx_hprop+Fx_elev+Fx_w+k_x.*u.^2)./m;
 
@@ -271,7 +266,85 @@ a_y_filt = beta.*k_beta.*(V_a.^2) + k_y;
 Fz_hprop = k1_Fz_hprop.*((RPM_hover_1+RPM_hover_2+RPM_hover_3+RPM_hover_4)./4).^2;
 Fz_fus = (k1_Fz_fus.*cos(skew)+k2_Fz_fus+k3_Fz_fus.*alpha+k4_Fz_fus.*alpha.^2).*V_a.^2;
 Fz_w = ((k1_Fz_w+k2_Fz_w.*alpha+k3_Fz_w.*alpha.^2).*(sin(skew).^2+k4_Fz_w)).*V_a.^2;
-Fz_elev = (k1_Fz_elev+k2_Fz_elev.*elevator_angle+k3_Fz_elev.*elevator_angle.^2).*V_a.^2;
+Fz_elev = (k1_Fz_elev+k2_Fz_elev.*elevator_angle).*V_a.^2;
+
+a_z_filt = (Fz_fus+Fz_w+Fz_elev+Fz_hprop)./m + k_z;
+
+g_out = [speed;a_x_filt;a_y_filt;a_z_filt;u]+z_noise;
+
+%% Define g (simplified version)
+
+% x = [u v w mu_x mu_y mu_z k_x k_y k_z];
+% u = [a_x a_y a_z p q r phi theta psi RPM_pusher RPM_hover skew elevator_angle];
+% z = [V_x V_y V_z a_x a_y a_z];
+
+% V_x V_y V_z
+speed = DCM(phi,theta,psi)*[u;v;w]+[mu_x;mu_y;mu_z];
+
+% Calculate alpha and saturate it
+alpha = atan(w./u);
+%alpha = max(min(alpha,deg2rad(15)),deg2rad(-15));
+
+% V_a
+%V_a = u;
+V_a = sqrt(u.^2+v.^2+w.^2);
+
+% A_x
+%m = 5.75;
+
+Fx_push = k1_Fx_push.*RPM_pusher.^2+k2_Fx_push.*RPM_pusher.*u+k3_Fx_push.*u;
+drag = k1_drag.*u + k2_drag.*u.^2.*sign_u;
+a_x_filt = (Fx_push+drag+k_x.*u.^2.*sign_u)./m;
+
+% A_y
+beta = asin(v/V_a);
+
+a_y_filt = beta.*k_beta.*(u.^2) + k_y;
+
+% A_z
+Fz_hprop = k1_Fz_hprop.*((RPM_hover_1+RPM_hover_2+RPM_hover_3+RPM_hover_4)./4).^2;
+Fz_fus = k_Fz_fus.*u.^2;
+Fz_w = k_Fz_w.*u.^2;
+Fz_elev = k_Fz_elev.*u.^2;
+
+a_z_filt = (Fz_fus+Fz_w+Fz_elev+Fz_hprop)./m + k_z;
+
+g_out = [speed;a_x_filt;a_y_filt;a_z_filt;u]+z_noise;
+
+%% Define g (simplified version, with k_v)
+
+% x = [u v w mu_x mu_y mu_z k_x k_y k_z];
+% u = [a_x a_y a_z p q r phi theta psi RPM_pusher RPM_hover skew elevator_angle];
+% z = [V_x V_y V_z a_x a_y a_z];
+
+% V_x V_y V_z
+speed = DCM(phi,theta,psi)*[u;v;w]+[mu_x;mu_y;mu_z];
+
+% Calculate alpha and saturate it
+alpha = atan(w./u);
+%alpha = max(min(alpha,deg2rad(15)),deg2rad(-15));
+
+% V_a
+%V_a = u;
+V_a = sqrt(u.^2+v.^2+w.^2);
+
+% A_x
+%m = 5.75;
+
+Fx_push = k1_Fx_push.*RPM_pusher.^2+k2_Fx_push.*RPM_pusher.*u+k3_Fx_push.*u;
+drag = k1_drag.*u + k2_drag.*u.^2.*sign_u;
+a_x_filt = (Fx_push+drag+k_x.*u.^2.*sign_u)./m;
+
+% A_y
+beta = asin(v/V_a);
+
+a_y_filt = sign_v*v.^2.*k_v + k_y;
+
+% A_z
+Fz_hprop = k1_Fz_hprop.*((RPM_hover_1+RPM_hover_2+RPM_hover_3+RPM_hover_4)./4).^2;
+Fz_fus = k_Fz_fus.*u.^2;
+Fz_w = k_Fz_w.*u.^2;
+Fz_elev = k_Fz_elev.*u.^2;
 
 a_z_filt = (Fz_fus+Fz_w+Fz_elev+Fz_hprop)./m + k_z;
 
@@ -352,8 +425,8 @@ G_simplified = subs(G,[z_noise],[zeros(z_noise_dim,1)]);
 %G_simplified = subs(G,[z_noise;phi;theta],[zeros(z_noise_dim,1);0;0]);
 
 P_pred = sym('P',state_dim);
-for i=1:size(P_last,1)
-    for j=1:size(P_last,2)
+for i=1:size(P_pred,1)
+    for j=1:size(P_pred,2)
     P_pred(i,j) = str2sym(sprintf('P_pred(%d,%d)',i-1,j-1));
     end
 end
