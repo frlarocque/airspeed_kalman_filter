@@ -8,8 +8,8 @@ Fx_hover_prop_coeff = [1.1.*-6.435825732350349E-3 ...
 
 V = abs(V); %to protect agains the sqrt
 
-F_x = Fx_hover_prop_coeff(1).*V.^2 + ...
-     Fx_hover_prop_coeff(2).*sqrt(V).*hover_prop_RPM.^2;
+F_x = Fx_hover_prop_coeff(1).*V.^2.*sign(V) + ...
+     Fx_hover_prop_coeff(2).*sqrt(V).*sign(V).*hover_prop_RPM.^2;
 
 % Alternative:
 %Fx = K1*V^2+K2*RPM^2

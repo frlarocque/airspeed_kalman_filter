@@ -16,8 +16,8 @@ end
 angle = max(min(angle,deg2rad(15)),deg2rad(-15));
 
 %Fz = (k1+k2*alpha+k3*alpha^2)*V^2
-Fz_elevator_coeff = [0.001095783351808 ...
-                     -0.214593908091671];
+Fz_elevator_coeff = [1.095783351808000e-03 ...
+                     -2.145939080916710e-01];
 
 F_z = (Fz_elevator_coeff(1) + ...
        Fz_elevator_coeff(2).*angle).*V.^2;
