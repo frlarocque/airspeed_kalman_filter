@@ -92,7 +92,7 @@ grid on
 
 %Position
 ax6 = subplot(3,2,6);
-plot(position_NED.time,position_NED.data)
+plot(position_NED.time,position_NED.data-position_NED.data(1,:))
 % Plot Motor ON
 if cut_condition(1)>position_NED.time(1) && cut_condition(2)<position_NED.time(end)
     hold on

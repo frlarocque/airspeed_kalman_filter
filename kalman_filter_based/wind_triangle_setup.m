@@ -46,6 +46,7 @@ if strcmp(conditions,'WINDTUNNEL')
 elseif strcmp(conditions,'OUTDOOR')
     % Assign values
     position_NED.raw.data = [ac_data.ROTORCRAFT_FP.north_alt,ac_data.ROTORCRAFT_FP.east_alt,-ac_data.ROTORCRAFT_FP.up_alt]; position_NED.raw.time = ac_data.ROTORCRAFT_FP.timestamp;
+    position_NED.raw.data = position_NED.raw.data-position_NED.raw.data(1,:);
     Vg_NED.raw.data = [ac_data.ROTORCRAFT_FP.vnorth_alt,ac_data.ROTORCRAFT_FP.veast_alt,-ac_data.ROTORCRAFT_FP.vup_alt];Vg_NED.raw.time=ac_data.ROTORCRAFT_FP.timestamp;
     
     airspeed_pitot.raw.data = ac_data.AIR_DATA.airspeed; airspeed_pitot.raw.time=ac_data.AIR_DATA.timestamp;
@@ -89,7 +90,9 @@ airspeed_pitot.raw.data = pitot_correction.*airspeed_pitot.raw.data;
 %% Resample
 % Resample Choice 
 resample_time = airspeed_pitot.raw.time; %Airspeed has the lowest dt
-cut_condition = [ac_data.motors_on(end-1),ac_data.motors_on(end)];
+flight = in_flight(hover_prop_rpm.raw.time,mean(hover_prop_rpm.raw.data,2),Vg_NED.raw.time,-Vg_NED.raw.data(:,3),3000,0.1);
+
+cut_condition = [flight(1),ac_data.motors_on(end)];
 
 
 % Resampling
@@ -245,19 +248,42 @@ if recalculate_variance
     end
 else
     fprintf('Used Existing Variance\n')
-    %IMU_accel.var =1E-04.*[2.06700117078314 2.00274443026856 1.24583740531685];
-    %IMU_rate.var  =1E-09.*[1.09881143958005 0.41108108727572 0.67454749310375];
-    %Vg_NED.var    =1E-05.*[7.16084294336657 1.64270323320975 2.02350600895777];
-    %IMU_angle.var =1E-06.*[0.08797774563941 0.11256199212189 5.52264453785610];
+    IMU_accel.var =1E-04.*[2.06700117078314 2.00274443026856 1.24583740531685];
+    IMU_rate.var  =1E-09.*[1.09881143958005 0.41108108727572 0.67454749310375];
+    Vg_NED.var    =1E-05.*[7.16084294336657 1.64270323320975 2.02350600895777];
+    IMU_angle.var =1E-06.*[0.08797774563941 0.11256199212189 5.52264453785610];
 
-    IMU_accel.var = [0.955997973181906   0.984100194906034   0.621448262380474];
-    IMU_angle.var = 1.0e-05.*[0.019585145122639   0.003193244894540   0.688679737547505];
-    IMU_rate.var = 1.0e-06.*[0.523587921655034   0.869771590456105   0.267707266981007];
-    Vg_NED.var = 1.0e-04.*[0.101006686146742   0.168140606191843   0.051143405643740];
+    %IMU_accel.var = [0.955997973181906   0.984100194906034   0.621448262380474];
+    %IMU_angle.var = 1.0e-05.*[0.019585145122639   0.003193244894540   0.688679737547505];
+    %IMU_rate.var = 1.0e-06.*[0.523587921655034   0.869771590456105   0.267707266981007];
+    %Vg_NED.var = 1.0e-04.*[0.101006686146742   0.168140606191843   0.051143405643740];
 end
 pusher_prop_rpm.var = 75.^2; %Taken from wind tunnel test data
 
 %% Visualize data going in Kalman
 if graph
 plot_2_2(IMU_accel.flight,IMU_rate.flight,Vg_NED.flight,IMU_angle.flight)
+end
+
+function common_times = in_flight(t_RPM,RPM,t_vs,vs,RPM_crit,vs_crit)
+    % Define common time grid
+    t_common = [max(t_RPM(1), t_vs(1)): max(mean(diff(t_RPM)),mean(diff(t_vs))):min(t_RPM(end), t_vs(end))];
+    
+    % Interpolate vertical speed to common time grid
+    vs_interp = interp1(t_vs, vs, t_common);
+    
+    % Interpolate RPM to common time grid
+    rpm_interp = interp1(t_RPM, RPM, t_common);
+
+    % Find indices where vertical speed is greater than threshold
+    v_indices = find(vs_interp > vs_crit);
+    
+    % Find indices where RPM is greater than threshold
+    rpm_indices = find(RPM > RPM_crit);
+    
+    % Find indices where both conditions are met
+    common_indices = intersect(v_indices, rpm_indices);
+    
+    % Extract the times at which the conditions are met
+    common_times = t_common(common_indices);
 end

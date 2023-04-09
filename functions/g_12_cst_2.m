@@ -1,4 +1,4 @@
-function g = g_10(state,input,meas_noise)
+function g = g_12_cst_2(state,input,meas_noise)
 % Output function for Kalman Filter without Euler Angle Approximation
 % without alpha
 % with a_y

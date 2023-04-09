@@ -33,7 +33,7 @@ wind_triangle_setup
 
 %x = [u v w mu_x mu_y mu_z k_x k_y k_z];
 %u = [a_x a_y a_z p q r phi theta psi];
-%z = [V_x V_y V_z beta];
+%z = [V_x V_y V_z a_x a_y a_z];
 
 %w_w = [0;0;0]; %noise angular rate
 %w_a = [0;0;0]; %noise accelerations

@@ -45,7 +45,7 @@ t = airspeed_pitot.flight.time;
 dt = mean(diff(t));
 
 f_fh = str2func('f_2');
-g_fh = str2func('g_12_cst_2');
+g_fh = str2func('g_13_cst');
 
 % Get filter accel agressively
 filter_freq = 0.2; %[Hz]
