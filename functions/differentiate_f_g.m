@@ -8,11 +8,12 @@ clc
 syms u v w mu_x mu_y mu_z k_x k_y k_z a_x a_y a_z p q r phi theta psi RPM_pusher hover_RPM_mean skew elevator_angle
 syms sign_u sign_v
 syms g
+syms RPM_hover_1 RPM_hover_2 RPM_hover_3 RPM_hover_4
 syms w_accel_x w_accel_y w_accel_z w_gyro_x w_gyro_y w_gyro_z w_mu_x w_mu_y w_mu_z w_k_x w_k_y w_k_z
 
 assume([u v w mu_x mu_y mu_z k_x k_y k_z a_x a_y a_z p q r phi theta psi RPM_pusher hover_RPM_mean skew elevator_angle g sign_u sign_v],'real')
 assume([w_accel_x w_accel_y w_accel_z w_gyro_x w_gyro_y w_gyro_z w_mu_x w_mu_y w_mu_z w_k_x w_k_y w_k_z],'real')
-
+assume([RPM_hover_1 RPM_hover_2 RPM_hover_3 RPM_hover_4],'real')
 %% Define var for g
 syms V_gnd_x V_gnd_y V_gnd_z a_x_filt a_y_filt a_z_filt V_pitot
 syms w_V_gnd_x w_V_gnd_y w_V_gnd_z w_a_x_filt w_a_y_filt w_a_z_filt w_V_pitot
@@ -513,4 +514,31 @@ function str = simplifyForCode(expr,u,v,w,alpha,V_a,beta,diff_alpha_u,diff_alpha
     
     % Replace any ^2 by a square
     str = regexprep(str, '(\w+)\^2', '$1*$1');
+    
+    % Adapt coefficients
+    str = regexprep(str, "k(\d+)_(\w+)_(\w+)", "ekf_aw_params.k_$2_$3[$1-1]");
+
+    % Adapt m
+    str = regexprep(str, '(?<!\w)m(?!\w)', 'ekf_aw_params.m');
+
+    % Adapt Skew
+    str = regexprep(str, '(?<!\w)skew(?!\w)', 'eawp.inputs.skew');
+
+    % Adapt RPM_pusher
+    str = regexprep(str, '(?<!\w)RPM_pusher(?!\w)', 'eawp.inputs.RPM_pusher');
+
+    % Adapt elevator_angle
+    str = regexprep(str, '(?<!\w)elevator_angle(?!\w)', 'eawp.inputs.elevator_angle');
+    
+    % Use regular expressions to extract the numbers in the format "[1-2]"
+    matches = regexp(str, '\[(\d+)-(\d+)\]', 'tokens');
+    
+    % Loop through all the matches and replace the matched substring with the result
+    for i = 1:length(matches)
+        num1 = str2double(matches{i}{1});
+        num2 = str2double(matches{i}{2});
+        result = num1 - num2;
+        str = regexprep(str, ['\[',matches{i}{1},'-',matches{i}{2},'\]'], ['[',num2str(result),']']);
+    end
+
 end
