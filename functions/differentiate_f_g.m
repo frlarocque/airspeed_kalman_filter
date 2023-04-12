@@ -5,12 +5,12 @@ clc
 
 %% Define syms for f
 
-syms u v w mu_x mu_y mu_z k_x k_y k_z a_x a_y a_z p q r phi theta psi RPM_pusher RPM_hover_1 RPM_hover_2 RPM_hover_3 RPM_hover_4 skew elevator_angle
+syms u v w mu_x mu_y mu_z k_x k_y k_z a_x a_y a_z p q r phi theta psi RPM_pusher hover_RPM_mean skew elevator_angle
 syms sign_u sign_v
 syms g
 syms w_accel_x w_accel_y w_accel_z w_gyro_x w_gyro_y w_gyro_z w_mu_x w_mu_y w_mu_z w_k_x w_k_y w_k_z
 
-assume([u v w mu_x mu_y mu_z k_x k_y k_z a_x a_y a_z p q r phi theta psi RPM_pusher RPM_hover_1 RPM_hover_2 RPM_hover_3 RPM_hover_4 skew elevator_angle g sign_u sign_v],'real')
+assume([u v w mu_x mu_y mu_z k_x k_y k_z a_x a_y a_z p q r phi theta psi RPM_pusher hover_RPM_mean skew elevator_angle g sign_u sign_v],'real')
 assume([w_accel_x w_accel_y w_accel_z w_gyro_x w_gyro_y w_gyro_z w_mu_x w_mu_y w_mu_z w_k_x w_k_y w_k_z],'real')
 
 %% Define var for g
@@ -250,7 +250,7 @@ V_a = sqrt(u.^2+v.^2+w.^2);
 
 Fx_push = k1_Fx_push.*RPM_pusher.^2+k2_Fx_push.*RPM_pusher.*u+k3_Fx_push.*u;
 Fx_fus = (k1_Fx_fus.*cos(skew)+k2_Fx_fus+k3_Fx_fus.*alpha+k4_Fx_fus.*alpha.^2).*V_a.^2;
-Fx_hprop = k1_Fx_hprop.*u.^2.*sign_u+k2_Fx_hprop.*((RPM_hover_1+RPM_hover_2+RPM_hover_3+RPM_hover_4)./4).^2.*sqrt(u).*sign_u;
+Fx_hprop = k1_Fx_hprop.*u.^2.*sign_u+k2_Fx_hprop.*hover_RPM_mean.^2.*sqrt(u).*sign_u;
 
 Fx_w = ((k1_Fx_w+k5_Fx_w.*skew)+(k2_Fx_w.*alpha+k3_Fx_w.*alpha.^2).*(sin(skew).^2+k4_Fx_w)).*V_a.^2;
 Fx_elev = (k1_Fx_elev+k2_Fx_elev.*elevator_angle+k3_Fx_elev.*elevator_angle.^2).*V_a.^2;
@@ -263,7 +263,7 @@ beta = asin(v/V_a);
 a_y_filt = beta.*k_beta.*(V_a.^2) + k_y;
 
 % A_z
-Fz_hprop = k1_Fz_hprop.*((RPM_hover_1+RPM_hover_2+RPM_hover_3+RPM_hover_4)./4).^2;
+Fz_hprop = k1_Fz_hprop.*hover_RPM_mean.^2;
 Fz_fus = (k1_Fz_fus.*cos(skew)+k2_Fz_fus+k3_Fz_fus.*alpha+k4_Fz_fus.*alpha.^2).*V_a.^2;
 Fz_w = ((k1_Fz_w+k2_Fz_w.*alpha+k3_Fz_w.*alpha.^2).*(sin(skew).^2+k4_Fz_w)).*V_a.^2;
 Fz_elev = (k1_Fz_elev+k2_Fz_elev.*elevator_angle).*V_a.^2;
@@ -302,7 +302,7 @@ beta = asin(v/V_a);
 a_y_filt = beta.*k_beta.*(u.^2) + k_y;
 
 % A_z
-Fz_hprop = k1_Fz_hprop.*((RPM_hover_1+RPM_hover_2+RPM_hover_3+RPM_hover_4)./4).^2;
+Fz_hprop = k1_Fz_hprop.*hover_RPM_mean.^2;
 Fz_fus = k_Fz_fus.*u.^2;
 Fz_w = k_Fz_w.*u.^2;
 Fz_elev = k_Fz_elev.*u.^2;
@@ -341,7 +341,7 @@ beta = asin(v/V_a);
 a_y_filt = sign_v*v.^2.*k_v + k_y;
 
 % A_z
-Fz_hprop = k1_Fz_hprop.*((RPM_hover_1+RPM_hover_2+RPM_hover_3+RPM_hover_4)./4).^2;
+Fz_hprop = k1_Fz_hprop.*hover_RPM_mean.^2;
 Fz_fus = k_Fz_fus.*u.^2;
 Fz_w = k_Fz_w.*u.^2;
 Fz_elev = k_Fz_elev.*u.^2;
@@ -359,38 +359,82 @@ g_out = [speed;a_x_filt;a_y_filt;a_z_filt;u]+z_noise;
 %       dg_n/dx_1 dg_n/dx_2 ....dg_n/dx_m ];
 
 G = sym('G',[length(g_out), length(x)]);
+G_fus = sym('G',[length(g_out), length(x)]);
+G_wing = sym('G',[length(g_out), length(x)]);
+G_elevator = sym('G',[length(g_out), length(x)]);
+G_pusher = sym('G',[length(g_out), length(x)]);
+G_hover = sym('G',[length(g_out), length(x)]);
 
 for i=1:length(x)
     G(:,i) = diff(g_out,x(i));
+    G_fus(:,i) = diff([0;0;0;Fx_fus./m;0;Fz_fus./m;0],x(i));
+    G_w(:,i) = diff([0;0;0;Fx_w./m;0;Fz_w./m;0],x(i));
+    G_elev(:,i) = diff([0;0;0;Fx_elev./m;0;Fz_elev./m;0],x(i));
+    G_push(:,i) = diff([0;0;0;Fx_push./m;0;0;0],x(i));
+    G_hprop(:,i) = diff([0;0;0;Fx_hprop./m;0;Fz_hprop./m;0],x(i));
 end
 
-G
+clear alpha; syms alpha; assume(alpha,'real')
+clear beta; syms beta; assume(beta,'real')
+clear V_a; syms V_a; assume(V_a,'real')
+syms diff_alpha_u; assume(diff_alpha_u,'real')
+syms diff_alpha_w; assume(diff_alpha_w,'real')
 
-% G =
-%  
-% [                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 cos(psi)*cos(theta),                                                                                                                                                                                                                          cos(psi)*sin(phi)*sin(theta) - cos(phi)*sin(psi),                                                                                                                                                                                                                                                                                                                                                                                                                                          sin(phi)*sin(psi) + cos(phi)*cos(psi)*sin(theta), 1, 0, 0,     0, 0, 0]
-% [                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 cos(theta)*sin(psi),                                                                                                                                                                                                                          cos(phi)*cos(psi) + sin(phi)*sin(psi)*sin(theta),                                                                                                                                                                                                                                                                                                                                                                                                                                          cos(phi)*sin(psi)*sin(theta) - cos(psi)*sin(phi), 0, 1, 0,     0, 0, 0]
-% [                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         -sin(theta),                                                                                                                                                                                                                                                       cos(theta)*sin(phi),                                                                                                                                                                                                                                                                                                                                                                                                                                                                       cos(phi)*cos(theta), 0, 0, 1,     0, 0, 0]
-% [(k3_Fx_push + RPM_pusher*k2_Fx_push + 2*k1_Fx_hprop*u + 2*k_x*u + 2*u*(k2_Fx_fus + k4_Fx_fus*atan(w/u)^2 + k1_Fx_fus*cos(skew) + k3_Fx_fus*atan(w/u)) + 2*u*(k3_Fx_elev*elevator_angle^2 + k2_Fx_elev*elevator_angle + k1_Fx_elev) - ((k3_Fx_fus*w)/(u^2*(w^2/u^2 + 1)) + (2*k4_Fx_fus*w*atan(w/u))/(u^2*(w^2/u^2 + 1)))*(u^2 + v^2 + w^2) + (0.5000*k2_Fx_hprop*(0.2500*RPM_hover_1 + 0.2500*RPM_hover_2 + 0.2500*RPM_hover_3 + 0.2500*RPM_hover_4)^2)/u^0.5000 - (sin(skew)^2 + k4_Fx_w)*((k2_Fx_w*w)/(u^2*(w^2/u^2 + 1)) + (2*k3_Fx_w*w*atan(w/u))/(u^2*(w^2/u^2 + 1)))*(u^2 + v^2 + w^2) + 2*u*(sin(skew)^2 + k4_Fx_w)*(k3_Fx_w*atan(w/u)^2 + k1_Fx_w*(k5_Fx_w*skew + 1) + k2_Fx_w*atan(w/u)))/m, (2*v*(k2_Fx_fus + k4_Fx_fus*atan(w/u)^2 + k1_Fx_fus*cos(skew) + k3_Fx_fus*atan(w/u)) + 2*v*(k3_Fx_elev*elevator_angle^2 + k2_Fx_elev*elevator_angle + k1_Fx_elev) + 2*v*(sin(skew)^2 + k4_Fx_w)*(k3_Fx_w*atan(w/u)^2 + k1_Fx_w*(k5_Fx_w*skew + 1) + k2_Fx_w*atan(w/u)))/m, (2*w*(k2_Fx_fus + k4_Fx_fus*atan(w/u)^2 + k1_Fx_fus*cos(skew) + k3_Fx_fus*atan(w/u)) + 2*w*(k3_Fx_elev*elevator_angle^2 + k2_Fx_elev*elevator_angle + k1_Fx_elev) + (k3_Fx_fus/(u*(w^2/u^2 + 1)) + (2*k4_Fx_fus*atan(w/u))/(u*(w^2/u^2 + 1)))*(u^2 + v^2 + w^2) + (sin(skew)^2 + k4_Fx_w)*(k2_Fx_w/(u*(w^2/u^2 + 1)) + (2*k3_Fx_w*atan(w/u))/(u*(w^2/u^2 + 1)))*(u^2 + v^2 + w^2) + 2*w*(sin(skew)^2 + k4_Fx_w)*(k3_Fx_w*atan(w/u)^2 + k1_Fx_w*(k5_Fx_w*skew + 1) + k2_Fx_w*atan(w/u)))/m, 0, 0, 0, u^2/m, 0, 0]
-% [                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            2*k_beta*u*asin(v/(u^2 + v^2 + w^2)^0.5000) - (k_beta*u*v)/((1 - v^2/(u^2 + v^2 + w^2))^0.5000*(u^2 + v^2 + w^2)^0.5000),                                                                                                   2*k_beta*v*asin(v/(u^2 + v^2 + w^2)^0.5000) + (k_beta*(1/(u^2 + v^2 + w^2)^0.5000 - v^2/(u^2 + v^2 + w^2)^1.5000)*(u^2 + v^2 + w^2))/(1 - v^2/(u^2 + v^2 + w^2))^0.5000,                                                                                                                                                                                                                                                                                                                                                                  2*k_beta*w*asin(v/(u^2 + v^2 + w^2)^0.5000) - (k_beta*v*w)/((1 - v^2/(u^2 + v^2 + w^2))^0.5000*(u^2 + v^2 + w^2)^0.5000), 0, 0, 0,     0, 1, 0]
-% [                                                                                                                                                                                                          (2*u*(k2_Fz_fus + k4_Fz_fus*atan(w/u)^2 + k1_Fz_fus*cos(skew) + k3_Fz_fus*atan(w/u)) + 2*u*(k3_Fz_elev*elevator_angle^2 + k2_Fz_elev*elevator_angle + k1_Fz_elev) - ((k3_Fz_fus*w)/(u^2*(w^2/u^2 + 1)) + (2*k4_Fz_fus*w*atan(w/u))/(u^2*(w^2/u^2 + 1)))*(u^2 + v^2 + w^2) - (sin(skew)^2 + k4_Fz_w)*((k2_Fz_w*w)/(u^2*(w^2/u^2 + 1)) + (2*k3_Fz_w*w*atan(w/u))/(u^2*(w^2/u^2 + 1)))*(u^2 + v^2 + w^2) + 2*u*(sin(skew)^2 + k4_Fz_w)*(k1_Fz_w + k3_Fz_w*atan(w/u)^2 + k2_Fz_w*atan(w/u)))/m,                    (2*v*(k2_Fz_fus + k4_Fz_fus*atan(w/u)^2 + k1_Fz_fus*cos(skew) + k3_Fz_fus*atan(w/u)) + 2*v*(k3_Fz_elev*elevator_angle^2 + k2_Fz_elev*elevator_angle + k1_Fz_elev) + 2*v*(sin(skew)^2 + k4_Fz_w)*(k1_Fz_w + k3_Fz_w*atan(w/u)^2 + k2_Fz_w*atan(w/u)))/m,                    (2*w*(k2_Fz_fus + k4_Fz_fus*atan(w/u)^2 + k1_Fz_fus*cos(skew) + k3_Fz_fus*atan(w/u)) + 2*w*(k3_Fz_elev*elevator_angle^2 + k2_Fz_elev*elevator_angle + k1_Fz_elev) + (k3_Fz_fus/(u*(w^2/u^2 + 1)) + (2*k4_Fz_fus*atan(w/u))/(u*(w^2/u^2 + 1)))*(u^2 + v^2 + w^2) + (sin(skew)^2 + k4_Fz_w)*(k2_Fz_w/(u*(w^2/u^2 + 1)) + (2*k3_Fz_w*atan(w/u))/(u*(w^2/u^2 + 1)))*(u^2 + v^2 + w^2) + 2*w*(sin(skew)^2 + k4_Fz_w)*(k1_Fz_w + k3_Fz_w*atan(w/u)^2 + k2_Fz_w*atan(w/u)))/m, 0, 0, 0,     0, 0, 1]
-% [    
-
+fprintf('-----ALL TOGETHER-----\n')
 for i=1:size(G,1)
     for j=1:size(G,2)
         if ~isAlways(G(i,j)==0,Unknown="false")
-            fprintf('G(%d,%d) = %s;\n',i-1,j-1,G(i,j));
+            fprintf('G(%d,%d) = %s;\n',i-1,j-1,simplifyForCode(G(i,j),u,v,w,alpha,V_a,beta,diff_alpha_u,diff_alpha_w));
         end
-        
     end
 end
 
-string = 'u^2+v^2';
-index = strfind(string,'^2');
-new_string = string;
-for i=1:length(index)
-    new_string(index(i):index(i)+1) = ['*' new_string(index(i)-1)];
+fprintf("-----SEPARATE-----\n")
+fprintf("\nFUSELAGE CONTRIBUTION\n")
+for i=1:size(G,1)
+    for j=1:size(G,2)
+        if ~isAlways(G_fus(i,j)==0,Unknown="false")
+            fprintf('G(%d,%d) += %s;\n',i-1,j-1,simplifyForCode(G_fus(i,j),u,v,w,alpha,V_a,beta,diff_alpha_u,diff_alpha_w));
+        end
+    end
 end
+
+fprintf("\nWING CONTRIBUTION\n")
+for i=1:size(G,1)
+    for j=1:size(G,2)
+        if ~isAlways(G_w(i,j)==0,Unknown="false")
+            fprintf('G(%d,%d) += %s;\n',i-1,j-1,simplifyForCode(G_w(i,j),u,v,w,alpha,V_a,beta,diff_alpha_u,diff_alpha_w));
+        end
+    end
+end
+
+fprintf("\nELEVATOR CONTRIBUTION\n")
+for i=1:size(G,1)
+    for j=1:size(G,2)
+        if ~isAlways(G_elev(i,j)==0,Unknown="false")
+            fprintf('G(%d,%d) += %s;\n',i-1,j-1,simplifyForCode(G_elev(i,j),u,v,w,alpha,V_a,beta,diff_alpha_u,diff_alpha_w));
+        end
+    end
+end
+
+fprintf("\nPUSHER CONTRIBUTION\n")
+for i=1:size(G,1)
+    for j=1:size(G,2)
+        if ~isAlways(G_push(i,j)==0,Unknown="false")
+            fprintf('G(%d,%d) += %s;\n',i-1,j-1,simplifyForCode(G_push(i,j),u,v,w,alpha,V_a,beta,diff_alpha_u,diff_alpha_w));
+        end
+    end
+end
+
+fprintf("\nHOVER PROP CONTRIBUTION\n")
+for i=1:size(G,1)
+    for j=1:size(G,2)
+        if ~isAlways(G_hprop(i,j)==0,Unknown="false")
+            fprintf('G(%d,%d) += %s;\n',i-1,j-1,simplifyForCode(G_hprop(i,j),u,v,w,alpha,V_a,beta,diff_alpha_u,diff_alpha_w));
+        end
+    end
+end
+
 
 %% Get M (d g/dw)
 % M = [] nxm where n=number of outputs, m=number of noise
@@ -437,7 +481,36 @@ S = G_simplified*P_pred*G_simplified'+M*R*M';
 
 for i=1:size(S,1)
     for j=1:size(S,2)
-            fprintf('S(%d,%d) = %s;\n',i-1,j-1,S(i,j));
+        str = sprintf("%s",S(i,j));
+        % Replace cos() by cos_ and sin() by sin_
+        str = regexprep(str, 'cos\((.*?)\)', 'cos_$1');
+        str = regexprep(str, 'sin\((.*?)\)', 'sin_$1');
+        
+        fprintf('S(%d,%d) = %s;\n',i-1,j-1,str);
     end
 end
-
+%%
+function str = simplifyForCode(expr,u,v,w,alpha,V_a,beta,diff_alpha_u,diff_alpha_w)
+    
+    expr = subs(expr,atan(w/u),alpha);
+    expr = subs(expr,sqrt(u.^2+v.^2+w.^2),V_a);
+    expr = subs(expr,(u.^2+v.^2+w.^2),V_a^2);
+    expr = subs(expr,asin(v/sqrt(u.^2+v.^2+w.^2)),beta);
+    expr = subs(expr,asin(v/V_a),beta);
+    expr = subs(expr,v/V_a,sin(beta));
+    expr = subs(expr,1-sin(beta)^2,cos(beta)^2);
+    expr = subs(expr,(u^2*(w^2/u^2 + 1)),-w/diff_alpha_u);
+    expr = subs(expr,1/(u*(w^2/u^2 + 1)),diff_alpha_w);
+    expr = simplify(expr);
+    str = sprintf("%s",expr);
+    
+    % Replace cos() by cos_ and sin() by sin_
+    str = regexprep(str, "(?<!a)cos\((\w+)\)", "cos_$1");
+    str = regexprep(str, "(?<!a)sin\((\w+)\)", "sin_$1");
+    
+    % Pad multiplication operators with whitespaces
+    str = regexprep(str, '(\S)\*(\S)', '$1 * $2');
+    
+    % Replace any ^2 by a square
+    str = regexprep(str, '(\w+)\^2', '$1*$1');
+end
