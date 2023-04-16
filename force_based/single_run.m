@@ -22,7 +22,7 @@ pitot_correction = 1.0;
 force_airspeed_estimation_setup
 
 %% 
-m = 4; %[kg]
+m = 5; %[kg]
 
 %periodogram(IMU_accel.flight.data(:,1),rectwin(length(IMU_accel.flight.data(:,1))),length(IMU_accel.flight.data(:,1)),1/mean(diff(IMU_accel.flight.time)))
 %periodogram(pusher_prop.flight.data(:,1),rectwin(length(pusher_prop.flight.data(:,1))),length(pusher_prop.flight.data(:,1)),1/mean(diff(IMU_accel.flight.time)))
@@ -108,7 +108,7 @@ drag_wing_no_V2 = 0;
 
 %% Airspeed Estimation
 wing = 0;
-with_accel = 0;
+with_accel = 1;
 
 results = struct();
 
@@ -139,6 +139,10 @@ for i=1:length(t)
     
     last_V = V_pitot(i);%results.V_est(i);
 
+    %if t(i)>259
+    %    fprintf('Here');
+    %end
+
 end
 
 figure;
@@ -147,9 +151,9 @@ hold on
 plot(t,V_pitot)
 legend('Estimation','Pitot')
 
-figure
-subplot(2,2,1)
-plot(t,results.no_V2.pusher)
+%figure
+%subplot(2,2,1)
+%plot(t,results.no_V2.pusher)
 
 %% Evolution of forces in flight
 

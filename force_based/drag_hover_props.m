@@ -72,8 +72,10 @@ fprintf(sprintf('Corrected RPM %d times\n',correction))
 % Hover_motors drag = Fx-body drag
 %Drag without hover props (only body drag)
 
-%drag_body_coeff = [0                     -3.0061458379662E-2   3.497371379286E-3    1.46865971330522E-1];%all airspeeds without hover props without skew
-drag_body_coeff = [-9.013405108486905E-3 -1.988035608425628E-2 9.850048188379294E-4 1.443975207474472E-1]; %all airspeeds without hover props with skew
+drag_body_coeff = [ -8.111212221498999e-03 ...
+                      -2.477135327454600e-02 ...
+                      -8.297633291170999e-03 ...
+                      1.772463067231450e-01];
 
 Fx_body = @(alpha,skew,V) (drag_body_coeff(1)  .*  cos(skew)+...
                               drag_body_coeff(2)+...
@@ -129,7 +131,7 @@ axis([0 inf -inf 0])
 grid on
 
 
-% Fx hover props = -6.435825732350349E-3*V^2+-1.180349532783032E-7*V^{1/2}*RPM^2
+% Fx hover props = -3.614335398771809E-3*V^2+-1.180220188976032E-7*V^{1/2}*RPM^2
 % RMS = 0.24 (AoA=0)
 % RMS = 0.4 (all AoA)
 
@@ -272,3 +274,27 @@ xlabel('Turn table angle (angle of attack) [deg]')
 ylabel('Body Drag F_x [N]')
 axis([-inf inf -inf inf])
 grid on
+
+%% Fit on maximum RPM
+RPM_db = test_db(test_db.Turn_Table==deg2rad(0) & test_db.rpm_Mot_R>3500,:);
+
+x = [RPM_db.Windspeed];
+y = [RPM_db.Fx_hover];
+
+fit = @(k,x)  k(1)*x(:,1); % Function to fit
+fcn = @(k) sqrt(mean((fit(k,x) - y).^2));           % Least-Squares cost function
+[s,RMS] = fminsearch(fcn,[1],options) %bound first coefficient to negative value
+
+% s =
+% 
+%   -0.560675048828126
+% 
+% 
+% RMS =
+% 
+%    1.433388187467630
+
+figure
+plot(x,y,'*')
+hold on
+plot(linspace(min(x),max(x),15),fit(s,linspace(min(x),max(x),15)'))

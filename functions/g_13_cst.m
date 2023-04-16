@@ -67,10 +67,10 @@ if EKF_AW_USE_BETA
         beta = asin(v/V_a);
     end
     
-    k_beta = -1.15./EKF_AW_VEHICLE_MASS;
+    k_beta = -0.219/EKF_AW_VEHICLE_MASS;
     a_y = beta.*k_beta.*(V_a.^2) + k_y;
 else
-    k_v = 15.*-3.2E-1./EKF_AW_VEHICLE_MASS;
+    k_v = 1.*-3.2E-1./EKF_AW_VEHICLE_MASS;
     a_y = k_v.*v.^2.*sign_v + k_y.*v.^2.*sign_v;
 end
 

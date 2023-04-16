@@ -42,7 +42,7 @@ wind_triangle_setup
 global EKF_AW_USE_MODEL_BASED EKF_AW_USE_BETA EKF_AW_WING_INSTALLED EKF_AW_PROPAGATE_OFFSET EKF_AW_VEHICLE_MASS EKF_AW_USE_PITOT
 
 EKF_AW_USE_MODEL_BASED = true;
-EKF_AW_USE_BETA = false;
+EKF_AW_USE_BETA = true;
 EKF_AW_WING_INSTALLED = false;
 EKF_AW_PROPAGATE_OFFSET = false;
 EKF_AW_USE_PITOT = false;
@@ -56,13 +56,13 @@ end
 EKF_AW_Q_accel = 1E-04;
 EKF_AW_Q_gyro = 1E-09;
 EKF_AW_Q_mu = 1E-6; %1E-5
-EKF_AW_Q_offset = 1E-7;
+EKF_AW_Q_offset = 1E-8;
 
 EKF_AW_R_V_gnd = 1E-05;
 EKF_AW_R_accel_filt_x = 1E-5;
-EKF_AW_R_accel_filt_y = 1E-3;
+EKF_AW_R_accel_filt_y = 1E-5;
 EKF_AW_R_accel_filt_z = 1E-3;
-EKF_AW_R_V_pitot = 1E-3;
+EKF_AW_R_V_pitot = 1E-5;
 
 EKF_AW_P0_V_body = 1E-2;
 EKF_AW_P0_mu = 1E1*EKF_AW_Q_mu;
@@ -121,7 +121,7 @@ R_variable = cell(1,length(t));
 Q_variable = cell(1,length(t));
 
 for k=1:length(t)
-    
+
     u=u_list(:,k);
     z=z_list(:,k);
 
@@ -132,7 +132,7 @@ for k=1:length(t)
         x=x_list(:,k-1);
         P_last = P{k-1};
     end
-        
+
     Q_variable{k} = Q;
     R_variable{k} = R;
 
@@ -144,10 +144,11 @@ for k=1:length(t)
         if z(4)<0
         Q_variable{k}(7,7) = 1E2*Q(7,7); %increase wind covariance --> it can change faster
         Q_variable{k}(8,8) = 1E2*Q(8,8);
-        Q_variable{k}(9,9) = 1E2*Q(9,9); 
-        
-        
-        R_variable{k}(4,4) = 1E-2*R(4,4); %decrease a_x cov --> more weight put on it 
+        Q_variable{k}(9,9) = 1E2*Q(9,9);
+
+
+        R_variable{k}(4,4) = 1E-2*R(4,4); %decrease a_x cov --> more weight put on it
+        R_variable{k}(5,5) = 1E-2*R(5,5); %decrease a_x cov --> more weight put on it
         end
     end
 
@@ -162,20 +163,20 @@ for k=1:length(t)
     M_val = M(g_fh,x,u,epsi);
 
     % Prediction
-    x_pred = x + dt*f_fh(x,u);      
+    x_pred = x + dt*f_fh(x,u);
     P_pred = F_val*P_last*F_val'+L_val*Q_variable{k}*L_val';
 
     % Innovation
     y_list(:,k) = z-g_fh(x,u);
-    
+
     S{k} = G_val*P_pred*G_val'+M_val*R_variable{k}*M_val';
 
     %Kalman gain
     K{k} = P_pred*G_val'*inv(S{k});
-    
+
     % State update
     x_list(:,k) = x_pred;
-    
+
     % V_gnd contribution
     x_list(1:3,k) = x_list(1:3,k)+ K{k}(1:3,1:3)*y_list(1:3,k); % Update V_body
     x_list(4:6,k) = x_list(4:6,k)+ K{k}(4:6,1:3)*y_list(1:3,k); % Update mu
@@ -197,7 +198,7 @@ for k=1:length(t)
             x_list(7:9,k) = x_list(7:9,k)+ K{k}(7:9,7)*y_list(7,k); % Update offset
         end
     end
-        
+
     P{k} = (eye(length(x))-K{k}*G_val)*P_pred;
 
 end

@@ -40,7 +40,7 @@ test_db(:,~ismember(all_columns,columnsToKeep)) = [];
 
 %% Select only sideslip smaller than +-90 deg
 
-test_db = test_db(abs(test_db.Turn_Table)<deg2rad(95),:);
+test_db = test_db(abs(test_db.Turn_Table)<deg2rad(90),:);
 
 %% Plot
 windspeed_bins = unique(round(test_db.Windspeed,0));

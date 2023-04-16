@@ -14,6 +14,9 @@ Fx_fuse_TO = @ (u,sk,the) (-480.00018.*k_fuse.*u.^2  +  62.418984.*k_fuse.*sk.^2
 Fy_fuse_TO = 0;
 Fz_fuse_TO = @ (u,the) (-1181.4327.*k_fuse.*the.*u.^2./10000);
 
+Fy_mF_TO = @ (u,sk,rpmF,thr) [rpmF.^2.*u.^2,rpmF.*u,rpmF.*thr.^2,rpmF.^2.*u,u.^2,rpmF.*thr.^2.*u,rpmF.^2.*thr.*u,rpmF.*sk.^2.*thr.^2,rpmF.*thr.^2.*u.^2,rpmF.^2.*thr.*u.^2,rpmF.*thr.^2.*cos(sk),rpmF.*sk.^2.*thr.^2.*u.^2,rpmF.^2.*sk.^2.*thr.*u.^2,rpmF.*thr.^2.*u.^2.*cos(sk),rpmF.^2.*thr.*u.^2.*cos(sk),rpmF.*sk.^2.*thr.^2.*u,rpmF.^2.*sk.^2.*thr.*u,rpmF.*thr.^2.*u.*cos(sk),rpmF.^2.*thr.*u.*cos(sk),rpmF.^2.*sk.^2.*thr.*u.^2.*cos(sk),rpmF.^2.*sk.^2.*thr.*u.*cos(sk)]
+
+
 %% Compare parameters
 u_list = [5,8,11,14];
 select = 3;
