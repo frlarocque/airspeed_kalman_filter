@@ -215,16 +215,25 @@ for i=1:size(P_last,1)
     end
 end
 
-Q = diag(state_noise);
+Q = sym('Q',state_noise_dim);
+for i=1:size(Q,1)
+    for j=1:size(Q,2)
+        if i~=j
+            Q(i,j) = 0;
+        else
+            Q(i,j) = str2sym(sprintf('Q(%d,%d)',i-1,j-1));
+        end
+    end
+end
+
 F_simplified = subs(F,state_noise,zeros(state_noise_dim,1));
 
 P_pred = F_simplified*P_last*F_simplified'+L*Q*L';
 
-
 for i=1:size(P_pred,1)
     for j=1:size(P_pred,2)
         if ~isAlways(P_pred(i,j)==0,Unknown="false")
-            fprintf('P_pred(%d,%d) = %s;\n',i-1,j-1,P_pred(i,j));
+            fprintf('eawp.P(%d,%d) = %s;\n',i-1,j-1,simplifyForCode(P_pred(i,j)));
         end
     end
 end
@@ -465,46 +474,60 @@ M
 % [0, 0, 0, 0, 0, 0, 1]
 
 %% Look at: S = G_val*P_pred*G_val'+M_val*R_variable{k}*M_val'
-
-G_simplified = subs(G,[z_noise],[zeros(z_noise_dim,1)]);
-%G_simplified = subs(G,[z_noise;phi;theta],[zeros(z_noise_dim,1);0;0]);
-
-P_pred = sym('P',state_dim);
-for i=1:size(P_pred,1)
-    for j=1:size(P_pred,2)
-    P_pred(i,j) = str2sym(sprintf('P_pred(%d,%d)',i-1,j-1));
+G_simplified = sym('G',[length(g_out), length(x)],'real');
+for i=1:size(G_temp,1)
+    for j=1:size(G_temp,2)
+        if ~isAlways(G_temp(i,j)==0,Unknown="false")
+        G_simplified(i,j) = str2sym(sprintf('GG(%d,%d)',i-1,j-1));
+        else
+        G_simplified(i,j) = 0;
+        end
     end
 end
 
-R = diag(z_noise);
+P_last = sym('P',state_dim);
+for i=1:size(P_last,1)
+    for j=1:size(P_last,2)
+    P_last(i,j) = str2sym(sprintf('P(%d,%d)',i-1,j-1));
+    end
+end
 
-S = G_simplified*P_pred*G_simplified'+M*R*M';
+R = sym('R',z_noise_dim);
+for i=1:size(R,1)
+    for j=1:size(R,2)
+        if i~=j
+            R(i,j) = 0;
+        else
+            R(i,j) = str2sym(sprintf('R(%d,%d)',i-1,j-1));
+        end
+    end
+end
+
+S = G_simplified*P_last*G_simplified'+M*R*M';
 
 for i=1:size(S,1)
     for j=1:size(S,2)
-        str = sprintf("%s",S(i,j));
-        % Replace cos() by cos_ and sin() by sin_
-        str = regexprep(str, 'cos\((.*?)\)', 'cos_$1');
-        str = regexprep(str, 'sin\((.*?)\)', 'sin_$1');
-        
-        fprintf('S(%d,%d) = %s;\n',i-1,j-1,str);
+        if ~isAlways(S(i,j)==0,Unknown="false")
+            fprintf('S(%d,%d) = %s;\n',i-1,j-1,simplifyForCode(S(i,j)));
+        end
     end
 end
 %%
 function str = simplifyForCode(expr,u,v,w,alpha,V_a,beta,diff_alpha_u,diff_alpha_w)
     
-    expr = subs(expr,atan(w/u),alpha);
-    expr = subs(expr,sqrt(u.^2+v.^2+w.^2),V_a);
-    expr = subs(expr,(u.^2+v.^2+w.^2),V_a^2);
-    expr = subs(expr,asin(v/sqrt(u.^2+v.^2+w.^2)),beta);
-    expr = subs(expr,asin(v/V_a),beta);
-    expr = subs(expr,v/V_a,sin(beta));
-    expr = subs(expr,1-sin(beta)^2,cos(beta)^2);
-    expr = subs(expr,(u^2*(w^2/u^2 + 1)),-w/diff_alpha_u);
-    expr = subs(expr,1/(u*(w^2/u^2 + 1)),diff_alpha_w);
-    expr = simplify(expr);
+    if nargin~=1
+        expr = subs(expr,atan(w/u),alpha);
+        expr = subs(expr,sqrt(u.^2+v.^2+w.^2),V_a);
+        expr = subs(expr,(u.^2+v.^2+w.^2),V_a^2);
+        expr = subs(expr,asin(v/sqrt(u.^2+v.^2+w.^2)),beta);
+        expr = subs(expr,asin(v/V_a),beta);
+        expr = subs(expr,v/V_a,sin(beta));
+        expr = subs(expr,1-sin(beta)^2,cos(beta)^2);
+        expr = subs(expr,(u^2*(w^2/u^2 + 1)),-w/diff_alpha_u);
+        expr = subs(expr,1/(u*(w^2/u^2 + 1)),diff_alpha_w);
+        expr = simplify(expr);
+    end
     str = sprintf("%s",expr);
-    
     % Replace cos() by cos_ and sin() by sin_
     str = regexprep(str, "(?<!a)cos\((\w+)\)", "cos_$1");
     str = regexprep(str, "(?<!a)sin\((\w+)\)", "sin_$1");
@@ -520,6 +543,18 @@ function str = simplifyForCode(expr,u,v,w,alpha,V_a,beta,diff_alpha_u,diff_alpha
 
     % Adapt m
     str = regexprep(str, '(?<!\w)m(?!\w)', 'ekf_aw_params.m');
+
+    % Adapt P
+    str = regexprep(str, '(?<!\w)P(?!\w)', 'eawp.P');
+
+    % Adapt Q
+    str = regexprep(str, '(?<!\w)Q(?!\w)', 'eawp.Q');
+
+    % Adapt R
+    str = regexprep(str, '(?<!\w)R(?!\w)', 'eawp.R');
+
+    % Adapt GG
+    str = regexprep(str, '(?<!\w)GG(?!\w)', 'G');
 
     % Adapt Skew
     str = regexprep(str, '(?<!\w)skew(?!\w)', 'eawp.inputs.skew');
