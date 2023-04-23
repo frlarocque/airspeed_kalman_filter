@@ -12,9 +12,29 @@ conditions = split(file,'_');
 conditions = conditions{1};
 
 if strcmp(conditions,'WINDTUNNEL')
+    
+    if exist('ac_data', 'var') && ~isempty(ac_data)
+        %Life is good
+    else
+        ac_data = temp_ac_data;
+        clear temp_ac_data
+    end
+
     % Obtained directly
-    IMU_accel.raw.data = [ac_data.EFF_FULL_INDI.body_accel_x,ac_data.EFF_FULL_INDI.body_accel_y,ac_data.EFF_FULL_INDI.body_accel_z];IMU_accel.raw.time =ac_data.EFF_FULL_INDI.timestamp;
+    if all(ac_data.EFF_FULL_INDI.body_accel_x==0)
+        IMU_accel.raw.data = [ac_data.INS.ins_xdd_alt,ac_data.INS.ins_ydd_alt,ac_data.INS.ins_zdd_alt]; IMU_accel.raw.time = ac_data.INS.timestamp;
+        fprintf("LOW RATE ACCEL\n")
+    else
+        IMU_accel.raw.data = [ac_data.EFF_FULL_INDI.body_accel_x,ac_data.EFF_FULL_INDI.body_accel_y,ac_data.EFF_FULL_INDI.body_accel_z];IMU_accel.raw.time =ac_data.EFF_FULL_INDI.timestamp;
+        fprintf("INDI ACCEL!!! \n")
+    end
+    
     airspeed_pitot.raw.data = ac_data.EFF_FULL_INDI.airspeed;airspeed_pitot.raw.time = ac_data.EFF_FULL_INDI.timestamp;
+    % Filter Airspeed data
+    filter_freq = 0.25; %[Hz]
+    [b,a] = butter(4,2*filter_freq*mean(diff(airspeed_pitot.raw.time)),'low');
+    airspeed_pitot.raw.data = filtfilt(b,a,airspeed_pitot.raw.data);
+    
     IMU_rate.raw.data = deg2rad([ac_data.EFF_FULL_INDI.angular_rate_p ac_data.EFF_FULL_INDI.angular_rate_q ac_data.EFF_FULL_INDI.angular_rate_r]);IMU_rate.raw.time = ac_data.EFF_FULL_INDI.timestamp;
     IMU_angle.raw.data = deg2rad([ac_data.EFF_FULL_INDI.phi_alt ac_data.EFF_FULL_INDI.theta_alt ac_data.EFF_FULL_INDI.psi_alt]);IMU_angle.raw.time = ac_data.EFF_FULL_INDI.timestamp;
 
@@ -28,20 +48,19 @@ if strcmp(conditions,'WINDTUNNEL')
     [Vg_NED_tunnel.raw.data,Vg_NED_tunnel.raw.time] = cut_resample(Vg_NED_tunnel.raw.data,Vg_NED_tunnel.raw.time,Vg_NED_tunnel.raw.time,[Vg_NED_tunnel.raw.time(1)+1,Vg_NED_tunnel.raw.time(end)-1]);
     
     % Model wind
-    max_wind = 8; %[m/s]
-    rate_wind = 0.1; %[m/s /s]
     wind.time = Vg_NED_tunnel.raw.time;
     wind.data = zeros(length(Vg_NED_tunnel.raw.data),1);
-    for i=1:length(wind.data)
-        if wind.time(i)>ac_data.motors_on(end-1)
-            wind.data(i) = min((wind.time(i)-ac_data.motors_on(end-1))*rate_wind,max_wind);
-        end
-    end
     
     Vg_NED.raw.data = Vg_NED_tunnel.raw.data+[airspeed_pitot.raw.data zeros(length(airspeed_pitot.raw.data),2) ]+[wind.data zeros(length(wind.data),2) ];Vg_NED.raw.time = Vg_NED_tunnel.raw.time;
     position_NED.raw.data = position_NED_tunnel.raw.data+cumtrapz(Vg_NED.raw.time,Vg_NED.raw.data);position_NED.raw.time = position_NED_tunnel.raw.time;
-
-    %%% GET DATA FROM WIND TUNNEL FOR OFFICIAL AIRSPEED if possible
+    
+    % Actuators
+    hover_prop_pwm.raw.data = ac_data.EFF_FULL_INDI.act(:,[1:4]); hover_prop_pwm.raw.time = ac_data.EFF_FULL_INDI.timestamp;
+    pusher_prop_pwm.raw.data = ac_data.EFF_FULL_INDI.act(:,9); pusher_prop_pwm.raw.time = ac_data.EFF_FULL_INDI.timestamp;
+    control_surface_pwm.raw.data = ac_data.EFF_FULL_INDI.act(:,[5:8]); control_surface_pwm.raw.time = ac_data.EFF_FULL_INDI.timestamp;
+    
+    % TODO: might need to be modified to SP
+    skew.raw.data = measSkew2Real(deg2rad(ac_data.EFF_FULL_INDI.wing_angle_deg));skew.raw.time = ac_data.EFF_FULL_INDI.timestamp;
 
 elseif strcmp(conditions,'OUTDOOR')
     % Assign values
@@ -90,8 +109,12 @@ airspeed_pitot.raw.data = pitot_correction.*airspeed_pitot.raw.data;
 %% Resample
 % Resample Choice 
 resample_time = airspeed_pitot.raw.time; %Airspeed has the lowest dt
-flight = in_flight(hover_prop_rpm.raw.time,mean(hover_prop_rpm.raw.data,2),Vg_NED.raw.time,-Vg_NED.raw.data(:,3),3000,0.1);
 
+if strcmp(conditions,'OUTDOOR')
+    flight = in_flight(hover_prop_rpm.raw.time,mean(hover_prop_rpm.raw.data,2),Vg_NED.raw.time,-Vg_NED.raw.data(:,3),3000,0.1);
+elseif strcmp(conditions,'WINDTUNNEL')
+    flight = ac_data.motors_on(1);%in_flight(hover_prop_pwm.raw.time,mean(hover_prop_pwm.raw.data,2),Vg_NED.raw.time,-Vg_NED.raw.data(:,3),1150,0.1);
+end
 cut_condition = [flight(1),ac_data.motors_on(end)];
 
 
@@ -102,18 +125,27 @@ cut_condition = [flight(1),ac_data.motors_on(end)];
 [Vg_NED.flight.data,Vg_NED.flight.time] = cut_resample(Vg_NED.raw.data,Vg_NED.raw.time,resample_time,cut_condition);
 [IMU_angle.flight.data,IMU_angle.flight.time] = cut_resample(IMU_angle.raw.data,IMU_angle.raw.time,resample_time,cut_condition);
 [position_NED.flight.data,position_NED.flight.time] = cut_resample(position_NED.raw.data,position_NED.raw.time,resample_time,cut_condition);
-[control_surface_pprz.flight.data,control_surface_pprz.flight.time] = cut_resample(control_surface_pprz.raw.data,control_surface_pprz.raw.time,resample_time,cut_condition);
-[hover_prop_pprz.flight.data,hover_prop_pprz.flight.time] = cut_resample(hover_prop_pprz.raw.data,hover_prop_pprz.raw.time,resample_time,cut_condition);
-[pusher_prop_pprz.flight.data,pusher_prop_pprz.flight.time] = cut_resample(pusher_prop_pprz.raw.data,pusher_prop_pprz.raw.time,resample_time,cut_condition);
 
-[hover_prop_rpm.flight.data,hover_prop_rpm.flight.time] = cut_resample(hover_prop_rpm.raw.data,hover_prop_rpm.raw.time,resample_time,cut_condition);
-hover_prop_rpm.flight.data(isnan(hover_prop_rpm.flight.data)) = 0;
+if strcmp(conditions,'OUTDOOR')
+    [control_surface_pprz.flight.data,control_surface_pprz.flight.time] = cut_resample(control_surface_pprz.raw.data,control_surface_pprz.raw.time,resample_time,cut_condition);
+    [hover_prop_pprz.flight.data,hover_prop_pprz.flight.time] = cut_resample(hover_prop_pprz.raw.data,hover_prop_pprz.raw.time,resample_time,cut_condition);
+    [pusher_prop_pprz.flight.data,pusher_prop_pprz.flight.time] = cut_resample(pusher_prop_pprz.raw.data,pusher_prop_pprz.raw.time,resample_time,cut_condition);
+    
+    [hover_prop_rpm.flight.data,hover_prop_rpm.flight.time] = cut_resample(hover_prop_rpm.raw.data,hover_prop_rpm.raw.time,resample_time,cut_condition);
+    hover_prop_rpm.flight.data(isnan(hover_prop_rpm.flight.data)) = 0;
+    
+    [pusher_prop_rpm.flight.data,pusher_prop_rpm.flight.time] = cut_resample(pusher_prop_rpm.raw.data,pusher_prop_rpm.raw.time,resample_time,cut_condition);
+    pusher_prop_rpm.flight.data(isnan(pusher_prop_rpm.flight.data)) = 0;
+    
+    [skew.flight.data,skew.flight.time] = cut_resample(skew.raw.data,skew.raw.time,resample_time,cut_condition);
+    skew.flight.data(isnan(skew.flight.data)) = 0;
 
-[pusher_prop_rpm.flight.data,pusher_prop_rpm.flight.time] = cut_resample(pusher_prop_rpm.raw.data,pusher_prop_rpm.raw.time,resample_time,cut_condition);
-pusher_prop_rpm.flight.data(isnan(pusher_prop_rpm.flight.data)) = 0;
-
-[skew.flight.data,skew.flight.time] = cut_resample(skew.raw.data,skew.raw.time,resample_time,cut_condition);
-skew.flight.data(isnan(skew.flight.data)) = 0;
+elseif strcmp(conditions,'WINDTUNNEL')
+    [hover_prop_pwm.flight.data,hover_prop_pwm.flight.time] = cut_resample(hover_prop_pwm.raw.data,hover_prop_pwm.raw.time,resample_time,cut_condition);
+    [pusher_prop_pwm.flight.data,pusher_prop_pwm.flight.time] = cut_resample(pusher_prop_pwm.raw.data,pusher_prop_pwm.raw.time,resample_time,cut_condition);
+    [control_surface_pwm.flight.data,control_surface_pwm.flight.time] = cut_resample(control_surface_pwm.raw.data,control_surface_pwm.raw.time,resample_time,cut_condition);
+    [skew.flight.data,skew.flight.time] = cut_resample(skew.raw.data,skew.raw.time,resample_time,cut_condition);
+end
 
 % Arbitrarly set so far
 alpha.flight.data = IMU_angle.flight.data(:,2);alpha.flight.time = IMU_angle.flight.time;
@@ -134,8 +166,9 @@ if graph
     plot_3_2(IMU_accel.flight,airspeed_pitot.flight,IMU_rate.flight,Vg_NED.flight,IMU_angle.flight,position_NED.flight)
     
     % Actuator
-    x_axis_related_plot(IMU_accel.flight,airspeed_pitot.flight,pusher_prop_rpm.flight,IMU_angle.flight,5)
-
+    if strcmp(conditions,'OUTDOOR')
+    x_axis_related_plot(IMU_accel.flight,airspeed_pitot.flight,pusher_prop_pwm.flight,IMU_angle.flight,5)
+    end
 end
 %% Estimating wind
 [wind,airspeed_estimation] = wind_estimation(Vg_NED.flight,IMU_angle.flight,airspeed_pitot.flight,alpha.flight,beta.flight,graph);

@@ -7,8 +7,9 @@ format long
 % Add all paths
 addpath('/home/frederic/Documents/thesis/tools/airspeed_estimation/functions/');
 
-%% Load single filedata
-[file,path] = uigetfile({'*.mat'},'Select a file');
+% Load single filedata
+log_path = "/home/frederic/Documents/thesis/tools/airspeed_estimation/mat_files/log/wind_tunnel_prototype";
+[file,path] = uigetfile({'*.mat'},'Select a file',log_path);
 
 load(fullfile(path,file))
 
@@ -42,20 +43,20 @@ wind_triangle_setup
 global EKF_AW_USE_MODEL_BASED EKF_AW_USE_BETA EKF_AW_WING_INSTALLED EKF_AW_PROPAGATE_OFFSET EKF_AW_VEHICLE_MASS EKF_AW_USE_PITOT
 
 EKF_AW_USE_MODEL_BASED = true;
-EKF_AW_USE_BETA = true;
-EKF_AW_WING_INSTALLED = false;
-EKF_AW_PROPAGATE_OFFSET = false;
-EKF_AW_USE_PITOT = false;
+EKF_AW_USE_BETA = false;
+EKF_AW_WING_INSTALLED = true;
+EKF_AW_PROPAGATE_OFFSET = true;
+EKF_AW_USE_PITOT = true;
 
 if EKF_AW_WING_INSTALLED
-    EKF_AW_VEHICLE_MASS = 6.5;
+    EKF_AW_VEHICLE_MASS = 4.2;
 else
-    EKF_AW_VEHICLE_MASS = 5.75;
+    EKF_AW_VEHICLE_MASS = 4.2;
 end
 
 EKF_AW_Q_accel = 1E-04;
 EKF_AW_Q_gyro = 1E-09;
-EKF_AW_Q_mu = 1E-6; %1E-5
+EKF_AW_Q_mu = 1E-10; %1E-5
 EKF_AW_Q_offset = 1E-8;
 
 EKF_AW_R_V_gnd = 1E-05;
@@ -75,7 +76,7 @@ t = airspeed_pitot.flight.time;
 dt = mean(diff(t));
 
 f_fh = str2func('f_4');
-g_fh = str2func('g_13_cst');
+g_fh = str2func('g_14_cst');
 
 % Get filter accel agressively
 filter_freq = 0.2; %[Hz]
@@ -84,16 +85,16 @@ filter_freq = 0.2; %[Hz]
 a_x_filt = filter(b,a,IMU_accel.flight.data(:,1));
 a_y_filt = filter(b,a,IMU_accel.flight.data(:,2));
 a_z_filt = filter(b,a,IMU_accel.flight.data(:,3));
-pusher_prop_rpm_filt = filtfilt(b,a,pusher_prop_rpm.flight.data);%filter(b,a,pusher_prop_rpm.flight.data);
-hover_prop_rpm_filt = filtfilt(b,a,mean(hover_prop_rpm.flight.data,2));%filter(b,a,mean(hover_prop_rpm.flight.data,2));
+pusher_prop_pwm_filt = filtfilt(b,a,pusher_prop_pwm.flight.data);%filter(b,a,pusher_prop_rpm.flight.data);
+hover_prop_pwm_filt = filtfilt(b,a,mean(hover_prop_pwm.flight.data,2));%filter(b,a,mean(hover_prop_rpm.flight.data,2));
 skew_filt = filter(b,a,skew.flight.data);
-elevator_pprz_filt = filter(b,a,control_surface_pprz.flight.data(:,4));
+elevator_pwm_filt = filter(b,a,control_surface_pwm.flight.data(:,4));
 
 % Initial conditions
 x_0 = [0 0 0   0 0 0   0 0 0]';
 
 u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data ...
-            pusher_prop_rpm_filt hover_prop_rpm_filt skew_filt elevator_pprz_filt]';
+            pusher_prop_pwm_filt hover_prop_pwm_filt skew_filt elevator_pwm_filt]';
 z_list = [Vg_NED.flight.data a_x_filt a_y_filt a_z_filt airspeed_pitot.flight.data]'; %measurement
 
 % Filter Data coming in
@@ -108,7 +109,17 @@ Q = diag([[1 1 1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[1 1 1E-2].*EKF_AW_Q_mu
 P_0 = diag([[1 1 1].*EKF_AW_P0_V_body [1 1 1].*EKF_AW_P0_mu [1 1 1].*EKF_AW_P0_offset]); %covariance
 R = diag([[1 1 1].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
 
+%% Resample to different sample time
+f_EKF = 5; %Hz
+
+u_list = resample(u_list',t,f_EKF)';
+z_list = resample(z_list',t,f_EKF)';
+t = [t(1):1/f_EKF:t(end)]';
+
+airspeed = resample(airspeed_pitot.flight.data,airspeed_pitot.flight.time,f_EKF);
+
 %%
+fprintf('Duration %2.2f s\n',t(end)-t(1))
 EKF_res = {};
 
 x_list = zeros(size(x_0,1),length(t));
@@ -120,7 +131,10 @@ S = cell(1,length(t));
 R_variable = cell(1,length(t));
 Q_variable = cell(1,length(t));
 
+h = waitbar(0,'Please wait...');
 for k=1:length(t)
+    
+    waitbar(k / length(t))
 
     u=u_list(:,k);
     z=z_list(:,k);
@@ -216,15 +230,26 @@ EKF_res.S = S;
 
 kalman_res{1} = EKF_res;
 
-kalman_res{1}.error = error_quantification(kalman_res{1}.x(1,airspeed_pitot.flight.valid)',airspeed_pitot.flight.data(airspeed_pitot.flight.valid));
+kalman_res{1}.error = error_quantification(kalman_res{1}.x(1,logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest')))',airspeed(logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest'))));
 
 fprintf("FINISHED!\n \nWAKE UP!\n")
-
+close(h)
 %% Plot
 select = 1;
 %plot_EKF_result(kalman_res{select},airspeed_pitot.flight,wind)
 plot_EKF_result_full(kalman_res{select},airspeed_pitot.flight,beta.flight,alpha.flight,wind)
 fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(vecnorm(kalman_res{select}.x(4:6,:),2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
+
+figure;
+subplot(2,1,1)
+plot(kalman_res{1}.t,kalman_res{1}.x(7,:)')
+xlabel('Time [s]')
+ylabel('offset_x')
+
+subplot(2,1,2)
+plot(kalman_res{1}.t,kalman_res{1}.x(8,:)')
+xlabel('Time [s]')
+ylabel('offset_y')
 
 %% Plot covariance
 
