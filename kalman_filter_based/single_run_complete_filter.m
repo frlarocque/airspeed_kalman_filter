@@ -241,15 +241,20 @@ plot_EKF_result_full(kalman_res{select},airspeed_pitot.flight,beta.flight,alpha.
 fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(vecnorm(kalman_res{select}.x(4:6,:),2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
 
 figure;
-subplot(2,1,1)
+subplot(3,1,1)
 plot(kalman_res{1}.t,kalman_res{1}.x(7,:)')
 xlabel('Time [s]')
 ylabel('offset_x')
 
-subplot(2,1,2)
+subplot(3,1,2)
 plot(kalman_res{1}.t,kalman_res{1}.x(8,:)')
 xlabel('Time [s]')
 ylabel('offset_y')
+
+subplot(3,1,3)
+plot(kalman_res{1}.t,kalman_res{1}.x(9,:)')
+xlabel('Time [s]')
+ylabel('offset_z')
 
 %% Plot covariance
 

@@ -13,46 +13,10 @@ addpath('/home/frederic/Documents/thesis/tools/airspeed_estimation/functions/');
 full_db = readtable(fullfile(path,file));
 
 %% Select test
-% AA: Angle of attack
-% AE: Actuator effectiveness
-% DT: Drag test
-% EP: Elevator precision
-% ES: Elevator stall
-% LP: Lift test (pitch changes)
-
-
-% LP1: a/c w/o pusher
-% LP2: a/c w/o pusher w/o elevator
-% LP3: a/c w/o pusher w/o wing
-% LP4: a/c w/o pusher w/o wing w/o hover props
-% LP5: a/c w/o pusher w/o elevator w/o hover props
-% LP6: a/c w/o pusher w/o hover props
-
-test_codes = unique(full_db.Code);
-
-test_1 = 'LP1';
-test_2 = 'LP3';
-idx_1 = contains(full_db.Code,test_1);
-idx_2 = contains(full_db.Code,test_2);
-
-test_db_1 = full_db(idx_1,:);
-test_db_2 = full_db(idx_2,:);
-
-forces_columns = {'Mx','My','Mz','Fx','Fy','Fz',};
-
-% Substract db2 from db1
-test_db = table();
-for i=1:size(test_db_1,1)
-    id = test_db_1.ID{i}(length(test_1)+2:end);
-    if any(contains(test_db_2.ID,id))
-        test_db(end+1,:) = test_db_1(i,:);
-        test_db{end,forces_columns} = test_db_1{i,forces_columns} -test_db_2{contains(test_db_2.ID,id),forces_columns};
-        test_db.Code{end} = [test_1 '-' test_2];
-    end
-end
+test_db = full_db;
 
 % Transform all angles in rad
-deg_columns = {'Turn_Table','Skew','Skew_sp','Pitch','AoA','std_AoA'};
+deg_columns = {'Skew','Skew_sp','Pitch'};
 test_db{:,deg_columns} = deg2rad(test_db{:,deg_columns});
 
 % Save
@@ -61,20 +25,19 @@ test_db{:,deg_columns} = deg2rad(test_db{:,deg_columns});
 %% Remove entries
 % Removing entries with non-zero control surfaces
 test_db = test_db(test_db.Rud==0 & test_db.Elev==0 & test_db.Ail_R==0 & test_db.Ail_L==0 ,:);
-% Removing entries with non-zero pusher motor
-test_db = test_db(test_db.Mot_Push==0,:);
-% Removing entries with non-zero hover motor command
-test_db = test_db(test_db.Mot_F==0 & test_db.Mot_R==0 & test_db.Mot_B==0 & test_db.Mot_L==0,:);
-% Removing entries with angle of attack higher than 15 deg
-test_db(abs(test_db.Turn_Table)>deg2rad(15),:) = []; 
+
+% Choose Idle Motor
+test_db = test_db(test_db.Mot_Status==0,:);
+% Remove nans
+test_db = test_db(~any(isnan(test_db{:,:}), 2), :);
 
 %% Add Lift and Drag Entries
 % Defining lift as perpendicular to speed vector
 
 % Fz points up instead of down
 for i=1:size(test_db,1)
-    temp_A = [sin(test_db.Turn_Table(i)) -cos(test_db.Turn_Table(i));-cos(test_db.Turn_Table(i)) -sin(test_db.Turn_Table(i))];
-    temp_b = [test_db.Fx(i);-test_db.Fz(i)];
+    temp_A = [sin(test_db.Pitch(i)) -cos(test_db.Pitch(i));-cos(test_db.Pitch(i)) -sin(test_db.Pitch(i))];
+    temp_b = [-test_db.Fx(i);test_db.Fz(i)];
 
     temp_x = inv(temp_A)*temp_b;
 
@@ -85,7 +48,7 @@ end
 %% Obtaining wing Fx
 test_db.Fx_wing = test_db.Fx;
 
-save('db_Fx_wing.mat','test_db')
+%save('db_Fx_wing.mat','test_db')
 %% Plot Fx
 windspeed_bins = unique(round(test_db.Windspeed,0));
 test_db.Windspeed_bin = round(test_db.Windspeed,0);
@@ -98,7 +61,7 @@ for i=1:length(windspeed_bins)
     temp_db = test_db(test_db.Windspeed_bin==windspeed_bins(i),:);
 
     subplot(2,2,1)
-    hdls(1,i) = plot(rad2deg(temp_db.Turn_Table),temp_db.Fx_wing,'*','color',col(i,:));
+    hdls(1,i) = plot(rad2deg(temp_db.Pitch),temp_db.Fx_wing,'*','color',col(i,:));
     hold on
 
     subplot(2,2,2)
@@ -106,7 +69,7 @@ for i=1:length(windspeed_bins)
     hold on
 
     subplot(2,2,3)
-    hdls(3,i) = plot(rad2deg(temp_db.Turn_Table),temp_db.Fx_wing./temp_db.Windspeed.^2,'*','color',col(i,:));
+    hdls(3,i) = plot(rad2deg(temp_db.Pitch),temp_db.Fx_wing./temp_db.Windspeed.^2,'*','color',col(i,:));
     hold on
 
     subplot(2,2,4)
@@ -145,7 +108,7 @@ quad_db = test_db(test_db.Skew_sp==deg2rad(0),:);
 % Fx = (k1+k2*alpha+k3*alpha^2)*V^2
 % k  = [k1 k2 k3 k4]
 % x = [pprz,V]
-x = [quad_db.Turn_Table,quad_db.Windspeed];
+x = [quad_db.Pitch,quad_db.Windspeed];
 y = [quad_db.Fx_wing];
 
 fit_quad = @(k,x)  (k(1)+k(2).*x(:,1)+k(3).*x(:,1).^2).*x(:,2).^2; % Function to fit
@@ -171,13 +134,13 @@ col=linspecer(length(windspeed_bins));
 hdls = [];
 for i=1:length(windspeed_bins)
     temp_db = quad_db(quad_db.Windspeed_bin==windspeed_bins(i),:);
-    temp_x = [linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),10)',ones(10,1).*windspeed_bins(i)];
+    temp_x = [linspace(min(temp_db.Pitch),max(temp_db.Pitch),10)',ones(10,1).*windspeed_bins(i)];
 
-    if show_error_bar; hdls(i) = errorbar(rad2deg(temp_db.Turn_Table),temp_db.Fx_wing,temp_db.std_Fx,'*','color',col(i,:));
-    else; hdls(i) = plot(rad2deg(temp_db.Turn_Table),temp_db.Fx_wing,'*','color',col(i,:)); end
+    if show_error_bar; hdls(i) = errorbar(rad2deg(temp_db.Pitch),temp_db.Fx_wing,temp_db.std_Fx,'*','color',col(i,:));
+    else; hdls(i) = plot(rad2deg(temp_db.Pitch),temp_db.Fx_wing,'*','color',col(i,:)); end
     
     hold on
-    plot(rad2deg(linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),10)),fit_quad(s_quad,temp_x),'--','color',col(i,:))
+    plot(rad2deg(linspace(min(temp_db.Pitch),max(temp_db.Pitch),10)),fit_quad(s_quad,temp_x),'--','color',col(i,:))
     legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
 end
 lgd1 = legend(hdls,legend_lbl,'location','southeast');
@@ -194,7 +157,7 @@ ff_db = test_db(test_db.Skew_sp==deg2rad(90),:);
 % Fx = (k1+k2*alpha+k3*alpha^2)*V^2
 % k  = [k1 k2 k3 k4]
 % x = [AoA,V]
-x = [ff_db.Turn_Table,ff_db.Windspeed];
+x = [ff_db.Pitch,ff_db.Windspeed];
 y = [ff_db.Fx_wing];
 
 fit_ff = @(k,x)  (k(1)+k(2).*x(:,1)+k(3).*x(:,1).^2).*x(:,2).^2; % Function to fit
@@ -220,13 +183,13 @@ col=linspecer(length(windspeed_bins));
 hdls = [];
 for i=1:length(windspeed_bins)
     temp_db = ff_db(ff_db.Windspeed_bin==windspeed_bins(i),:);
-    temp_x = [linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),10)',ones(10,1).*windspeed_bins(i)];
+    temp_x = [linspace(min(temp_db.Pitch),max(temp_db.Pitch),10)',ones(10,1).*windspeed_bins(i)];
 
-    if show_error_bar; hdls(i) = errorbar(rad2deg(temp_db.Turn_Table),temp_db.Fx_wing,temp_db.std_Fx,'*','color',col(i,:));
-    else; hdls(i) = plot(rad2deg(temp_db.Turn_Table),temp_db.Fx_wing,'*','color',col(i,:)); end
+    if show_error_bar; hdls(i) = errorbar(rad2deg(temp_db.Pitch),temp_db.Fx_wing,temp_db.std_Fx,'*','color',col(i,:));
+    else; hdls(i) = plot(rad2deg(temp_db.Pitch),temp_db.Fx_wing,'*','color',col(i,:)); end
     
     hold on
-    plot(rad2deg(linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),10)),fit_ff(s_ff,temp_x),'--','color',col(i,:))
+    plot(rad2deg(linspace(min(temp_db.Pitch),max(temp_db.Pitch),10)),fit_ff(s_ff,temp_x),'--','color',col(i,:))
     legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
 end
 lgd1 = legend(hdls,legend_lbl,'location','southeast');
@@ -245,6 +208,7 @@ grid on
 % Fx4 = ((k1+k2*alpha+k3*alpha^2)             *(sin(skew)^2)+k4)*V^2
 % Fx5 = ((k1+k2*alpha+k3*alpha^2)             *(sin(skew)^2+k4)+k5)*V^2
 % Fx6 = (k1+k5*sin(skew))+(k2*alpha+k3*alpha^2))*(sin(skew)^2+k4)*V^2
+% Fx7 = (k1+k2*alpha*sin(skew)^2+k3*theta^2*sin(skew)^2)*V^2
 
 fit_0 = @(k,x)  x(:,2).^2.*(k(1)+ k(2).*x(:,1)+k(3).*x(:,1).^2) .* (k(4)*sin(x(:,3)).^2+k(5)); % Function to fit
 
@@ -260,12 +224,13 @@ fit_5 = @(k,x)  x(:,2).^2.*( (k(1)+k(2).*x(:,1)+k(3).*x(:,1).^2) .* (sin(x(:,3))
 
 fit_6 = @(k,x)  x(:,2).^2.*(k(1)+k(5).*sin(x(:,3))+ (k(2).*x(:,1)+k(3).*x(:,1).^2).*(sin(x(:,3)).^2+k(4))); % Function to fit
 
+fit_7 = @(k,x)  x(:,2).^2.*(k(1)+k(2).*x(:,1).*sin(x(:,3)).^2+k(3).*x(:,1).^2.*sin(x(:,3)).^2);
 %% Wing Drag fixed airspeed, different skews
-skew_db = test_db(test_db.Windspeed<12 & test_db.Windspeed>9,:);
+skew_db = test_db(test_db.Windspeed<16 & test_db.Windspeed>9 & test_db.Skew_sp>deg2rad(60),:);
 
 % k  = [k1 k2 k3 k4]
 % x = [AoA,V,skew]
-x = [skew_db.Turn_Table,skew_db.Windspeed,skew_db.Skew_sp];
+x = [skew_db.Pitch,skew_db.Windspeed,skew_db.Skew_sp];
 y = [skew_db.Fx_wing];
 
 fcn_0 = @(k) sqrt(mean((fit_0(k,x) - y).^2));           % Least-Squares cost function
@@ -288,6 +253,9 @@ fcn_5 = @(k) sqrt(mean((fit_5(k,x) - y).^2));           % Least-Squares cost fun
 
 fcn_6 = @(k) sqrt(mean((fit_6(k,x) - y).^2));           % Least-Squares cost function
 [s_skew_6,RMS_skew_6] = fminsearch(fcn_6,[0;0;0;0;0],options) 
+
+fcn_7 = @(k) sqrt(mean((fit_7(k,x) - y).^2));           % Least-Squares cost function
+[s_skew_7,RMS_skew_7] = fminsearch(fcn_7,[0;0;0;0;0],options) 
 
 
 % s_skew_0 =
@@ -393,13 +361,13 @@ col=linspecer(length(skew_bins));
 hdls = [];
 for i=1:length(skew_bins)
     temp_db = skew_db(skew_db.skew_bin==skew_bins(i),:);
-    temp_x = [linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),20)',ones(20,1).*windspeed_bins,ones(20,1).*skew_bins(i)];
+    temp_x = [linspace(min(temp_db.Pitch),max(temp_db.Pitch),20)',ones(20,1).*windspeed_bins,ones(20,1).*skew_bins(i)];
 
-    if show_error_bar; hdls(i) = errorbar(rad2deg(temp_db.Turn_Table),temp_db.Fx_wing,temp_db.std_Fx,'*','color',col(i,:));
-    else; hdls(i) = plot(rad2deg(temp_db.Turn_Table),temp_db.Fx_wing,'*','color',col(i,:)); end
+    if show_error_bar; hdls(i) = errorbar(rad2deg(temp_db.Pitch),temp_db.Fx_wing,temp_db.std_Fx,'*','color',col(i,:));
+    else; hdls(i) = plot(rad2deg(temp_db.Pitch),temp_db.Fx_wing,'*','color',col(i,:)); end
     
     hold on
-    plot(rad2deg(linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),20)),fit_1(s_skew_1,temp_x),'--','color',col(i,:))
+    plot(rad2deg(linspace(min(temp_db.Pitch),max(temp_db.Pitch),20)),fit_1(s_skew_1,temp_x),'--','color',col(i,:))
     legend_lbl{i} = [mat2str(rad2deg(skew_bins(i))),' deg'];
 end
 lgd1 = legend(hdls,legend_lbl,'location','southeast');
@@ -411,7 +379,7 @@ axis([-inf inf -inf inf])
 grid on
 
 % RMS on all airspeeds when gains are calculated using only one airspeed
-x = [test_db.Turn_Table,test_db.Windspeed,test_db.Skew_sp];
+x = [test_db.Pitch,test_db.Windspeed,test_db.Skew_sp];
 y = [test_db.Fx_wing];
 RMS_all_0 = sqrt(mean((fit_0(s_skew_0,x) - y).^2))
 RMS_all_1 = sqrt(mean((fit_1(s_skew_1,x) - y).^2))
@@ -420,6 +388,7 @@ RMS_all_3 = sqrt(mean((fit_3(s_skew_3,x) - y).^2))
 RMS_all_4 = sqrt(mean((fit_4(s_skew_4,x) - y).^2))
 RMS_all_5 = sqrt(mean((fit_5(s_skew_5,x) - y).^2))
 RMS_all_6 = sqrt(mean((fit_6(s_skew_6,x) - y).^2))
+RMS_all_7 = sqrt(mean((fit_7(s_skew_7,x) - y).^2))
 
 % RMS_all_0 =
 % 
@@ -458,7 +427,7 @@ RMS_all_6 = sqrt(mean((fit_6(s_skew_6,x) - y).^2))
 % RMS on ff flight mode and quad mode
 verif_db = test_db(test_db.Skew_sp==deg2rad(0) | test_db.Skew_sp==deg2rad(90),:);
 
-x = [verif_db.Turn_Table,verif_db.Windspeed,verif_db.Skew_sp];
+x = [verif_db.Pitch,verif_db.Windspeed,verif_db.Skew_sp];
 y = [verif_db.Fx_wing];
 RMS_quad_ff_0 = sqrt(mean((fit_0(s_skew_0,x) - y).^2))
 RMS_quad_ff_1 = sqrt(mean((fit_1(s_skew_1,x) - y).^2))
@@ -519,7 +488,7 @@ max_error_percentage_range = max_error./range
 
 % k  = [k1 k2 k3 k4]
 % x = [AoA,V,skew]
-x = [test_db.Turn_Table,test_db.Windspeed,test_db.Skew_sp];
+x = [test_db.Pitch,test_db.Windspeed,test_db.Skew_sp];
 y = [test_db.Fx_wing];
 
 fcn_0 = @(k) sqrt(mean((fit_0(k,x) - y).^2));           % Least-Squares cost function
@@ -632,7 +601,7 @@ fcn_6 = @(k) sqrt(mean((fit_6(k,x) - y).^2));           % Least-Squares cost fun
 % RMS on ff flight mode and quad mode
 verif_db = test_db(test_db.Skew_sp==deg2rad(0) | test_db.Skew_sp==deg2rad(90),:);
 
-x = [verif_db.Turn_Table,verif_db.Windspeed,verif_db.Skew_sp];
+x = [verif_db.Pitch,verif_db.Windspeed,verif_db.Skew_sp];
 y = [verif_db.Fx_wing];
 RMS_quad_ff_0 = sqrt(mean((fit_0(s_all_0,x) - y).^2))
 RMS_quad_ff_1 = sqrt(mean((fit_1(s_all_1,x) - y).^2))

@@ -21,4 +21,11 @@ Fx_wing_coeff = [0.053390347807203...
                  0.016842045233906];
 F_x =  V.^2.*(Fx_wing_coeff(1)+Fx_wing_coeff(2).*alpha.*sin(skew).^2+Fx_wing_coeff(3).*alpha.^2.*sin(skew).^2);
 
+
+%Fx = (k1*sin(skew)^2+k2*alpha*sin(skew)^2)
+Fx_wing_coeff = [2.5E-2 ...
+                 2E-3];
+
+F_x = V.^2.*(Fx_wing_coeff(1).*sin(skew).^2+Fx_wing_coeff(2).*alpha.*sin(skew).^2);
+
 end

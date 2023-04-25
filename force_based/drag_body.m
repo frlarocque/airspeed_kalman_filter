@@ -13,49 +13,11 @@ addpath('/home/frederic/Documents/thesis/tools/airspeed_estimation/functions/');
 full_db = readtable(fullfile(path,file));
 
 %% Select test
-% AA: Angle of attack
-% AE: Actuator effectiveness
-% DT: Drag test
-% EP: Elevator precision
-% ES: Elevator stall
-% LP: Lift test (pitch changes)
 
-
-% LP1: a/c w/o pusher
-% LP2: a/c w/o pusher w/o elevator
-% LP3: a/c w/o pusher w/o wing
-% LP4: a/c w/o pusher w/o wing w/o hover props
-% LP5: a/c w/o pusher w/o elevator w/o hover props
-% LP6: a/c w/o pusher w/o hover props
-
-test_codes = unique(full_db.Code);
-
-test_1 = 'LP1';
-test_2 = 'LP3';
-test_3 = 'LP5';
-idx_1 = contains(full_db.Code,test_1);
-idx_2 = contains(full_db.Code,test_2);
-idx_3 = contains(full_db.Code,test_3);
-
-test_db_1 = full_db(idx_1,:);
-test_db_2 = full_db(idx_2,:);
-test_db_3 = full_db(idx_3,:);
-
-forces_columns = {'Mx','My','Mz','Fx','Fy','Fz',};
-
-% Substract db2 and db3 from db1
-test_db = table();
-for i=1:size(test_db_1,1)
-    id = test_db_1.ID{i}(length(test_1)+2:end);
-    if any(contains(test_db_2.ID,id)) && any(contains(test_db_3.ID,id))
-        test_db(end+1,:) = test_db_1(i,:);
-        test_db{end,forces_columns} = -(test_db_1{i,forces_columns} -test_db_2{contains(test_db_2.ID,id),forces_columns} -test_db_3{contains(test_db_3.ID,id),forces_columns});
-        test_db.Code{end} = ['-(' test_1 '-' test_2 '-' test_3 ')'];
-    end
-end
+test_db = full_db;
 
 % Transform all angles in rad
-deg_columns = {'Turn_Table','Skew','Skew_sp','Pitch','AoA','std_AoA'};
+deg_columns = {'Skew','Skew_sp'};
 test_db{:,deg_columns} = deg2rad(test_db{:,deg_columns});
 
 % Save
@@ -65,12 +27,19 @@ test_db{:,deg_columns} = deg2rad(test_db{:,deg_columns});
 
 % Removing entries with non-zero control surfaces
 test_db = test_db(test_db.Rud==0 & test_db.Elev==0 & test_db.Ail_R==0 & test_db.Ail_L==0 ,:);
-% Removing entries with non-zero pusher motor
-test_db = test_db(test_db.Mot_Push==0,:);
 % Removing entries with non-zero hover motor command
-test_db = test_db(test_db.Mot_F==0 & test_db.Mot_R==0 & test_db.Mot_B==0 & test_db.Mot_L==0,:);
-% Removing entries with angle of attack higher than 15 deg
-test_db(abs(test_db.Turn_Table)>deg2rad(15),:) = []; 
+test_db = test_db(test_db.Mot_F==1100 & test_db.Mot_R==1100 & test_db.Mot_B==1100 & test_db.Mot_L==1100,:);
+% Choose Skew
+test_db = test_db(test_db.Skew_sp==deg2rad(90),:);
+
+% Choose idle pusher
+test_db = test_db(test_db.Mot_Status==0,:);
+
+% Choose pitch
+test_db = test_db(test_db.Pitch>8 & test_db.Pitch<9,:);
+
+% Remove nans
+test_db = test_db(~any(isnan(test_db{:,:}), 2), :);
 
 %% Add Lift and Drag Entries
 % Defining lift as perpendicular to speed vector
