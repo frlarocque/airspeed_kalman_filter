@@ -45,7 +45,7 @@ global EKF_AW_USE_MODEL_BASED EKF_AW_USE_BETA EKF_AW_WING_INSTALLED EKF_AW_PROPA
 EKF_AW_USE_MODEL_BASED = true;
 EKF_AW_USE_BETA = false;
 EKF_AW_WING_INSTALLED = true;
-EKF_AW_PROPAGATE_OFFSET = true;
+EKF_AW_PROPAGATE_OFFSET = false;
 EKF_AW_USE_PITOT = true;
 
 if EKF_AW_WING_INSTALLED
@@ -56,14 +56,14 @@ end
 
 EKF_AW_Q_accel = 1E-04;
 EKF_AW_Q_gyro = 1E-09;
-EKF_AW_Q_mu = 1E-10; %1E-5
+EKF_AW_Q_mu = 1E-4;
 EKF_AW_Q_offset = 1E-8;
 
 EKF_AW_R_V_gnd = 1E-05;
 EKF_AW_R_accel_filt_x = 1E-5;
 EKF_AW_R_accel_filt_y = 1E-5;
-EKF_AW_R_accel_filt_z = 1E-3;
-EKF_AW_R_V_pitot = 1E-5;
+EKF_AW_R_accel_filt_z = 1E-5;
+EKF_AW_R_V_pitot = 1E-8;
 
 EKF_AW_P0_V_body = 1E-2;
 EKF_AW_P0_mu = 1E1*EKF_AW_Q_mu;
@@ -105,9 +105,9 @@ z_list(1:3,:) = filtfilt(b,a,z_list(1:3,:)')';%filter(b,a,z_list(1:3,:),[],2);
 
 kalman_res = {};
 
-Q = diag([[1 1 1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[1 1 1E-2].*EKF_AW_Q_mu,[1 1 1].*EKF_AW_Q_offset]); %process noise
+Q = diag([[1 1 1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[1 1 1E-5].*EKF_AW_Q_mu,[1 1 1].*EKF_AW_Q_offset]); %process noise
 P_0 = diag([[1 1 1].*EKF_AW_P0_V_body [1 1 1].*EKF_AW_P0_mu [1 1 1].*EKF_AW_P0_offset]); %covariance
-R = diag([[1 1 1].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
+R = diag([[1 1 1E-3].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
 
 %% Resample to different sample time
 f_EKF = 5; %Hz
@@ -150,11 +150,8 @@ for k=1:length(t)
     Q_variable{k} = Q;
     R_variable{k} = R;
 
-    if t(k)-t(1)>50
-    fprintf('')
-    end
-
-    if t(k)-t(1)<10
+    
+    if t(k)-t(1)<0
         if z(4)<0
         Q_variable{k}(7,7) = 1E2*Q(7,7); %increase wind covariance --> it can change faster
         Q_variable{k}(8,8) = 1E2*Q(8,8);
@@ -167,8 +164,15 @@ for k=1:length(t)
     end
 
     % Don't use A_z if skew smaller than 60 deg
-    if u(12)< deg2rad(60)
-        R_variable{k}(6,6) = 1E3.*R(6,6);
+    skew_crit = deg2rad(60);
+    skew_crit_band = deg2rad(20);
+    skew_crit_gain = 1;
+    if u(12) < skew_crit-skew_crit_band
+        R_variable{k}(6,6) = 10.^skew_crit_gain.*R(6,6);
+    elseif u(12) < skew_crit
+        R_variable{k}(6,6) = 10.^((-skew_crit_gain./(skew_crit_band)).*(u(12)-skew_crit)).*R(6,6);
+    else
+        R_variable{k}(6,6) = R(6,6);
     end
 
     F_val = F(f_fh,x,u,epsi);
@@ -240,6 +244,7 @@ select = 1;
 plot_EKF_result_full(kalman_res{select},airspeed_pitot.flight,beta.flight,alpha.flight,wind)
 fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(vecnorm(kalman_res{select}.x(4:6,:),2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
 
+%%
 figure;
 subplot(3,1,1)
 plot(kalman_res{1}.t,kalman_res{1}.x(7,:)')
@@ -256,6 +261,11 @@ plot(kalman_res{1}.t,kalman_res{1}.x(9,:)')
 xlabel('Time [s]')
 ylabel('offset_z')
 
+t_cond = u_list(12,:)>deg2rad(80);
+mean(kalman_res{1}.x(7,t_cond))
+mean(kalman_res{1}.x(8,t_cond))
+mean(kalman_res{1}.x(9,t_cond))
+
 %% Plot covariance
 
 P_temp = zeros(length(kalman_res{select}.P),length(kalman_res{select}.P{1}));
@@ -267,9 +277,11 @@ end
 
 figure
 ax1 = subplot(2,1,1);
-semilogy(kalman_res{select}.t,R_temp(:,[4]))
+semilogy(kalman_res{select}.t,R_temp(:,[4:6]))
+legend('A_x','A_y','A_z')
 ax2 = subplot(2,1,2);
 semilogy(kalman_res{select}.t,Q_temp(:,[7:9]))
+legend('Offset')
 
 figure
 ax1 = subplot(2,1,1);
@@ -289,7 +301,7 @@ legend('mu_x','mu_y')
 grid on
 
 linkaxes([ax1,ax2],'x')
-sgtitle(sprintf('Wind Covariance %.1d | RMS error %.2f',cov_list(select),kalman_res{select}.error.error_RMS))
+%sgtitle(sprintf('Wind Covariance %.1d | RMS error %.2f',cov_list(select),kalman_res{select}.error.error_RMS))
 
 %% Plot gains
 figure

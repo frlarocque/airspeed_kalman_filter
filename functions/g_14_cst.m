@@ -32,7 +32,7 @@ speed = DCM(phi,theta,psi)*[u;v;w]+[mu_x;mu_y;mu_z];
 
 % Calculate alpha and saturate it
 alpha = atan2(w,u);
-alpha = max(min(alpha,deg2rad(15)),deg2rad(-15));
+alpha = max([min([alpha,deg2rad(15)]),deg2rad(-15)]);
 
 % V_a
 V_a = vecnorm([u,v,w]);
@@ -53,19 +53,20 @@ else
     Fx_w = 0; 
 end
 
-Fx_fus = 0;%-0.047.*u.*u.*sign(u);
-Fx_hover = -0.3.*u;
+Fx_fus = -0.046.*u.*u.*sign(u);%-0.047.*u.*u.*sign(u);
+Fx_hover = -0.2.*u;
 
-drag = Fx_fus+Fx_hover+Fx_w;
-
-%a_x = (Fx_push+drag+u.*u.*sign_u.*k_x.*alpha)./EKF_AW_VEHICLE_MASS;
-a_x = (Fx_push + -0.3.*u + -0.0u.*u.*(k_x+k_y*sin(skew).^2+k_z.*alpha.*sin(skew).^2)+Fx_w)./EKF_AW_VEHICLE_MASS;
+a_x = (Fx_push + Fx_fus + Fx_hover + Fx_w)./EKF_AW_VEHICLE_MASS;
+%a_x = a_x + u.*u.*k_x;
+a_x = a_x + u.*u.*(k_x+k_y*sin(skew).^2+k_z.*alpha.*sin(skew).^2)./EKF_AW_VEHICLE_MASS;
 
 % A_y
-bias_y = -0.15;
+bias_y = -0.15.*cos(skew);
 k_v = 2.*-3.2E-1./EKF_AW_VEHICLE_MASS;
-Fy_wing = -0.0288.*u.^2.*cos(skew).*sin(skew);
-%a_y = k_v.*v.^2.*sign_v + Fy_wing./EKF_AW_VEHICLE_MASS + k_y.*u.^2 + bias_y;
+%Fy_wing = 0.8.*-0.0288.*u.^2.*cos(skew).*sin(skew);
+Fy_wing = (-0.004+-0.15.*alpha+-1.8.*alpha.^2).*u.^2.*cos(skew).*sin(skew);
+
+
 a_y = k_v.*v.^2.*sign_v + Fy_wing./EKF_AW_VEHICLE_MASS + bias_y;
 
 % A_z
