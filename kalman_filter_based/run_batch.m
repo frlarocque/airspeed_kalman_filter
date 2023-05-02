@@ -40,7 +40,7 @@ writecell(variableData, excel_filename, 'Sheet', excel_sheet_params);
 
 %% Main loop
 
-variableData = {'File Name','Path','Mean Pusher RPM [RPM]','Mean Hover RPM [RPM]','Mean Skew [deg]','Mean Airspeed [m/s]','Mean Groundspeed [m/s]','Mean Wind [m/s]','Error RMS [m/s]','Error Mean [m/s]','Error Max [m/s]','Error Min [m/s]','Error Std Dev [m^2/s^2]'};
+variableData = {'File Name','Path','Duration Flight [s]','Mean Pusher RPM [RPM]','Mean Hover RPM [RPM]','Mean Skew [deg]','Max Skew [deg]','Mean Airspeed [m/s]','Mean Groundspeed [m/s]','Mean Wind [m/s]','Error RMS [m/s]','Error Mean [m/s]','Error Max [m/s]','Error Min [m/s]','Error Std Dev [m^2/s^2]'};
 
 for iii=1:length(fileList)
     clearvars -except iii variableData fileList kalman_res excel_filename excel_sheet_params excel_sheet_results
@@ -104,9 +104,9 @@ for iii=1:length(fileList)
     kalman_res{iii}.error = error_quantification(kalman_res{iii}.x(1,logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest')))',airspeed(logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest'))));
     
     %% Get data for excel file
-                %variableData = {'File Name','Path','Mean Pusher RPM','Mean Hover RPM','Mean Skew','Mean Airspeed','Mean Wind','Error RMS','Error Mean','Error Max','Error Min','Error Std Dev'};
+                %variableData = {'File Name','Path','Duration of flight [s]','Mean Pusher RPM','Mean Hover RPM','Mean Skew','Max Skew','Mean Airspeed','Mean Wind','Error RMS','Error Mean','Error Max','Error Min','Error Std Dev'};
     
-    variableData = [variableData; {file, fileList{iii}, mean(kalman_res{iii}.u(10,:)), mean(kalman_res{iii}.u(11,:)), rad2deg(mean(kalman_res{iii}.u(12,:))), mean(airspeed_pitot.flight.data(airspeed_pitot.flight.valid)),mean(vecnorm(Vg_NED.flight.data,2,2)) ,wind.norm ,kalman_res{iii}.error.error_RMS, kalman_res{iii}.error.error_mean, kalman_res{iii}.error.error_max, kalman_res{iii}.error.error_min, kalman_res{iii}.error.std_dev}];
+    variableData = [variableData; {file, fileList{iii}, kalman_res{iii}.t(end)-kalman_res{iii}.t(1),mean(kalman_res{iii}.u(10,:)), mean(kalman_res{iii}.u(11,:)), rad2deg(mean(kalman_res{iii}.u(12,:))),rad2deg(max(kalman_res{iii}.u(12,:))), mean(airspeed_pitot.flight.data(airspeed_pitot.flight.valid)),mean(vecnorm(Vg_NED.flight.data,2,2)) ,wind.norm ,kalman_res{iii}.error.error_RMS, kalman_res{iii}.error.error_mean, kalman_res{iii}.error.error_max, kalman_res{iii}.error.error_min, kalman_res{iii}.error.std_dev}];
 end
 
 %% To excel file
