@@ -49,66 +49,69 @@ z_list = [Vg_NED.flight.data a_x_filt a_y_filt a_z_filt airspeed_pitot.flight.da
 u_list(1:6,:) = filtfilt(b,a,u_list(1:6,:)')';%filter(b,a,u_list(1:6,:),[],2);
 z_list(1:3,:) = filtfilt(b,a,z_list(1:3,:)')';%filter(b,a,z_list(1:3,:),[],2);
 
-% Commented because covariance sweep
-%Q = diag([[1 1 1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[1 1 1E-2].*EKF_AW_Q_mu,[1 1 1].*EKF_AW_Q_offset]); %process noise
-%P_0 = diag([[1 1 1].*EKF_AW_P0_V_body [1 1 1].*EKF_AW_P0_mu [1 1 1].*EKF_AW_P0_offset]); %covariance
-%R = diag([[1 1 1].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
 
+Q = diag([[1 1 1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[1 1 1E-2].*EKF_AW_Q_mu,[1 1 1].*EKF_AW_Q_offset]); %process noise
+P_0 = diag([[1 1 1].*EKF_AW_P0_V_body [1 1 1].*EKF_AW_P0_mu [1 1 1].*EKF_AW_P0_offset]); %covariance
+R = diag([[1 1 1].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
+
+% Commented because freq sweep
 % Resample to different sample time
-u_list = resample(u_list',t,f_EKF)';
-z_list = resample(z_list',t,f_EKF)';
-t = [t(1):1/f_EKF:t(end)]';
-dt = 1/f_EKF;
-airspeed = resample(airspeed_pitot.flight.data,airspeed_pitot.flight.time,f_EKF);
+%u_list = resample(u_list',t,f_EKF)';
+%z_list = resample(z_list',t,f_EKF)';
+%t = [t(1):1/f_EKF:t(end)]';
+%dt = 1/f_EKF;
+%airspeed = resample(airspeed_pitot.flight.data,airspeed_pitot.flight.time,f_EKF);
 
-%% Covariance Sweep
-cov_list =  logspace(-9,-2,20); %1.43E-6 %7.8E-8; ;
-kalman_res = cell(1,length(cov_list));
+%% Frequency Sweep
+freq_list =  [5:2.5:50];
+kalman_res = cell(1,length(freq_list));
 
 % Loop for all wind variances
-for i=1:length(cov_list)
-    fprintf('RUNNING %2.2e\n',cov_list(i))
-    clear Q P_0 R
+for i=1:length(freq_list)
+    fprintf('RUNNING %2.2f\n',freq_list(i))
     
-    EKF_AW_Q_mu = cov_list(i);
-    
-    Q = diag([[1 1 1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[1 1 1E-2].*EKF_AW_Q_mu,[1 1 1].*EKF_AW_Q_offset]); %process noise
-    P_0 = diag([[1 1 1].*EKF_AW_P0_V_body [1 1 1].*EKF_AW_P0_mu [1 1 1].*EKF_AW_P0_offset]); %covariance
-    R = diag([[1 1 1].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
-    
+    f_EKF = freq_list(i);
+
+    % Resample to different sample time
+    u_list_resampled = resample(u_list',t,f_EKF)';
+    z_list_resampled = resample(z_list',t,f_EKF)';
+    t_resampled = [t(1):1/f_EKF:t(end)]';
+    dt = 1/f_EKF;
+    airspeed = resample(airspeed_pitot.flight.data,airspeed_pitot.flight.time,f_EKF);
+
     % Run filter
-    kalman_res{i} = run_EKF(epsi,t,Q,R,P_0,x_0,u_list,z_list,f_fh,g_fh);
-    kalman_res{i}.error = error_quantification(kalman_res{i}.x(1,logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest')))',airspeed(logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest'))));
+    kalman_res{i} = run_EKF(epsi,t_resampled,Q,R,P_0,x_0,u_list_resampled,z_list_resampled,f_fh,g_fh);
+    kalman_res{i}.error = error_quantification(kalman_res{i}.x(1,logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t_resampled,'nearest')))',airspeed(logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t_resampled,'nearest'))));
     error{i} = kalman_res{i}.error;
 end
 
-%% Covariance sweep Graph
+%% Freq sweep Graph
 figure
 subplot(2,1,1)
 for i=1:length(error)
-    semilogx(cov_list(i),error{i}.error_RMS,'*','MarkerSize',10)
+    plot(freq_list(i),error{i}.error_RMS,'*','MarkerSize',10)
     hold on
     grid on
 end
-xlabel('Wind Covariance')
+xlabel('EKF Frequency')
 ylabel('Airspeed RMS Error [m/s]')
 grid on
 
 subplot(2,1,2)
 for i=1:length(error)
-    semilogx(cov_list(i),error{i}.error_mean,'*','MarkerSize',10)
+    plot(freq_list(i),error{i}.error_mean,'*','MarkerSize',10)
     hold on
     grid on
 end
-xlabel('Wind Covariance')
+xlabel('EKF Frequency')
 ylabel('Airspeed Mean Error [m/s]')
 grid on
-sgtitle(['Covariance Sweep: ',file(1:end-4)])
+sgtitle(['EKF Frequency Sweep: ',file(1:end-4)])
 
 %% Save data
 
 % Light data
-save(['covariance_sweep_',file(1:end-4),'.mat'],'error','file','error_airspeed','cov_list')
+save(['frequency_sweep_',file(1:end-4),'.mat'],'error','file','error_airspeed','freq_list')
 
 % Heavy data
 %save(['covariance_sweep_',file(1:end-4),'.mat'],'kalman_res','file','error_airspeed','ac_data','cov_list')
