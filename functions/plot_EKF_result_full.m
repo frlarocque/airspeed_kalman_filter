@@ -73,8 +73,12 @@ grid on
 axis([-inf inf -90 90])
 
 linkaxes([ax1,ax2,ax3,ax4,ax5,ax6],'x')
-sgtitle(sprintf('Wind Covariance %.1d | RMS error %.2f',kalman_res.Q{end}(end,end),kalman_res.error.error_RMS))
 
+if ~isfield(kalman_res, 'error')
+    warning('Required Field Not Present')
+else  
+    sgtitle(sprintf('Wind Covariance %.1d | RMS error %.2f',kalman_res.Q{end}(end,end),kalman_res.error.error_RMS))
+end
 
 figure
 ax1 = subplot(2,3,1);
@@ -153,5 +157,10 @@ end
 linkaxes([ax1,ax2,ax3,ax4,ax5,ax6],'x')
 
 
-sgtitle(sprintf('Wind Covariance %.1d | RMS error %.2f',kalman_res.Q{end}(end,end),kalman_res.error.error_RMS))
+if ~isfield(kalman_res, 'error')
+    warning('Required Field Not Present')
+else  
+    sgtitle(sprintf('Wind Covariance %.1d | RMS error %.2f',kalman_res.Q{end}(end,end),kalman_res.error.error_RMS))
+end
+
 end

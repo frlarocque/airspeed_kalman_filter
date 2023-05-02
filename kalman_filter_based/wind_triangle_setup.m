@@ -11,6 +11,13 @@ fprintf('OPENED: %s\n',file)
 conditions = split(file,'_');
 conditions = conditions{1};
 
+if exist('ac_data', 'var') && ~isempty(ac_data)
+    %Life is good
+else
+    ac_data = temp_ac_data;
+    clear temp_ac_data
+end
+
 if strcmp(conditions,'WINDTUNNEL')
     % Obtained directly
     IMU_accel.raw.data = [ac_data.EFF_FULL_INDI.body_accel_x,ac_data.EFF_FULL_INDI.body_accel_y,ac_data.EFF_FULL_INDI.body_accel_z];IMU_accel.raw.time =ac_data.EFF_FULL_INDI.timestamp;
@@ -79,7 +86,7 @@ elseif strcmp(conditions,'OUTDOOR')
     pusher_prop_rpm.raw.data = ac_data.ESC_PER_MOTOR.motor_4.rpm;pusher_prop_rpm.raw.time = ac_data.ESC_PER_MOTOR.motor_4.timestamp;
 
     skew.raw.data = deg2rad(round(ac_data.ROT_WING_CONTROLLER.wing_angle_deg));skew.raw.time = ac_data.ROT_WING_CONTROLLER.timestamp;
-
+    skew_sp.raw.data = deg2rad(round(ac_data.ROT_WING_CONTROLLER.wing_angle_deg_sp)); skew_sp.raw.time = ac_data.ROT_WING_CONTROLLER.timestamp;
 
 else
     fprintf('Wrong or No Condition')
@@ -113,11 +120,17 @@ hover_prop_rpm.flight.data(isnan(hover_prop_rpm.flight.data)) = 0;
 pusher_prop_rpm.flight.data(isnan(pusher_prop_rpm.flight.data)) = 0;
 
 [skew.flight.data,skew.flight.time] = cut_resample(skew.raw.data,skew.raw.time,resample_time,cut_condition);
+[skew_sp.flight.data,skew_sp.flight.time] = cut_resample(skew_sp.raw.data,skew_sp.raw.time,resample_time,cut_condition);
+
 skew.flight.data(isnan(skew.flight.data)) = 0;
+skew_sp.flight.data(isnan(skew_sp.flight.data)) = 0;
 
 % Arbitrarly set so far
 alpha.flight.data = IMU_angle.flight.data(:,2);alpha.flight.time = IMU_angle.flight.time;
 beta.flight.data = 0*ones(length(IMU_angle.flight.data),1);beta.flight.time = IMU_angle.flight.time;
+
+% Check for nan
+
 
 %% Filtering
 filter_freq = 0.25; %[Hz]
@@ -135,6 +148,9 @@ if graph
     
     % Actuator
     x_axis_related_plot(IMU_accel.flight,airspeed_pitot.flight,pusher_prop_rpm.flight,IMU_angle.flight,5)
+    
+    %z axis
+    z_axis_related_plot(IMU_accel.flight,airspeed_pitot.flight,hover_prop_rpm.flight,IMU_angle.flight,skew.flight,skew_sp.flight,5)
 
 end
 %% Estimating wind
