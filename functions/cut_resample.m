@@ -7,11 +7,12 @@ function [new_data,new_time] = cut_resample(data,initial_time,resample_time,cond
 %           -resample_time: time to resample [s]
 %           -conditions: cut conditions
 
-cut = initial_time<conditions(2)&initial_time>conditions(1);
+cut = initial_time<conditions(2)+1 & initial_time>conditions(1)-1;
 cut2 = resample_time<conditions(2)&resample_time>conditions(1);
 initial_time = initial_time(cut);
 new_time = resample_time(cut2);
 data = data(cut,:);
+
 
 timeseries_data = resample(timeseries(data,initial_time), new_time);
 
