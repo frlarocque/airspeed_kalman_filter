@@ -115,7 +115,7 @@ resample_time = airspeed_pitot.raw.time; %Airspeed has the lowest dt
 if strcmp(conditions,'OUTDOOR')
     flight = in_flight(hover_prop_rpm.raw.time,mean(hover_prop_rpm.raw.data,2),Vg_NED.raw.time,-Vg_NED.raw.data(:,3),3000,0.1);
 elseif strcmp(conditions,'WINDTUNNEL')
-    flight = ac_data.motors_on(1);%in_flight(hover_prop_pwm.raw.time,mean(hover_prop_pwm.raw.data,2),Vg_NED.raw.time,-Vg_NED.raw.data(:,3),1150,0.1);
+    flight = ac_data.motors_on(1)+5;%in_flight(hover_prop_pwm.raw.time,mean(hover_prop_pwm.raw.data,2),Vg_NED.raw.time,-Vg_NED.raw.data(:,3),1150,0.1);
 end
 cut_condition = [flight(1),ac_data.motors_on(end)];
 
