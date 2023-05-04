@@ -93,7 +93,7 @@ ylabel('offset_z')
 end
 
 figure;
-filter_freq = 0.1; %[Hz]
+filter_freq = 2.49; %[Hz]
 [b,a] = butter(2,2*filter_freq*dt,'low');
 
 subplot(4,1,1)

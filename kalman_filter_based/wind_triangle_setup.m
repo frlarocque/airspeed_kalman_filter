@@ -133,10 +133,10 @@ beta.flight.data = 0*ones(length(IMU_angle.flight.data),1);beta.flight.time = IM
 
 
 %% Filtering
-filter_freq = 0.25; %[Hz]
-[b,a] = butter(4,2*filter_freq*mean(diff(resample_time)),'low');
+%filter_freq = 0.25; %[Hz]
+%[b,a] = butter(4,2*filter_freq*mean(diff(resample_time)),'low');
 
-airspeed_pitot.flight.data = filtfilt(b,a,airspeed_pitot.flight.data);
+%airspeed_pitot.flight.data = filtfilt(b,a,airspeed_pitot.flight.data);
 
 %% Visualizing input data
 if graph
