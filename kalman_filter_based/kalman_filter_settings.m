@@ -53,11 +53,11 @@ end
 
 EKF_AW_Q_accel = 1E-04;
 EKF_AW_Q_gyro = 1E-09;
-EKF_AW_Q_mu = 1E0;
+EKF_AW_Q_mu = 1E2;
 EKF_AW_Q_offset = 1E-5;
 
 EKF_AW_R_V_gnd = 1E-05;
-EKF_AW_R_accel_filt_x = 1E-5;
+EKF_AW_R_accel_filt_x = 1E-6;
 EKF_AW_R_accel_filt_y = 1E-5;
 EKF_AW_R_accel_filt_z = 1E-5;
 EKF_AW_R_V_pitot = 1E-7;

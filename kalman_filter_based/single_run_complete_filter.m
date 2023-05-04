@@ -48,7 +48,7 @@ z_list = [Vg_NED.flight.data a_x_filt a_y_filt a_z_filt airspeed_pitot.flight.da
 u_list(1:6,:) = filtfilt(b,a,u_list(1:6,:)')';%filter(b,a,u_list(1:6,:),[],2);
 z_list(1:3,:) = filtfilt(b,a,z_list(1:3,:)')';%filter(b,a,z_list(1:3,:),[],2);
 
-Q = diag([[1 1 1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[1 1 1E-12].*EKF_AW_Q_mu,[1 1 1].*EKF_AW_Q_offset]); %process noise
+Q = diag([[1 1 1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[EKF_AW_Q_mu 1E-6 1E-9],[1 1 1].*EKF_AW_Q_offset]); %process noise
 P_0 = diag([[1 1 1].*EKF_AW_P0_V_body [1 1 1].*EKF_AW_P0_mu [1 1 1].*EKF_AW_P0_offset]); %covariance
 R = diag([[1 1 1E-3].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
 
@@ -139,6 +139,7 @@ end
 figure
 ax1 = subplot(2,1,1);
 semilogy(kalman_res{select}.t,R_temp(:,[4:6]))
+legend('x','y','z')
 ax2 = subplot(2,1,2);
 semilogy(kalman_res{select}.t,Q_temp(:,[7:9]))
 
