@@ -58,16 +58,15 @@ Fx_hover = -0.2.*u;
 
 a_x = (Fx_push + Fx_fus + Fx_hover + Fx_w)./EKF_AW_VEHICLE_MASS;
 %a_x = a_x + u.*u.*k_x;
-a_x = a_x + u.*u.*(k_x+k_y*sin(skew).^2+k_z.*alpha.*sin(skew).^2)./EKF_AW_VEHICLE_MASS;
+%a_x = a_x + u.*u.*(k_x+k_y*sin(skew).^2+k_z.*alpha.*sin(skew).^2)./EKF_AW_VEHICLE_MASS;
 
 % A_y
 bias_y = -0.15.*cos(skew);
-k_v = 2.*-3.2E-1./EKF_AW_VEHICLE_MASS;
-%Fy_wing = 0.8.*-0.0288.*u.^2.*cos(skew).*sin(skew);
-Fy_wing = (-0.004+-0.15.*alpha+-1.8.*alpha.^2).*u.^2.*cos(skew).*sin(skew);
+k_v = 2.*-3.2E-1;
+Fy_wing = -0.022.*u.^2.*cos(skew).*sin(skew).^2;
 
 
-a_y = k_v.*v.^2.*sign_v + Fy_wing./EKF_AW_VEHICLE_MASS + bias_y;
+a_y = (k_v.*v.^2.*sign_v + Fy_wing)./EKF_AW_VEHICLE_MASS + bias_y;
 
 % A_z
 Fz_hprop = Fz_hover_prop(PWM_hover,u);

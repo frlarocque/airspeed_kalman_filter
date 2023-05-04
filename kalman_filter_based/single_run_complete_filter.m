@@ -8,7 +8,7 @@ format long
 addpath('/home/frederic/Documents/thesis/tools/airspeed_estimation/functions/');
 %% Load single filedata
 clear ac_data
-log_path = '/home/frederic/Documents/thesis/tools/airspeed_estimation/mat_files/log';
+log_path = '/home/frederic/Documents/thesis/tools/airspeed_estimation/mat_files/log/wind_tunnel_prototype';
 [file,path] = uigetfile({'*.mat'},'Select a file',log_path);
 
 load(fullfile(path,file))
@@ -34,13 +34,13 @@ dt = mean(diff(t));
 a_x_filt = filter(b,a,IMU_accel.flight.data(:,1));
 a_y_filt = filter(b,a,IMU_accel.flight.data(:,2));
 a_z_filt = filter(b,a,IMU_accel.flight.data(:,3));
-pusher_prop_rpm_filt = filter(b,a,pusher_prop_rpm.flight.data);%filter(b,a,pusher_prop_rpm.flight.data);
-hover_prop_rpm_filt = filter(b,a,mean(hover_prop_rpm.flight.data,2));%filter(b,a,mean(hover_prop_rpm.flight.data,2));
+pusher_prop_pwm_filt = filtfilt(b,a,pusher_prop_pwm.flight.data);%filter(b,a,pusher_prop_rpm.flight.data);
+hover_prop_pwm_filt = filtfilt(b,a,mean(hover_prop_pwm.flight.data,2));%filter(b,a,mean(hover_prop_rpm.flight.data,2));skew_filt = filter(b,a,skew.flight.data);
 skew_filt = filter(b,a,skew.flight.data);
-elevator_pprz_filt = filter(b,a,control_surface_pprz.flight.data(:,4));
+elevator_pwm_filt = filter(b,a,control_surface_pwm.flight.data(:,4));
 
 u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data ...
-            pusher_prop_rpm_filt hover_prop_rpm_filt skew_filt elevator_pprz_filt]';
+            pusher_prop_pwm_filt hover_prop_pwm_filt skew_filt elevator_pwm_filt]';
 z_list = [Vg_NED.flight.data a_x_filt a_y_filt a_z_filt airspeed_pitot.flight.data]'; %measurement
 
 % Filter Data coming in
@@ -48,11 +48,11 @@ z_list = [Vg_NED.flight.data a_x_filt a_y_filt a_z_filt airspeed_pitot.flight.da
 u_list(1:6,:) = filtfilt(b,a,u_list(1:6,:)')';%filter(b,a,u_list(1:6,:),[],2);
 z_list(1:3,:) = filtfilt(b,a,z_list(1:3,:)')';%filter(b,a,z_list(1:3,:),[],2);
 
-Q = diag([[1 1 1E1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[1 1 1E-2].*EKF_AW_Q_mu,[1 1 1].*EKF_AW_Q_offset]); %process noise
+Q = diag([[1 1 1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[1 1 1E-12].*EKF_AW_Q_mu,[1 1 1].*EKF_AW_Q_offset]); %process noise
 P_0 = diag([[1 1 1].*EKF_AW_P0_V_body [1 1 1].*EKF_AW_P0_mu [1 1 1].*EKF_AW_P0_offset]); %covariance
-R = diag([[1 1 1].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
+R = diag([[1 1 1E-3].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
 
-f_EKF = 5;
+f_EKF = 20;
 % Resample to different sample time
 u_list = resample(u_list',t,f_EKF)';
 z_list = resample(z_list',t,f_EKF)';
@@ -78,25 +78,26 @@ fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',me
 
 if EKF_AW_PROPAGATE_OFFSET
 figure;
-subplot(3,1,1)
+ax1 = subplot(3,1,1);
 plot(kalman_res{1}.t,kalman_res{1}.x(7,:)')
 xlabel('Time [s]')
 ylabel('offset_x')
-subplot(3,1,2)
+ax2 = subplot(3,1,2);
 plot(kalman_res{1}.t,kalman_res{1}.x(8,:)')
 xlabel('Time [s]')
 ylabel('offset_y')
-subplot(3,1,3)
+ax3 = subplot(3,1,3);
 plot(kalman_res{1}.t,kalman_res{1}.x(9,:)')
 xlabel('Time [s]')
 ylabel('offset_z')
+linkaxes([ax1,ax2,ax3],'x')
 end
 
 figure;
 filter_freq = 0.1; %[Hz]
 [b,a] = butter(2,2*filter_freq*dt,'low');
 
-subplot(4,1,1)
+ax1 = subplot(4,1,1);
 plot(kalman_res{1}.t,filtfilt(b,a,kalman_res{1}.y(1:3,:)')')
 grid on
 xlabel('Time [s]')
@@ -104,7 +105,7 @@ ylabel('Innovation')
 title('V_{gnd}')
 legend('N','E','D')
 
-subplot(4,1,2)
+ax2 = subplot(4,1,2);
 plot(kalman_res{1}.t,filtfilt(b,a,kalman_res{1}.y(4:6,:)')')
 grid on
 xlabel('Time [s]')
@@ -112,19 +113,19 @@ ylabel('Innovation')
 title('Accel')
 legend('x','y','z')
 
-subplot(4,1,3)
+ax3 = subplot(4,1,3);
 plot(kalman_res{1}.t,filtfilt(b,a,kalman_res{1}.y(7,:)')')
 grid on
 xlabel('Time [s]')
 ylabel('Innovation')
 title('Pitot')
 
-subplot(4,1,4)
+ax4 = subplot(4,1,4);
 yyaxis left
 plot(kalman_res{1}.t,rad2deg(kalman_res{1}.u(12,:)))
 xlabel('Time [s]')
 ylabel('Skew [deg]')
-
+linkaxes([ax1,ax2,ax3,ax4],'x')
 
 %% Plot covariance
 
@@ -137,7 +138,7 @@ end
 
 figure
 ax1 = subplot(2,1,1);
-semilogy(kalman_res{select}.t,R_temp(:,[4]))
+semilogy(kalman_res{select}.t,R_temp(:,[4:6]))
 ax2 = subplot(2,1,2);
 semilogy(kalman_res{select}.t,Q_temp(:,[7:9]))
 

@@ -33,14 +33,14 @@ EKF_AW_WING_INSTALLED = true;
 EKF_AW_PROPAGATE_OFFSET = false;
 EKF_AW_USE_PITOT = false;
 
-EFK_AW_QUICK_CONVERGENCE = true;
+EFK_AW_QUICK_CONVERGENCE = false;
 EKF_AW_QUICK_CONVERGENCE_TIME = 20;
 EKF_AW_AZ_QUICK_CONV_MU_GAIN = 2;
 EKF_AW_AZ_QUICK_CONV_ACCEL_GAIN = 0;
 
-EKF_AW_AZ_SCHED_GAIN = 2;
+EKF_AW_AZ_SCHED_GAIN = 1;
 EKF_AW_AZ_SCHED_START_DEG = 60;
-EKF_AW_AZ_SCHED_END_DEG = 70;
+EKF_AW_AZ_SCHED_END_DEG = 80;
 EKF_AW_AX_SCHED_GAIN = 0;
 EKF_AW_AX_SCHED_START_DEG = 40;
 EKF_AW_AX_SCHED_END_DEG = 60;
@@ -51,26 +51,24 @@ else
     EKF_AW_VEHICLE_MASS = 4.2;
 end
 
-
-
 EKF_AW_Q_accel = 1E-04;
 EKF_AW_Q_gyro = 1E-09;
-EKF_AW_Q_mu = 1E-4;
-EKF_AW_Q_offset = 1E-8;
+EKF_AW_Q_mu = 1E0;
+EKF_AW_Q_offset = 1E-5;
 
 EKF_AW_R_V_gnd = 1E-05;
 EKF_AW_R_accel_filt_x = 1E-5;
 EKF_AW_R_accel_filt_y = 1E-5;
 EKF_AW_R_accel_filt_z = 1E-5;
-EKF_AW_R_V_pitot = 1E-8;
+EKF_AW_R_V_pitot = 1E-7;
 
 EKF_AW_P0_V_body = 1E-2;
 EKF_AW_P0_mu = 1E1*EKF_AW_Q_mu;
 EKF_AW_P0_offset = EKF_AW_Q_offset;
 
 filter_low_freq = 0.2; %[Hz]
-filter_high_freq = 24; %[Hz]
-f_EKF = 5; %[Hz]
+filter_high_freq = 10; %[Hz]
+f_EKF = 20; %[Hz]
 
 f_fh = str2func('f_4');
 g_fh = str2func('g_14_cst');
