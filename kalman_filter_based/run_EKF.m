@@ -47,7 +47,7 @@ for k=1:length(t)
     Q_variable{k} = Q;
     R_variable{k} = R;
 
-    if t(k)-t(1)>50
+    if t(k)-t(1)>17
     fprintf('')
     end
 

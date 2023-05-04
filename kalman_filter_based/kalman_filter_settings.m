@@ -67,8 +67,8 @@ EKF_AW_P0_mu = 1E1*EKF_AW_Q_mu;
 EKF_AW_P0_offset = EKF_AW_Q_offset;
 
 filter_low_freq = 0.5; %[Hz]
-filter_high_freq = 10; %[Hz]
-f_EKF = 20; %[Hz]
+filter_high_freq = 25; %[Hz]
+f_EKF = 50; %[Hz]
 
 f_fh = str2func('f_4');
 g_fh = str2func('g_14_cst');
