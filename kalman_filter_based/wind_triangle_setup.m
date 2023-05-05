@@ -115,7 +115,7 @@ resample_time = airspeed_pitot.raw.time; %Airspeed has the lowest dt
 if strcmp(conditions,'OUTDOOR')
     flight = in_flight(hover_prop_rpm.raw.time,mean(hover_prop_rpm.raw.data,2),Vg_NED.raw.time,-Vg_NED.raw.data(:,3),3000,0.1);
 elseif strcmp(conditions,'WINDTUNNEL')
-    flight = ac_data.motors_on(1)+5;%in_flight(hover_prop_pwm.raw.time,mean(hover_prop_pwm.raw.data,2),Vg_NED.raw.time,-Vg_NED.raw.data(:,3),1150,0.1);
+    flight = ac_data.motors_on(1)+8;%in_flight(hover_prop_pwm.raw.time,mean(hover_prop_pwm.raw.data,2),Vg_NED.raw.time,-Vg_NED.raw.data(:,3),1150,0.1);
 end
 cut_condition = [flight(1),ac_data.motors_on(end)];
 
@@ -154,10 +154,10 @@ alpha.flight.data = IMU_angle.flight.data(:,2);alpha.flight.time = IMU_angle.fli
 beta.flight.data = 0*ones(length(IMU_angle.flight.data),1);beta.flight.time = IMU_angle.flight.time;
 
 %% Filtering
-filter_freq = 0.25; %[Hz]
-[b,a] = butter(4,2*filter_freq*mean(diff(resample_time)),'low');
+%filter_freq = 0.25; %[Hz]
+%[b,a] = butter(4,2*filter_freq*mean(diff(resample_time)),'low');
 
-airspeed_pitot.flight.data = filtfilt(b,a,airspeed_pitot.flight.data);
+%airspeed_pitot.flight.data = filtfilt(b,a,airspeed_pitot.flight.data);
 
 %% Visualizing input data
 if graph
