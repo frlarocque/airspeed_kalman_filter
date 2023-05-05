@@ -66,7 +66,7 @@ kalman_res = {};
 
 kalman_res{1} = EKF_res;
 
-kalman_res{1}.error = error_quantification(kalman_res{1}.x(1,logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest')))',airspeed(logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest'))));
+kalman_res{1}.error = error_quantification(kalman_res{1}.x(1,logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest')))',airspeed(logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest'))),kalman_res{1}.u(12,:));
 
 fprintf("FINISHED!\n \nWAKE UP!\n")
 
