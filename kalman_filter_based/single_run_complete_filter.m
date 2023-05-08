@@ -52,21 +52,23 @@ Q = diag([[1 1 1E1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[1 1 1E-2].*EKF_AW_Q_
 P_0 = diag([[1 1 1].*EKF_AW_P0_V_body [1 1 1].*EKF_AW_P0_mu [1 1 1].*EKF_AW_P0_offset]); %covariance
 R = diag([[1 1 1].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
 
-f_EKF = 5;
+f_EKF = 25;
 % Resample to different sample time
-u_list = resample(u_list',t,f_EKF)';
-z_list = resample(z_list',t,f_EKF)';
+u_list_resampled = resample(u_list',t,f_EKF)';
+z_list_resampled = resample(z_list',t,f_EKF)';
+airspeed_pitot_resampled.flight.data = resample(airspeed_pitot.flight.data,t,f_EKF);
 t = [t(1):1/f_EKF:t(end)]';
 dt = 1/f_EKF;
-airspeed = resample(airspeed_pitot.flight.data,airspeed_pitot.flight.time,f_EKF);
-
+airspeed_pitot_resampled.flight.time = t;
+airspeed_pitot_resampled.flight.valid = logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t));
 %% Run filter
 kalman_res = {};
-[EKF_res] = run_EKF(epsi,t,Q,R,P_0,x_0,u_list,z_list,f_fh,g_fh,true);
+[EKF_res] = run_EKF(epsi,t,Q,R,P_0,x_0,u_list_resampled,z_list_resampled,f_fh,g_fh,true);
 
 kalman_res{1} = EKF_res;
 
-kalman_res{1}.error = error_quantification(kalman_res{1}.x(1,logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest')))',airspeed(logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest'))),kalman_res{1}.u(12,:));
+kalman_res{1}.error = error_quantification_full(kalman_res{1}.x(1,:)',airspeed_pitot_resampled.flight.data,airspeed_pitot_resampled.flight.valid,kalman_res{1}.u(12,:)');
+kalman_res{1}.error.constant_wind = error_quantification(kalman_res{1}.x(1,:)',interp1(airspeed_estimation.time,airspeed_estimation.data,kalman_res{1}.t));
 
 fprintf("FINISHED!\n \nWAKE UP!\n")
 
@@ -75,6 +77,7 @@ select = 1;
 %plot_EKF_result(kalman_res{select},airspeed_pitot.flight,wind)
 plot_EKF_result_full(kalman_res{select},airspeed_pitot.flight,beta.flight,alpha.flight,wind)
 fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(vecnorm(kalman_res{select}.x(4:6,:),2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
+fprintf('Error RMS Overall %2.2f Hover %2.2f Transition %2.2f FF %2.2f\n',kalman_res{1}.error.valid_pitot.error_RMS,kalman_res{1}.error.hover.error_RMS,kalman_res{1}.error.transition.error_RMS,kalman_res{1}.error.ff.error_RMS)
 
 if EKF_AW_PROPAGATE_OFFSET
 figure;
@@ -93,11 +96,9 @@ ylabel('offset_z')
 end
 
 figure;
-filter_freq = 2.49; %[Hz]
-[b,a] = butter(2,2*filter_freq*dt,'low');
 
 subplot(4,1,1)
-plot(kalman_res{1}.t,filtfilt(b,a,kalman_res{1}.y(1:3,:)')')
+plot(kalman_res{1}.t,kalman_res{1}.y(1:3,:)')
 grid on
 xlabel('Time [s]')
 ylabel('Innovation')
@@ -105,7 +106,7 @@ title('V_{gnd}')
 legend('N','E','D')
 
 subplot(4,1,2)
-plot(kalman_res{1}.t,filtfilt(b,a,kalman_res{1}.y(4:6,:)')')
+plot(kalman_res{1}.t,kalman_res{1}.y(4:6,:)')
 grid on
 xlabel('Time [s]')
 ylabel('Innovation')
@@ -113,7 +114,7 @@ title('Accel')
 legend('x','y','z')
 
 subplot(4,1,3)
-plot(kalman_res{1}.t,filtfilt(b,a,kalman_res{1}.y(7,:)')')
+plot(kalman_res{1}.t,kalman_res{1}.y(7,:)')
 grid on
 xlabel('Time [s]')
 ylabel('Innovation')
@@ -125,6 +126,8 @@ plot(kalman_res{1}.t,rad2deg(kalman_res{1}.u(12,:)))
 xlabel('Time [s]')
 ylabel('Skew [deg]')
 
+% Residuals histogram
+residual_hist(kalman_res{1}.y',100)
 
 %% Plot covariance
 
