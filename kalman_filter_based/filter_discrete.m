@@ -10,12 +10,13 @@ classdef filter_discrete < handle
     end
 
     methods
-        function obj = filter_discrete(b,a)
+        function obj = filter_discrete(b,a,y_0,u_0)
+            
             obj.b = b./a(1);
             obj.a = a./a(1);
 
-            obj.u_m = zeros(1,length(obj.b)-1);
-            obj.y_m = zeros(1,length(obj.b)-1);
+            obj.u_m = u_0.*ones(1,length(obj.b)-1);
+            obj.y_m = y_0.*ones(1,length(obj.b)-1);
         end
 
         function y = update_filter_discrete(obj,u)

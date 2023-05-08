@@ -72,6 +72,84 @@ kalman_res{1}.error.constant_wind = error_quantification(kalman_res{1}.x(1,:)',i
 
 fprintf("FINISHED!\n \nWAKE UP!\n")
 
+%% Run failure detection
+filter_detection_freq = 0.1; %[Hz]
+[b,a] = butter(2,2*filter_detection_freq*dt,'low');
+low_pass_online = filter_discrete(b,a,0,0);
+
+crit_low = 3;  %[m/s]
+crit_high = 8; %[m/s] %could be variable with speed (as a percentage of current airspeed), with a floor For example: 
+
+time_low = 2;    %sec
+time_high = 0.2; %sec
+
+
+count_low = 0;
+count_high = 0;
+flag_low_fault = false;
+flag_high_fault = false;
+log_var = [];
+for i=1:length(kalman_res{1}.t)
+    innov_pitot = kalman_res{1}.y(7,i);
+    
+    innov_pitot_filt = low_pass_online.update_filter_discrete(innov_pitot);
+
+    if count_high>time_high./dt
+        fprintf('High Pitot tube error at %2.2f\n',i*dt);
+        %return
+    end
+
+    if innov_pitot>crit_high && ~flag_high_fault
+        flag_high_fault = 1;
+    elseif innov_pitot>crit_high && flag_high_fault
+        count_high = count_high+1;
+    else
+        flag_high_fault = 0;
+        count_high = 0;
+    end
+
+    if count_low>time_low./dt
+        fprintf('Low Pitot tube error at %2.2f\n',i*dt);
+        %return
+    end
+
+    if innov_pitot_filt>crit_low && ~flag_low_fault
+        flag_low_fault = 1;
+    elseif innov_pitot_filt>crit_low && flag_low_fault
+        count_low = count_low+1;
+    else
+        flag_low_fault = 0;
+        count_low = 0;
+    end
+
+
+    log_var(end+1,:) = [i innov_pitot innov_pitot_filt count_low count_high];
+end
+
+figure;
+ax1 = subplot(2,1,1);
+s1=plot(log_var(:,1)*dt,log_var(:,2));
+hold on
+s2=plot(log_var(:,1)*dt,log_var(:,3));
+s3=yline(crit_low,'--','color',"#D95319");yline(-crit_low,'o--','color',"#D95319")
+s4=yline(crit_high,'r--');yline(-crit_high,'r--')
+legend([s1,s2,s3,s4],'Innov','LP','Low Criteria','High Criteria')
+xlabel('Time [s]')
+ylabel('Innovation [m/s]')
+
+ax2 = subplot(2,1,2);
+s1 = plot(log_var(:,1)*dt,log_var(:,4)*dt);
+hold on
+s2 = plot(log_var(:,1)*dt,log_var(:,5)*dt);
+s3 = yline(time_low,'--','color',"#D95319");
+s4 = yline(time_high,'r--');
+legend([s1 s2 s3 s4],'Low Criteria','High Criteria','Limit Low','Limit High')
+xlabel('Time [s]')
+ylabel('Time for fault')
+axis([-inf inf 0 1.1*time_low])
+
+linkaxes([ax1 ax2],'x')
+
 %% Plot
 select = 1;
 %plot_EKF_result(kalman_res{select},airspeed_pitot.flight,wind)
