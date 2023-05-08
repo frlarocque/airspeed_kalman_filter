@@ -53,7 +53,7 @@ else
     Fx_w = 0; 
 end
 
-bias_x = 0.35;
+bias_x = 0.50;
 Fx_fus = -0.046.*u.*u.*sign(u);%-0.047.*u.*u.*sign(u);
 Fx_hover = -0.2.*u;
 

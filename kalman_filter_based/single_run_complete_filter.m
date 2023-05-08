@@ -75,6 +75,7 @@ select = 1;
 %plot_EKF_result(kalman_res{select},airspeed_pitot.flight,wind)
 plot_EKF_result_full(kalman_res{select},airspeed_pitot.flight,beta.flight,alpha.flight,wind)
 fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(vecnorm(kalman_res{select}.x(4:6,:),2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
+fprintf('Error RMS Overall %2.2f Hover %2.2f Transition %2.2f FF %2.2f\n',kalman_res{1}.error.error_RMS,kalman_res{1}.error.hover.error_RMS,kalman_res{1}.error.transition.error_RMS,kalman_res{1}.error.ff.error_RMS)
 
 if EKF_AW_PROPAGATE_OFFSET
 figure;
@@ -94,11 +95,9 @@ linkaxes([ax1,ax2,ax3],'x')
 end
 
 figure;
-filter_freq = 0.1; %[Hz]
-[b,a] = butter(2,2*filter_freq*dt,'low');
 
 ax1 = subplot(4,1,1);
-plot(kalman_res{1}.t,filtfilt(b,a,kalman_res{1}.y(1:3,:)')')
+plot(kalman_res{1}.t,kalman_res{1}.y(1:3,:)')
 grid on
 xlabel('Time [s]')
 ylabel('Innovation')
@@ -106,7 +105,7 @@ title('V_{gnd}')
 legend('N','E','D')
 
 ax2 = subplot(4,1,2);
-plot(kalman_res{1}.t,filtfilt(b,a,kalman_res{1}.y(4:6,:)')')
+plot(kalman_res{1}.t,kalman_res{1}.y(4:6,:)')
 grid on
 xlabel('Time [s]')
 ylabel('Innovation')
@@ -114,7 +113,7 @@ title('Accel')
 legend('x','y','z')
 
 ax3 = subplot(4,1,3);
-plot(kalman_res{1}.t,filtfilt(b,a,kalman_res{1}.y(7,:)')')
+plot(kalman_res{1}.t,kalman_res{1}.y(7,:)')
 grid on
 xlabel('Time [s]')
 ylabel('Innovation')
