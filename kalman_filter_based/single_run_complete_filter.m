@@ -205,7 +205,7 @@ xlabel('Time [s]')
 ylabel('Skew [deg]')
 
 % Residuals histogram
-residual_hist(kalman_res{1}.y',100)
+residual_hist(kalman_res{1}.y',100,dt,1)
 
 %% Plot covariance
 

@@ -3,7 +3,7 @@ function residual_hist(y_res,bin_n,dt,fit_norm)
 %   Detailed explanation goes here
 
 % Discard everything bigger than 2 var
-outlier_thresh = 7;
+outlier_thresh = 3;
 v_x_res = remove_outlier(y_res(:,1),outlier_thresh);
 v_y_res = remove_outlier(y_res(:,2),outlier_thresh);
 v_z_res = remove_outlier(y_res(:,3),outlier_thresh);
@@ -11,7 +11,8 @@ accel_x_res = remove_outlier(y_res(:,4),outlier_thresh);
 accel_y_res = remove_outlier(y_res(:,5),outlier_thresh);
 accel_z_res = remove_outlier(y_res(:,6),outlier_thresh);
 pitot_res = remove_outlier(y_res(:,7),outlier_thresh);
-pitot_res_diff = remove_outlier(diff(y_res(:,7)),outlier_thresh);
+pitot_res_diff = remove_outlier(diff(y_res(:,7))./dt,outlier_thresh);
+%pitot_res_diff(abs(pitot_res_diff)>40) = [];
 
 if nargin==2
     fit_norm = false;
@@ -47,14 +48,14 @@ xlabel('Innovation Value')
 line_width = 2;
 if fit_norm
    subplot(2,1,1)
-   data = y_res(:,1);
+   data = v_x_res;
    x = linspace(min(data),max(data),500); 
 
    % Gaussian Fit
-   pd =fitdist(data,'normal');
-   y = pdf(pd,x);
+   [params_fit, gaussian_fn] = fit_gaussian(data);
+   y = gaussian_fn(x,params_fit(1),params_fit(2));
    plot(x,y,'LineWidth',line_width);
-   str1 = sprintf('Speed Gaussian fit mu = %2.2e sigma = %2.2e',pd.mu,pd.sigma);
+   str1 = sprintf('Speed Gaussian fit mu = %2.2e sigma = %2.2e',params_fit(1),params_fit(2));
     
    % Cauchy fit
    [params_fit, cauchy_fn] = fit_cauchy(data);
@@ -66,14 +67,14 @@ if fit_norm
    title([str1,'\n',str2])
 
    subplot(2,1,2)
-   data = y_res(:,4);
+   data = accel_x_res;
    x = linspace(min(data),max(data),500); 
 
    % Gaussian Fit
-   pd =fitdist(data,'normal');
-   y = pdf(pd,x);
+   [params_fit, gaussian_fn] = fit_gaussian(data);
+   y = gaussian_fn(x,params_fit(1),params_fit(2));
    plot(x,y,'linewidth',line_width);
-   str1 = sprintf('Acceleration Gaussian fit mu = %2.2e sigma = %2.2e',pd.mu,pd.sigma);
+   str1 = sprintf('Acceleration Gaussian fit mu = %2.2e sigma = %2.2e',params_fit(1),params_fit(2));
     
    % Cauchy fit
    [params_fit, cauchy_fn] = fit_cauchy(data);
@@ -114,14 +115,14 @@ xlabel('Innovation Value')
 
 if fit_norm
     subplot(2,1,1)
-    data = y_res(:,7);
+    data = pitot_res;
     x = linspace(min(data),max(data),500); 
 
    % Gaussian Fit
-   pd =fitdist(data,'normal');
-   y = pdf(pd,x);
+   [params_fit, gaussian_fn] = fit_gaussian(data);
+   y = gaussian_fn(x,params_fit(1),params_fit(2));
    plot(x,y,'linewidth',line_width);
-   str1 = sprintf('Pitot Gaussian fit mu = %2.2e sigma = %2.2e',pd.mu,pd.sigma);
+   str1 = sprintf('Pitot Gaussian fit mu = %2.2e sigma = %2.2e',params_fit(1),params_fit(2));
     
    % Cauchy fit
    [params_fit, cauchy_fn] = fit_cauchy(data);
@@ -133,14 +134,14 @@ if fit_norm
    title([str1,'\n',str2])
 
     subplot(2,1,2)
-    data = diff(y_res(:,7));
+    data = pitot_res_diff;
     x = linspace(min(data),max(data),500); 
 
     % Gaussian Fit
-    pd =fitdist(data,'normal');
-    y = pdf(pd,x);
+    [params_fit, gaussian_fn] = fit_gaussian(data);
+    y = gaussian_fn(x,params_fit(1),params_fit(2));
     plot(x,y,'linewidth',line_width);
-    str1 = sprintf('Pitot Diff Gaussian fit mu = %2.2e sigma = %2.2e',pd.mu,pd.sigma);
+    str1 = sprintf('Pitot Diff Gaussian fit mu = %2.2e sigma = %2.2e',params_fit(1),params_fit(2));
     
     % Cauchy fit
     [params_fit, cauchy_fn] = fit_cauchy(data);
@@ -178,6 +179,20 @@ end
         % Perform the optimization
         params0 = [0, 1];  % Starting values for the parameters mu and gamma
         params_fit = fminsearch(negloglik, params0);
+    end
+    
+
+    function [params_fit, gaussian_pdf] = fit_gaussian(data)
+        gaussian_pdf = @(x, mu, sigma) 1/(sigma*sqrt(2*pi)) * exp(-(x-mu).^2/(2*sigma^2));
+        
+        bin_centers = linspace(min(data), max(data), 100);
+        bin_width = bin_centers(2) - bin_centers(1);
+        bin_edges = [bin_centers - bin_width/2, bin_centers(end) + bin_width/2*1e-6]; % Add an extra bin interval
+        sse = @ (params) sum((gaussian_pdf(bin_centers,params(1),params(2)).* numel(data) .* bin_width - histcounts(data, bin_edges)).^2);
+
+        params0 = [0 1];
+        params_fit = fminsearch(sse, params0);
+        
     end
 
 end
