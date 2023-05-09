@@ -65,7 +65,7 @@ R = diag([[1 1 1].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EK
 %airspeed = resample(airspeed_pitot.flight.data,airspeed_pitot.flight.time,f_EKF);
 
 %% Frequency Sweep
-freq_list =  [0.1:0.1:1 2:1:24];
+freq_list =  [0.1:0.1:1 2:2:24];
 kalman_res = cell(1,length(freq_list));
 
 % Loop for all wind variances
