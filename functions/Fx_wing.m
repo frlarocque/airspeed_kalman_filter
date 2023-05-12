@@ -16,9 +16,9 @@ function F_x = Fx_wing(skew,alpha,V)
 % Fx = L*sin(alpha) -D*cos(alpha)
 
 % Fx = (k1+k2*alpha*sin(skew)^2+k3*alpha^2*sin(skew)^2)*V^2
-Fx_wing_coeff = [-0.0319-0.005768481331664...
-                 0.40+0.006444411778767+0.006101013442505... %0.5
-                 0.50+1.823432836610153e-04]; %0.5
+Fx_wing_coeff = [-0.03...
+                 0.412545425221272... %0.5
+                 0.500182343283661]; %0.5
 
 % Fx7 = (k1+k2*alpha*sin(skew)^2+k3*alpha^2*sin(skew)^2)*V^2
 %Fx_wing_coeff = [-1.0.*0.053390347807203...

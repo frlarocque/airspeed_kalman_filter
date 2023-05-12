@@ -52,7 +52,7 @@ Q = diag([[1 1 1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[EKF_AW_Q_mu 1E-6 1E-9]
 P_0 = diag([[1 1 1].*EKF_AW_P0_V_body [1 1 1].*EKF_AW_P0_mu [1 1 1].*EKF_AW_P0_offset]); %covariance
 R = diag([[1 1 1E-3].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
 
-f_EKF = 50;
+f_EKF = 25;
 % Resample to different sample time
 u_list = resample(u_list',t,f_EKF)';
 z_list = resample(z_list',t,f_EKF)';

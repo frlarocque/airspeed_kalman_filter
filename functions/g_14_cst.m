@@ -54,8 +54,8 @@ else
 end
 
 bias_x = 0.50;
-Fx_fus = -0.046.*u.*u.*sign(u);%-0.047.*u.*u.*sign(u);
-Fx_hover = -0.2.*u;
+Fx_fus = -0.03.*u.*u.*sign(u);%-0.083668;
+Fx_hover = -0.5.*u; %-0.2
 
 a_x = (Fx_push + Fx_fus + Fx_hover + Fx_w)./EKF_AW_VEHICLE_MASS+bias_x;
 %a_x = a_x + u.*u.*k_x;

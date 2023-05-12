@@ -39,10 +39,10 @@ EKF_AW_AZ_QUICK_CONV_MU_GAIN = 2;
 EKF_AW_AZ_QUICK_CONV_ACCEL_GAIN = 0;
 
 EKF_AW_AZ_SCHED_GAIN = 2;
-EKF_AW_AZ_SCHED_START_DEG = 60;
-EKF_AW_AZ_SCHED_END_DEG = 80;
+EKF_AW_AZ_SCHED_START_DEG = 40;
+EKF_AW_AZ_SCHED_END_DEG = 70;
 EKF_AW_AX_SCHED_GAIN = 1;
-EKF_AW_AX_SCHED_START_DEG = 60;
+EKF_AW_AX_SCHED_START_DEG = 40;
 EKF_AW_AX_SCHED_END_DEG = 80;
 
 if EKF_AW_WING_INSTALLED
@@ -68,7 +68,7 @@ EKF_AW_P0_offset = EKF_AW_Q_offset;
 
 filter_low_freq = 1; %[Hz]
 filter_high_freq = 25; %[Hz]
-f_EKF = 50; %[Hz]
+f_EKF = 25; %[Hz]
 
 f_fh = str2func('f_4');
 g_fh = str2func('g_14_cst');
