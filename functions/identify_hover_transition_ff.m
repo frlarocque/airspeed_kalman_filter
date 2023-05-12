@@ -2,7 +2,7 @@ function [bool_hover,bool_transition,bool_ff] = identify_hover_transition_ff(ske
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 skew_hover_min = deg2rad(0);
-skew_hover_max = deg2rad(10);
+skew_hover_max = deg2rad(30);
 skew_transition_min = skew_hover_max;
 skew_transition_max = deg2rad(80);
 skew_ff_min = skew_transition_max;
