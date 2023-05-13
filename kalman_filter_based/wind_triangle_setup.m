@@ -158,7 +158,7 @@ end
 
 if graph
     % Visualize Trajectory
-    trajectory(position_NED.flight,Vg_NED.flight,IMU_angle.flight,10,wind.vect)
+    trajectory(position_NED.flight,Vg_NED.flight,IMU_angle.flight,10,wind.vect,skew.flight)
 end
 %% Beta estimation using Wind
 pitot_critical_angle = deg2rad(25);

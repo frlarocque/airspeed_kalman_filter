@@ -1,4 +1,4 @@
-function trajectory(position_NED,velocity_NED,IMU_angle,dt,wind_vect)
+function trajectory(position_NED,velocity_NED,IMU_angle,dt,wind_vect,skew,show_time)
 %TRAJECTORY Plots vehicle trajectory and velocity vector in NED Frame
 %
 % Inputs:
@@ -16,6 +16,17 @@ end_time = min([position_NED.time(end),velocity_NED.time(end),psi.time(end)]);
 
 % Resample to dt
 resample_time = [start_time:dt:end_time];
+
+if nargin<7
+    show_time = false;
+end
+
+if nargin<6
+    skew = zeros(1,length(resample_time));
+else
+    skew = resample(timeseries(skew.data,skew.time),position_NED.time);
+    skew = skew.data;
+end
 
 % Position
 XY = resample(timeseries(position_NED.data(:,[1:2]),position_NED.time), resample_time);
@@ -37,14 +48,32 @@ psi_v = sin(PSI).*sqrt(U.^2+V.^2);
 % Plot figure
 scale = 0.5;
 figure('name','Trajectory')
-p1 = plot(position_NED.data(:,2),position_NED.data(:,1),'--r');
+s1 = plot(position_NED.data(1,2),position_NED.data(1,1),'pentagram','MarkerSize',20,'MarkerFaceColor','r')
+if all(skew==0)
+    p1 = plot(position_NED.data(:,2),position_NED.data(:,1),'--r');
+else
+    x = position_NED.data(:,2)';
+    y = position_NED.data(:,1)';
+    z = zeros(size(x));
+    lineColor = rad2deg(skew)';
+    p1 = surface([x;x], [y;y], [z;z], [lineColor;lineColor],...
+	    'FaceColor', 'no',...
+	    'EdgeColor', 'interp',...
+	    'LineWidth', 2);
+    grid on;colorbar;
+end    
 hold on
 xlabel('E position [m]')
 ylabel('N position [m]')
 q1 = quiver(Y,X,V,U,0.5,'b','linewidth',2);
 q2 = quiver(Y,X,psi_v,psi_u,0.5,'c','linewidth',2);
+if show_time
+    for i=1:length(X)
+        text(Y(i),X(i),sprintf("%2.0f",resample_time(i)))
+    end
+end
 axis('equal')
-legend([p1,q1,q2],{'Trajectory','Ground Speed','Orientation'})
+legend([s1 p1,q1,q2],{'Start','Trajectory','Ground Speed','Orientation'})
 
 if nargin>4
     % Plot wind if available
