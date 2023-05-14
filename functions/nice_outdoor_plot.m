@@ -72,7 +72,7 @@ axis([-inf inf 0 1.2.*max(airspeed_pitot.data)])
 
 % Export figure
 if strcmp(subplot_config,'one')
-   fig_name = ['WT_airspeed_',formattedDateTime,'.eps'];
+   fig_name = ['OD_airspeed_',formattedDateTime,'.eps'];
    exportgraphics(fig,fig_name)
 end
 
@@ -103,7 +103,7 @@ else
 
     % Export figure
     if strcmp(subplot_config,'one')
-       fig_name = ['WT_wind_',formattedDateTime,'.eps'];
+       fig_name = ['OD_wind_',formattedDateTime,'.eps'];
        exportgraphics(fig,fig_name)
     end
 end
@@ -180,7 +180,7 @@ end
 
 % Export figure
 if strcmp(subplot_config,'one')
-   fig_name = ['WT_skew_',formattedDateTime,'.eps'];
+   fig_name = ['OD_skew_',formattedDateTime,'.eps'];
    exportgraphics(fig,fig_name)
 end
 
@@ -203,23 +203,23 @@ else
     ylabel('RPM')
     legend('Pusher Motor','Hover Motor','Orientation','horizontal')
     grid on
-    axis([-inf inf 900 2100])
+    axis([-inf inf 0 9000])
 
     % Export figure
     if strcmp(subplot_config,'one')
-       fig_name = ['WT_motor_',formattedDateTime,'.eps'];
+       fig_name = ['OD_motor_',formattedDateTime,'.eps'];
        exportgraphics(fig,fig_name)
     end
 end
 
 if strcmp(subplot_config,'two')
     linkaxes([ax1,ax3],'x')
-    fig_name = ['WT_two_',formattedDateTime,'.eps'];
+    fig_name = ['OD_two_',formattedDateTime,'.eps'];
     exportgraphics(fig,fig_name)
 elseif strcmp(subplot_config,'one')
     %Nothing
 else
-    fig_name = ['WT_four_',formattedDateTime,'.eps'];
+    fig_name = ['OD_four_',formattedDateTime,'.eps'];
     exportgraphics(fig,fig_name)
     linkaxes([ax1,ax2,ax3,ax4],'x')
 end
