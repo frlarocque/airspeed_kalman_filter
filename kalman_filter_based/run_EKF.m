@@ -10,6 +10,7 @@ global EKF_AW_AZ_QUICK_CONV_ACCEL_GAIN EKF_AW_AZ_QUICK_CONV_MU_GAIN EFK_AW_QUICK
 global EKF_AW_AZ_SCHED_GAIN EKF_AW_AZ_SCHED_START_DEG EKF_AW_AZ_SCHED_END_DEG
 global EKF_AW_AX_SCHED_GAIN EKF_AW_AX_SCHED_START_DEG EKF_AW_AX_SCHED_END_DEG
 global EKF_AW_USE_MODEL_BASED EKF_AW_USE_BETA EKF_AW_WING_INSTALLED EKF_AW_PROPAGATE_OFFSET EKF_AW_VEHICLE_MASS EKF_AW_USE_PITOT 
+global EKF_AW_AX_INNOV_GATE EKF_AW_AY_INNOV_GATE EKF_AW_AZ_INNOV_GATE EKF_AW_V_GPS_INNOV_GATE
 
 dt = mean(t(2:end)-t(1:end-1));
 
@@ -24,10 +25,13 @@ P = cell(1,length(t));
 S = cell(1,length(t));
 R_variable = cell(1,length(t));
 Q_variable = cell(1,length(t));
+innov_gate_state = zeros(size(z_list));
 
 if show_waitbar
 h = waitbar(0,'Please wait...');
 end
+
+flag_quick_convergence = false;
 for k=1:length(t)
     if show_waitbar
     waitbar(k / length(t))
@@ -106,6 +110,7 @@ for k=1:length(t)
       R_variable{k}(4,4) = 10.^exp_ax*R_variable{k}(4,4);
 
     if t(k)-t(1)<EKF_AW_QUICK_CONVERGENCE_TIME && EFK_AW_QUICK_CONVERGENCE
+        flag_quick_convergence = true;
         Q_variable{k}(7,7) = 10.^EKF_AW_AZ_QUICK_CONV_MU_GAIN*Q_variable{k}(7,7); %increase wind covariance --> it can change faster
         Q_variable{k}(8,8) = 10.^EKF_AW_AZ_QUICK_CONV_MU_GAIN*Q_variable{k}(8,8);
         Q_variable{k}(9,9) = 10.^EKF_AW_AZ_QUICK_CONV_MU_GAIN*Q_variable{k}(9,9);
@@ -113,6 +118,8 @@ for k=1:length(t)
         R_variable{k}(4,4) = 10.^EKF_AW_AZ_QUICK_CONV_ACCEL_GAIN*R_variable{k}(4,4); %decrease a_x cov --> more weight put on it
         R_variable{k}(5,5) = 10.^EKF_AW_AZ_QUICK_CONV_ACCEL_GAIN*R_variable{k}(5,5); %decrease a_x cov --> more weight put on it
         R_variable{k}(6,6) = 10.^EKF_AW_AZ_QUICK_CONV_ACCEL_GAIN*R_variable{k}(6,6); %decrease a_x cov --> more weight put on it
+    else
+        flag_quick_convergence = false;
     end
 
     F_val = F(f_fh,x,u,epsi);
@@ -127,34 +134,51 @@ for k=1:length(t)
     % Innovation
     y_list(:,k) = z-g_fh(x,u);
 
-    % Check innovation
-    if t(k)-t(1)<EKF_AW_QUICK_CONVERGENCE_TIME && EFK_AW_QUICK_CONVERGENCE
-        % Apply any saturation needed
-
-        % Apply innovation gates
-
-        % Set filter to unhealthy?
-    end
-
+    % Check innnovation
+    innov_gate_state(1:end-1,k) = abs(y_list(1:end-1,k)) > [EKF_AW_V_GPS_INNOV_GATE.*ones(3,1);EKF_AW_AX_INNOV_GATE;EKF_AW_AY_INNOV_GATE;EKF_AW_AZ_INNOV_GATE] & ~flag_quick_convergence.*ones(6,1);
+    
+    % Calculate S
     S{k} = G_val*P_pred*G_val'+M_val*R_variable{k}*M_val';
 
-    %Kalman gain
+    % Kalman gain
     K{k} = P_pred*G_val'*inv(S{k});
 
     % State update
     x_list(:,k) = x_pred;
 
     % V_gnd contribution
-    x_list(1:3,k) = x_list(1:3,k)+ K{k}(1:3,1:3)*y_list(1:3,k); % Update V_body
-    x_list(4:6,k) = x_list(4:6,k)+ K{k}(4:6,1:3)*y_list(1:3,k); % Update mu
-    if EKF_AW_PROPAGATE_OFFSET
-        x_list(7:9,k) = x_list(7:9,k)+ K{k}(7:9,1:3)*y_list(1:3,k); % Update offset
+    if ~any(innov_gate_state(1:3,k))
+        x_list(1:3,k) = x_list(1:3,k)+ K{k}(1:3,1:3)*y_list(1:3,k); % Update V_body
+        x_list(4:6,k) = x_list(4:6,k)+ K{k}(4:6,1:3)*y_list(1:3,k); % Update mu
+        if EKF_AW_PROPAGATE_OFFSET
+            x_list(7:9,k) = x_list(7:9,k)+ K{k}(7:9,1:3)*y_list(1:3,k); % Update offset
+        end
     end
+
     % A_filt contribution
-    x_list(1:3,k) = x_list(1:3,k)+ K{k}(1:3,4:6)*y_list(4:6,k); % Update V_body
-    x_list(4:6,k) = x_list(4:6,k)+ K{k}(4:6,4:6)*y_list(4:6,k); % Update mu
-    if EKF_AW_PROPAGATE_OFFSET
-        x_list(7:9,k) = x_list(7:9,k)+ K{k}(7:9,4:6)*y_list(4:6,k); % Update offset
+    % Ax contribution
+    if ~any(innov_gate_state(4,k))
+        x_list(1:3,k) = x_list(1:3,k)+ K{k}(1:3,4)*y_list(4,k); % Update V_body
+        x_list(4:6,k) = x_list(4:6,k)+ K{k}(4:6,4)*y_list(4,k); % Update mu
+        if EKF_AW_PROPAGATE_OFFSET
+            x_list(7:9,k) = x_list(7:9,k)+ K{k}(7:9,4)*y_list(4,k); % Update offset
+        end
+    end
+    % Ay contribution
+    if ~any(innov_gate_state(5,k))
+        x_list(1:3,k) = x_list(1:3,k)+ K{k}(1:3,5)*y_list(5,k); % Update V_body
+        x_list(4:6,k) = x_list(4:6,k)+ K{k}(4:6,5)*y_list(5,k); % Update mu
+        if EKF_AW_PROPAGATE_OFFSET
+            x_list(7:9,k) = x_list(7:9,k)+ K{k}(7:9,5)*y_list(5,k); % Update offset
+        end
+    end
+    % Az contribution
+    if ~any(innov_gate_state(6,k))
+        x_list(1:3,k) = x_list(1:3,k)+ K{k}(1:3,6)*y_list(6,k); % Update V_body
+        x_list(4:6,k) = x_list(4:6,k)+ K{k}(4:6,6)*y_list(6,k); % Update mu
+        if EKF_AW_PROPAGATE_OFFSET
+            x_list(7:9,k) = x_list(7:9,k)+ K{k}(7:9,6)*y_list(6,k); % Update offset
+        end
     end
 
     % V_pitot contribution
@@ -180,6 +204,7 @@ EKF_res.Q = Q_variable;
 EKF_res.R = R_variable;
 EKF_res.K = K;
 EKF_res.S = S;
+EKF_res.innov_gates = innov_gate_state;
 
 if show_waitbar
 close(h);

@@ -122,7 +122,6 @@ for i=1:length(kalman_res{1}.t)
         count_low = 0;
     end
 
-
     log_var(end+1,:) = [i innov_pitot innov_pitot_filt count_low count_high];
 end
 
@@ -157,6 +156,18 @@ plot_EKF_result_full(kalman_res{select},airspeed_pitot.flight,beta.flight,alpha.
 fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(vecnorm(kalman_res{select}.x(4:6,:),2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
 fprintf('Error RMS Overall %2.2f Hover %2.2f Transition %2.2f FF %2.2f\n',kalman_res{1}.error.valid_pitot.error_RMS,kalman_res{1}.error.hover.error_RMS,kalman_res{1}.error.transition.error_RMS,kalman_res{1}.error.ff.error_RMS)
 
+%%
+figure;
+ax1 = subplot(2,1,1);
+plot(kalman_res{select}.t,vecnorm(kalman_res{select}.x([4:5],:)))
+xlabel('Time [s]')
+ylabel('Wind Magnitude')
+ax2 = subplot(2,1,2);
+plot(kalman_res{select}.t,rad2deg(atan2(kalman_res{select}.x(4,:),kalman_res{select}.x(5,:))))
+xlabel('Time [s]')
+ylabel('Wind Direction')
+linkaxes([ax1,ax2],'x')
+
 if EKF_AW_PROPAGATE_OFFSET
 figure;
 subplot(3,1,1)
@@ -174,8 +185,7 @@ ylabel('offset_z')
 end
 
 figure;
-
-subplot(4,1,1)
+ax1=subplot(4,1,1);
 plot(kalman_res{1}.t,kalman_res{1}.y(1:3,:)')
 grid on
 xlabel('Time [s]')
@@ -183,7 +193,7 @@ ylabel('Innovation')
 title('V_{gnd}')
 legend('N','E','D')
 
-subplot(4,1,2)
+ax2=subplot(4,1,2);
 plot(kalman_res{1}.t,kalman_res{1}.y(4:6,:)')
 grid on
 xlabel('Time [s]')
@@ -191,18 +201,23 @@ ylabel('Innovation')
 title('Accel')
 legend('x','y','z')
 
-subplot(4,1,3)
+ax3=subplot(4,1,3);
 plot(kalman_res{1}.t,kalman_res{1}.y(7,:)')
 grid on
 xlabel('Time [s]')
 ylabel('Innovation')
 title('Pitot')
 
-subplot(4,1,4)
+ax4=subplot(4,1,4);
 yyaxis left
 plot(kalman_res{1}.t,rad2deg(kalman_res{1}.u(12,:)))
 xlabel('Time [s]')
 ylabel('Skew [deg]')
+linkaxes([ax1,ax2,ax3,ax4],'x')
+
+figure;
+plot(kalman_res{1}.t,kalman_res{1}.innov_gates)
+legend({'GPS_x','GPS_y','GPS_z','a_x','a_y','a_z','V_{pitot}'})
 
 % Residuals histogram
 residual_hist(kalman_res{1}.y',100,dt,1)
@@ -240,7 +255,6 @@ legend('mu_x','mu_y')
 grid on
 
 linkaxes([ax1,ax2],'x')
-sgtitle(sprintf('Wind Covariance %.1d | RMS error %.2f',cov_list(select),kalman_res{select}.error.error_RMS))
 
 %% Plot gains
 figure

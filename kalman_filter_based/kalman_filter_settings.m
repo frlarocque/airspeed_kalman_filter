@@ -26,18 +26,22 @@ global EKF_AW_Q_accel EKF_AW_Q_gyro EKF_AW_Q_mu EKF_AW_Q_offset
 global EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot
 global EKF_AW_P0_V_body EKF_AW_P0_mu EKF_AW_P0_offset
 global filter_low_freq filter_high_freq f_EKF
+global EKF_AW_AX_INNOV_GATE EKF_AW_AY_INNOV_GATE EKF_AW_AZ_INNOV_GATE EKF_AW_V_GPS_INNOV_GATE
 
+% Filter Conditions
 EKF_AW_USE_MODEL_BASED = true;
 EKF_AW_USE_BETA = true;
 EKF_AW_WING_INSTALLED = true;
 EKF_AW_PROPAGATE_OFFSET = false;
 EKF_AW_USE_PITOT = false;
 
+% Quick Convergence settings
 EFK_AW_QUICK_CONVERGENCE = true;
 EKF_AW_QUICK_CONVERGENCE_TIME = 20;
 EKF_AW_AZ_QUICK_CONV_MU_GAIN = 2;
 EKF_AW_AZ_QUICK_CONV_ACCEL_GAIN = 0;
 
+% Covariance Scheduling 
 EKF_AW_AZ_SCHED_GAIN = 2;
 EKF_AW_AZ_SCHED_START_DEG = 60;
 EKF_AW_AZ_SCHED_END_DEG = 70;
@@ -51,26 +55,37 @@ else
     EKF_AW_VEHICLE_MASS = 5.75;
 end
 
-
-
+% Process Noise
 EKF_AW_Q_accel = 1E-04;
 EKF_AW_Q_gyro = 1E-09;
 EKF_AW_Q_mu = 1E-6; %1E-5
 EKF_AW_Q_offset = 1E-8;
 
+% Measurement Noise
 EKF_AW_R_V_gnd = 1E-05;
 EKF_AW_R_accel_filt_x = 1E-5;
 EKF_AW_R_accel_filt_y = 1E-5;
 EKF_AW_R_accel_filt_z = 1E-5;
 EKF_AW_R_V_pitot = 1E-5;
 
+% Initial Covariance Noise
 EKF_AW_P0_V_body = 1E-2;
 EKF_AW_P0_mu = 1E1*EKF_AW_Q_mu;
 EKF_AW_P0_offset = EKF_AW_Q_offset;
 
+% Filter pre-filtering
 filter_low_freq = 0.2; %[Hz]
 filter_high_freq = 24; %[Hz]
 f_EKF = 20; %[Hz]
+
+% Innovation gates
+EKF_AW_AX_INNOV_GATE = 10;
+EKF_AW_AY_INNOV_GATE = 10;
+EKF_AW_AZ_INNOV_GATE = 10;
+
+EKF_AW_V_GPS_INNOV_GATE = 10;
+
+
 
 f_fh = str2func('f_4');
 g_fh = str2func('g_13_cst');
