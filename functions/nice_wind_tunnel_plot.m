@@ -1,21 +1,34 @@
-function nice_wind_tunnel_plot(kalman_res,airspeed_pitot,subplot_config)
-
+function nice_wind_tunnel_plot(kalman_res,airspeed_pitot,subplot_config,AR)
+set(gcf, 'Renderer', 'Painters');
 % Default to four subplot
 if nargin<3
     subplot_config = 'four';
 end
+if nargin<4
+    AR = 1;
+end
 
 % Set figure size and aspect ratio
 if strcmp(subplot_config,'two')
-    AR = 1;
+    %AR = 1;
     size = 1000;
 elseif strcmp(subplot_config,'one')
-    AR = 2;
+    %AR = 8;
     size = 500;
 else
-    AR = 1;
+    %AR = 1;
     size = 1000;
 end
+fig_height = size;
+fig_width = fig_height*AR;
+
+screen = get(0, 'ScreenSize');
+
+if fig_width>screen(3)
+    fig_width = screen(3);
+    fig_height = fig_width/AR;
+end
+fprintf('Exporting as %.0fx%.0f \n',fig_width,fig_height);
 
 % Get the current date and time
 nowDateTime = datetime('now');
@@ -24,7 +37,7 @@ nowDateTime = datetime('now');
 formattedDateTime = datestr(nowDateTime,'mm_dd_HH_MM');
 
 %% General Figure Setup
-fig = figure('position',[0 0 AR*size size]);
+fig = figure('position',[0 0 fig_width fig_height]);
 
 % Store the default line width value
 origLineWidth = get(groot, 'DefaultLineLineWidth');
@@ -73,7 +86,7 @@ axis([-inf inf 0 1.2.*max(airspeed_pitot.data)])
 % Export figure
 if strcmp(subplot_config,'one')
    fig_name = ['WT_airspeed_',formattedDateTime,'.eps'];
-   exportgraphics(fig,fig_name)
+   exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 end
 
 %% Second Figure: Wind
@@ -104,7 +117,7 @@ else
     % Export figure
     if strcmp(subplot_config,'one')
        fig_name = ['WT_wind_',formattedDateTime,'.eps'];
-       exportgraphics(fig,fig_name)
+       exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
     end
 end
 
@@ -181,7 +194,7 @@ end
 % Export figure
 if strcmp(subplot_config,'one')
    fig_name = ['WT_skew_',formattedDateTime,'.eps'];
-   exportgraphics(fig,fig_name)
+   exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 end
 
 %% Fourth figure: Motor Command
@@ -208,19 +221,19 @@ else
     % Export figure
     if strcmp(subplot_config,'one')
        fig_name = ['WT_motor_',formattedDateTime,'.eps'];
-       exportgraphics(fig,fig_name)
+       exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
     end
 end
 
 if strcmp(subplot_config,'two')
     linkaxes([ax1,ax3],'x')
     fig_name = ['WT_two_',formattedDateTime,'.eps'];
-    exportgraphics(fig,fig_name)
+    exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 elseif strcmp(subplot_config,'one')
     %Nothing
 else
     fig_name = ['WT_four_',formattedDateTime,'.eps'];
-    exportgraphics(fig,fig_name)
+    exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
     linkaxes([ax1,ax2,ax3,ax4],'x')
 end
 
