@@ -160,7 +160,6 @@ legend('mu_x','mu_y')
 grid on
 
 linkaxes([ax1,ax2],'x')
-sgtitle(sprintf('Wind Covariance %.1d | RMS error %.2f',cov_list(select),kalman_res{select}.error.error_RMS))
 
 %% Plot gains
 figure
