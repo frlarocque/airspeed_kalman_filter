@@ -92,29 +92,14 @@ for i=1:length(freq_list)
     error{i} = kalman_res{i}.error;
 end
 
-%% Freq sweep Graph
-figure
-subplot(2,1,1)
+%% Extract error out
+error_RMS_list = zeros(1,length(error));
+error_mean_list = zeros(1,length(error));
+% Get values out
 for i=1:length(error)
-    plot(freq_list(i),error{i}.all.error_RMS,'*','MarkerSize',10)
-    hold on
-    grid on
+    error_RMS_list(i) = error{i}.all.error_RMS;
+    error_mean_list(i) = error{i}.all.error_mean;
 end
-xlabel('EKF Frequency')
-ylabel('Airspeed RMS Error [m/s]')
-grid on
-
-subplot(2,1,2)
-for i=1:length(error)
-    plot(freq_list(i),error{i}.all.error_mean,'*','MarkerSize',10)
-    hold on
-    grid on
-end
-xlabel('EKF Frequency')
-ylabel('Airspeed Mean Error [m/s]')
-grid on
-sgtitle(['EKF Frequency Sweep: ',file(1:end-4)])
-
 %% Nice frequency plot
 AR = 4;
 size = 500;
@@ -149,14 +134,6 @@ mycolors = linspecer(3,'qualitative');
 mylinestyles = {'-', '--', ':'};
 set(gcf,'DefaultAxesColorOrder',mycolors, ...
         'DefaultAxesLineStyleOrder',mylinestyles)
-
-error_RMS_list = zeros(1,length(error));
-error_mean_list = zeros(1,length(error));
-% Get values out
-for i=1:length(error)
-    error_RMS_list(i) = error{i}.all.error_RMS;
-    error_mean_list(i) = error{i}.all.error_mean;
-end
 
 % RMS
 subplot(1,1,1)

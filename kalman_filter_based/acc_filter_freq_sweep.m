@@ -116,6 +116,15 @@ for i=1:length(freq_list)
     error{i} = kalman_res{i}.error;
 end
 
+%% Extract data out
+error_RMS_list = zeros(1,length(error));
+error_mean_list = zeros(1,length(error));
+% Get values out
+for i=1:length(error)
+    error_RMS_list(i) = error{i}.all.error_RMS;
+    error_mean_list(i) = error{i}.all.error_mean;
+end
+
 %% Freq sweep Graph
 
 error_RMS_list = zeros(1,length(freq_list));

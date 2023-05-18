@@ -55,11 +55,16 @@ z_list(1:3,:) = filtfilt(b,a,z_list(1:3,:)')';%filter(b,a,z_list(1:3,:),[],2);
 %R = diag([[1 1 1].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
 
 % Resample to different sample time
-u_list = resample(u_list',t,f_EKF)';
-z_list = resample(z_list',t,f_EKF)';
+u_list_resampled = resample(u_list',t,f_EKF)';
+z_list_resampled = resample(z_list',t,f_EKF)';
+airspeed_pitot_resampled.flight.data = resample(airspeed_pitot.flight.data,t,f_EKF);
 t = [t(1):1/f_EKF:t(end)]';
 dt = 1/f_EKF;
-airspeed = resample(airspeed_pitot.flight.data,airspeed_pitot.flight.time,f_EKF);
+airspeed_pitot_resampled.flight.time = t;
+airspeed_pitot_resampled.flight.valid = logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t));
+
+% Wrap back heading to -180 to 180
+u_list_resampled(9,:) = wrapToPi(u_list_resampled(9,:));
 
 %% Covariance Sweep
 cov_list =  logspace(-9,-2,20); %1.43E-6 %7.8E-8; ;
@@ -72,38 +77,88 @@ for i=1:length(cov_list)
     
     EKF_AW_Q_mu = cov_list(i);
     
-    Q = diag([[1 1 1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[1 1 1E-2].*EKF_AW_Q_mu,[1 1 1].*EKF_AW_Q_offset]); %process noise
+    Q = diag([[1 1 1E1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[1 1 1E-2].*EKF_AW_Q_mu,[1 1 1].*EKF_AW_Q_offset]); %process noise
     P_0 = diag([[1 1 1].*EKF_AW_P0_V_body [1 1 1].*EKF_AW_P0_mu [1 1 1].*EKF_AW_P0_offset]); %covariance
     R = diag([[1 1 1].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
-    
+
     % Run filter
-    kalman_res{i} = run_EKF(epsi,t,Q,R,P_0,x_0,u_list,z_list,f_fh,g_fh);
-    kalman_res{i}.error = error_quantification(kalman_res{i}.x(1,logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest')))',airspeed(logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest'))));
+    kalman_res{i} = run_EKF(epsi,t,Q,R,P_0,x_0,u_list_resampled,z_list_resampled,f_fh,g_fh,true);
+    kalman_res{i}.error = error_quantification_full(kalman_res{i}.x(1,:)',airspeed_pitot_resampled.flight.data,airspeed_pitot_resampled.flight.valid,kalman_res{i}.u(12,:)');
+    kalman_res{i}.error.constant_wind = error_quantification(kalman_res{i}.x(1,:)',interp1(airspeed_estimation.time,airspeed_estimation.data,kalman_res{i}.t));
     error{i} = kalman_res{i}.error;
 end
 
-%% Covariance sweep Graph
-figure
-subplot(2,1,1)
+%% Extract error out
+error_RMS_list = zeros(1,length(error));
+error_mean_list = zeros(1,length(error));
+% Get values out
 for i=1:length(error)
-    semilogx(cov_list(i),error{i}.error_RMS,'*','MarkerSize',10)
-    hold on
-    grid on
+    error_RMS_list(i) = error{i}.all.error_RMS;
+    error_mean_list(i) = error{i}.all.error_mean;
 end
-xlabel('Wind Covariance')
-ylabel('Airspeed RMS Error [m/s]')
-grid on
 
-subplot(2,1,2)
-for i=1:length(error)
-    semilogx(cov_list(i),error{i}.error_mean,'*','MarkerSize',10)
-    hold on
-    grid on
+%% Nice frequency plot
+AR = 4;
+size = 500;
+
+fig_height = size;
+fig_width = fig_height*AR;
+
+screen = get(0, 'ScreenSize');
+
+if fig_width>screen(3)
+    fig_width = screen(3);
+    fig_height = fig_width/AR;
 end
-xlabel('Wind Covariance')
-ylabel('Airspeed Mean Error [m/s]')
+fprintf('Exporting as %.0fx%.0f \n',fig_width,fig_height);
+
+% Get the current date and time
+nowDateTime = datetime('now');
+
+% Format the date and time in the "MM_DD_HH_MM" format
+formattedDateTime = datestr(nowDateTime,'mm_dd_HH_MM');
+
+fig = figure('position',[0 0 fig_width fig_height]);
+
+% Store the default line width value
+origLineWidth = get(groot, 'DefaultLineLineWidth');
+
+% Set a new default line width value
+set(groot, 'DefaultLineLineWidth', 2);
+
+% Set colors and line styles
+mycolors = linspecer(3,'qualitative');
+mylinestyles = {'-', '--', ':'};
+set(gcf,'DefaultAxesColorOrder',mycolors, ...
+        'DefaultAxesLineStyleOrder',mylinestyles)
+
+% RMS
+subplot(1,1,1)
+p1 = semilogx(cov_list,error_RMS_list);
+
+xlabel('Wind Covariance [(m/s)^2]')
+ylabel('Airspeed Estimation RMS Error')
+
 grid on
-sgtitle(['Covariance Sweep: ',file(1:end-4)])
+grid minor
+
+% Export figure
+fig_name = ['wind_cov_sweep_RMS_',formattedDateTime,'.eps'];
+exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
+
+% Mean
+subplot(1,1,1)
+p1 = semilogx(cov_list,error_mean_list);
+
+xlabel('Wind Covariance [(m/s)^2]')
+ylabel('Airspeed Estimation Mean Error')
+
+grid on
+grid minor
+
+% Export figure
+fig_name = ['wind_cov_sweep_Mean_',formattedDateTime,'.eps'];
+exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 
 %% Save data
 
