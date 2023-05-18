@@ -48,7 +48,7 @@ psi_v = sin(PSI).*sqrt(U.^2+V.^2);
 % Plot figure
 scale = 0.5;
 figure('name','Trajectory')
-s1 = plot(position_NED.data(1,2),position_NED.data(1,1),'pentagram','MarkerSize',20,'MarkerFaceColor','r')
+s1 = plot(position_NED.data(1,2),position_NED.data(1,1),'pentagram','MarkerSize',20,'MarkerFaceColor','r');
 if all(skew==0)
     p1 = plot(position_NED.data(:,2),position_NED.data(:,1),'--r');
 else
