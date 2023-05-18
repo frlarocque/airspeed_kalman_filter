@@ -62,6 +62,10 @@ t = [t(1):1/f_EKF:t(end)]';
 dt = 1/f_EKF;
 airspeed_pitot_resampled.flight.time = t;
 airspeed_pitot_resampled.flight.valid = logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t));
+
+% Wrap back heading to -180 to 180
+u_list_resampled(9,:) = wrapToPi(u_list_resampled(9,:));
+
 %% Run filter
 kalman_res = {};
 [EKF_res] = run_EKF(epsi,t,Q,R,P_0,x_0,u_list_resampled,z_list_resampled,f_fh,g_fh,true);
