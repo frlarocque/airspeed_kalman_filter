@@ -63,7 +63,7 @@ R = diag([[1 1 1].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EK
 %airspeed = resample(airspeed_pitot.flight.data,airspeed_pitot.flight.time,f_EKF);
 
 %% Frequency Sweep
-freq_list =  [5:2.5:50];
+freq_list =  [5:1:50];
 kalman_res = cell(1,length(freq_list));
 
 % Loop for all wind variances
@@ -75,13 +75,20 @@ for i=1:length(freq_list)
     % Resample to different sample time
     u_list_resampled = resample(u_list',t,f_EKF)';
     z_list_resampled = resample(z_list',t,f_EKF)';
+    airspeed_pitot_resampled.flight.data = resample(airspeed_pitot.flight.data,t,f_EKF);
     t_resampled = [t(1):1/f_EKF:t(end)]';
     dt = 1/f_EKF;
-    airspeed = resample(airspeed_pitot.flight.data,airspeed_pitot.flight.time,f_EKF);
+    airspeed_pitot_resampled.flight.time = t_resampled;
+    airspeed_pitot_resampled.flight.valid = logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t_resampled));
+    
+    % Wrap back heading to -180 to 180
+    u_list_resampled(9,:) = wrapToPi(u_list_resampled(9,:));
 
     % Run filter
     kalman_res{i} = run_EKF(epsi,t_resampled,Q,R,P_0,x_0,u_list_resampled,z_list_resampled,f_fh,g_fh);
-    kalman_res{i}.error = error_quantification(kalman_res{i}.x(1,logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t_resampled,'nearest')))',airspeed(logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t_resampled,'nearest'))));
+    kalman_res{i}.error = error_quantification_full(kalman_res{i}.x(1,:)',airspeed_pitot_resampled.flight.data,airspeed_pitot_resampled.flight.valid,kalman_res{1}.u(12,:)');
+    kalman_res{i}.error.constant_wind = error_quantification(kalman_res{i}.x(1,:)',interp1(airspeed_estimation.time,airspeed_estimation.data,kalman_res{1}.t));
+
     error{i} = kalman_res{i}.error;
 end
 
@@ -89,7 +96,7 @@ end
 figure
 subplot(2,1,1)
 for i=1:length(error)
-    plot(freq_list(i),error{i}.error_RMS,'*','MarkerSize',10)
+    plot(freq_list(i),error{i}.all.error_RMS,'*','MarkerSize',10)
     hold on
     grid on
 end
@@ -99,7 +106,7 @@ grid on
 
 subplot(2,1,2)
 for i=1:length(error)
-    plot(freq_list(i),error{i}.error_mean,'*','MarkerSize',10)
+    plot(freq_list(i),error{i}.all.error_mean,'*','MarkerSize',10)
     hold on
     grid on
 end
@@ -107,6 +114,77 @@ xlabel('EKF Frequency')
 ylabel('Airspeed Mean Error [m/s]')
 grid on
 sgtitle(['EKF Frequency Sweep: ',file(1:end-4)])
+
+%% Nice frequency plot
+AR = 4;
+size = 500;
+
+fig_height = size;
+fig_width = fig_height*AR;
+
+screen = get(0, 'ScreenSize');
+
+if fig_width>screen(3)
+    fig_width = screen(3);
+    fig_height = fig_width/AR;
+end
+fprintf('Exporting as %.0fx%.0f \n',fig_width,fig_height);
+
+% Get the current date and time
+nowDateTime = datetime('now');
+
+% Format the date and time in the "MM_DD_HH_MM" format
+formattedDateTime = datestr(nowDateTime,'mm_dd_HH_MM');
+
+fig = figure('position',[0 0 fig_width fig_height]);
+
+% Store the default line width value
+origLineWidth = get(groot, 'DefaultLineLineWidth');
+
+% Set a new default line width value
+set(groot, 'DefaultLineLineWidth', 2);
+
+% Set colors and line styles
+mycolors = linspecer(3,'qualitative');
+mylinestyles = {'-', '--', ':'};
+set(gcf,'DefaultAxesColorOrder',mycolors, ...
+        'DefaultAxesLineStyleOrder',mylinestyles)
+
+error_RMS_list = zeros(1,length(error));
+error_mean_list = zeros(1,length(error));
+% Get values out
+for i=1:length(error)
+    error_RMS_list(i) = error{i}.all.error_RMS;
+    error_mean_list(i) = error{i}.all.error_mean;
+end
+
+% RMS
+subplot(1,1,1)
+p1 = plot(freq_list,error_RMS_list);
+
+xlabel('EKF Frequency [Hz]')
+ylabel('Airspeed Estimation RMS Error')
+
+grid on
+grid minor
+
+% Export figure
+fig_name = ['EKF_freq_sweep_RMS_',formattedDateTime,'.eps'];
+exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
+
+% Mean
+subplot(1,1,1)
+p1 = plot(freq_list,error_mean_list);
+
+xlabel('EKF Frequency [Hz]')
+ylabel('Airspeed Estimation Mean Error')
+
+grid on
+grid minor
+
+% Export figure
+fig_name = ['EKF_freq_sweep_Mean_',formattedDateTime,'.eps'];
+exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 
 %% Save data
 
