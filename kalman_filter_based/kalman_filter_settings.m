@@ -83,7 +83,7 @@ EKF_AW_AX_INNOV_GATE = 10;
 EKF_AW_AY_INNOV_GATE = 10;
 EKF_AW_AZ_INNOV_GATE = 10;
 
-EKF_AW_V_GPS_INNOV_GATE = 10;
+EKF_AW_V_GPS_INNOV_GATE = 2;
 
 f_fh = str2func('f_4');
 g_fh = str2func('g_13_cst');

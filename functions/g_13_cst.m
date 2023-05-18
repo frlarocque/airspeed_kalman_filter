@@ -27,6 +27,9 @@ else
     v_noise = zeros(7,1);
 end
 
+% Saturate Skew
+skew = min(max(skew,0),deg2rad(90));
+
 % V_x V_y V_z
 speed = DCM(phi,theta,psi)*[u;v;w]+[mu_x;mu_y;mu_z];
 

@@ -4,7 +4,7 @@ function F_x = Fx_hover_prop(hover_prop_RPM,V)
 
 %Fx = K1*V^2+K2*RPM^2*sqrt(V)
 Fx_hover_prop_coeff = [1.0.*-3.614335398771809E-3 ...
-                       1.0.*-1.180349532783032E-7 ];
+                       1.2.*-1.180349532783032E-7 ];
 
 V = abs(V); %to protect agains the sqrt
 
