@@ -173,6 +173,7 @@ valid_start = beta.flight.time(diff(beta.flight.valid)==1);
 if beta.flight.valid(1); valid_start = [beta.flight.time(1); valid_start];end
 valid_end = beta.flight.time(diff(beta.flight.valid)==-1);
 if beta.flight.valid(end);valid_end = [valid_end; beta.flight.time(end)];end
+beta.flight.valid_times =  cell(length(valid_start));
 for i=1:length(valid_start)
 beta.flight.valid_times{i} = [valid_start(i) valid_end(i)];
 end
@@ -186,6 +187,7 @@ valid_start = alpha.flight.time(diff(alpha.flight.valid)==1);
 if alpha.flight.valid(1); valid_start = [alpha.flight.time(1); valid_start];end
 valid_end = alpha.flight.time(diff(alpha.flight.valid)==-1);
 if alpha.flight.valid(end);valid_end = [valid_end; alpha.flight.time(end)];end
+alpha.flight.valid_times =  cell(length(valid_start));
 for i=1:length(valid_start)
 alpha.flight.valid_times{i} = [valid_start(i) valid_end(i)];
 end
@@ -196,6 +198,7 @@ valid_start = airspeed_pitot.flight.time(diff(airspeed_pitot.flight.valid)==1);
 if airspeed_pitot.flight.valid(1); valid_start = [airspeed_pitot.flight.time(1); valid_start];end
 valid_end = airspeed_pitot.flight.time(diff(airspeed_pitot.flight.valid)==-1);
 if airspeed_pitot.flight.valid(end);valid_end = [valid_end; airspeed_pitot.flight.time(end)];end
+airspeed_pitot.flight.valid_times =  cell(length(valid_start));
 for i=1:length(valid_start)
 airspeed_pitot.flight.valid_times{i} = [valid_start(i) valid_end(i)];
 end

@@ -44,8 +44,15 @@ else
     Fx_push = Fx_pusher(RPM_pusher,u);
 end
 
-Fx_fus = -0.04.*u.*u.*sign(u);
-Fx_hprop = -0.3.*u;
+Fx_fus = Fx_fuselage(skew,alpha,u);%-0.04.*u.*u.*sign(u); %-0.04
+
+Fx_hprop = Fx_hover_prop(RPM_hover,u);
+
+%if RPM_hover<1000
+%    Fx_hprop = 0;
+%else
+%    Fx_hprop = -0.3.*u;
+%end
 
 if EKF_AW_WING_INSTALLED
     Fx_w = Fx_wing(skew,alpha,u);

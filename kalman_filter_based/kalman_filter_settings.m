@@ -45,7 +45,7 @@ EKF_AW_AZ_QUICK_CONV_ACCEL_GAIN = 0;
 EKF_AW_AZ_SCHED_GAIN = 2;
 EKF_AW_AZ_SCHED_START_DEG = 60;
 EKF_AW_AZ_SCHED_END_DEG = 70;
-EKF_AW_AX_SCHED_GAIN = 0;
+EKF_AW_AX_SCHED_GAIN = 1;
 EKF_AW_AX_SCHED_START_DEG = 40;
 EKF_AW_AX_SCHED_END_DEG = 60;
 
@@ -58,7 +58,7 @@ end
 % Process Noise
 EKF_AW_Q_accel = 1E-04;
 EKF_AW_Q_gyro = 1E-09;
-EKF_AW_Q_mu = 1E-6; %1E-5
+EKF_AW_Q_mu = 1E-6;
 EKF_AW_Q_offset = 1E-8;
 
 % Measurement Noise
@@ -75,7 +75,7 @@ EKF_AW_P0_offset = EKF_AW_Q_offset;
 
 % Filter pre-filtering
 filter_low_freq = 0.2; %[Hz]
-filter_high_freq = 24; %[Hz]
+filter_high_freq = 10; %[Hz]
 f_EKF = 20; %[Hz]
 
 % Innovation gates
@@ -84,8 +84,6 @@ EKF_AW_AY_INNOV_GATE = 10;
 EKF_AW_AZ_INNOV_GATE = 10;
 
 EKF_AW_V_GPS_INNOV_GATE = 10;
-
-
 
 f_fh = str2func('f_4');
 g_fh = str2func('g_13_cst');
