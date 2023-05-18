@@ -48,7 +48,7 @@ for k=1:length(t)
         P_last = P{k-1};
     end
 
-    Q_variable{k} = Q;
+    Q_variable{k} = Q.*dt;
     R_variable{k} = R;
 
     if t(k)-t(1)>50
