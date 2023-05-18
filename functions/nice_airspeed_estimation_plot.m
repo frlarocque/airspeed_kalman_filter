@@ -1,4 +1,4 @@
-function nice_plot(kalman_res,airspeed_pitot,subplot_config,AR,WT)
+function nice_airspeed_estimation_plot(kalman_res,airspeed_pitot,subplot_config,AR,WT)
 set(gcf, 'Renderer', 'Painters');
 % Default to four subplot
 if nargin<3
