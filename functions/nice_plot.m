@@ -1,21 +1,43 @@
-function nice_outdoor_plot(kalman_res,airspeed_pitot,subplot_config)
-
+function nice_plot(kalman_res,airspeed_pitot,subplot_config,AR,WT)
+set(gcf, 'Renderer', 'Painters');
 % Default to four subplot
 if nargin<3
     subplot_config = 'four';
 end
+if nargin<4
+    AR = 1;
+end
+if nargin<5
+    WT = 0;
+end
+
+if WT
+    file_ident = 'WT';
+else
+    file_ident = 'OD';
+end
 
 % Set figure size and aspect ratio
 if strcmp(subplot_config,'two')
-    AR = 1;
+    %AR = 1;
     size = 1000;
 elseif strcmp(subplot_config,'one')
-    AR = 2;
+    %AR = 8;
     size = 500;
 else
-    AR = 1;
+    %AR = 1;
     size = 1000;
 end
+fig_height = size;
+fig_width = fig_height*AR;
+
+screen = get(0, 'ScreenSize');
+
+if fig_width>screen(3)
+    fig_width = screen(3);
+    fig_height = fig_width/AR;
+end
+fprintf('Exporting as %.0fx%.0f \n',fig_width,fig_height);
 
 % Get the current date and time
 nowDateTime = datetime('now');
@@ -24,7 +46,7 @@ nowDateTime = datetime('now');
 formattedDateTime = datestr(nowDateTime,'mm_dd_HH_MM');
 
 %% General Figure Setup
-fig = figure('position',[0 0 AR*size size]);
+fig = figure('position',[0 0 fig_width fig_height]);
 
 % Store the default line width value
 origLineWidth = get(groot, 'DefaultLineLineWidth');
@@ -62,18 +84,22 @@ end
 hold on
 s1 = plot(kalman_res.t,kalman_res.x(1,:));
 ax1.LineStyleOrderIndex = ax1.ColorOrderIndex;
-s2 = plot(airspeed_pitot.time,airspeed_pitot.data);
+
+filter_freq = 0.4;
+[b,a] = butter(2,2*filter_freq*mean(diff(kalman_res.t)),'low');
+s2 = plot(airspeed_pitot.time,filtfilt(b,a,airspeed_pitot.data));
 %title('Airspeed')
 xlabel('Time [s]')
 ylabel('Speed [m/s]')
 grid on
+grid minor
 legend([s1,s2],'Estimation','Pitot Tube','Orientation','horizontal')
 axis([-inf inf 0 1.2.*max(airspeed_pitot.data)])
 
 % Export figure
 if strcmp(subplot_config,'one')
-   fig_name = ['OD_airspeed_',formattedDateTime,'.eps'];
-   exportgraphics(fig,fig_name)
+   fig_name = [file_ident,'_airspeed_',formattedDateTime,'.eps'];
+   exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 end
 
 %% Second Figure: Wind
@@ -89,26 +115,37 @@ else
     end
 
     hold on
-    plot(kalman_res.t,kalman_res.x(4,:));
+    p1=plot(kalman_res.t,kalman_res.x(4,:));
+    yline([mean(kalman_res.x(4,:))],mylinestyles{ax2.ColorOrderIndex-1})
+    text(510, mean(kalman_res.x(4,:)), 'Average N', 'VerticalAlignment', 'Bottom');
     ax2.LineStyleOrderIndex = ax2.ColorOrderIndex;
-    plot(kalman_res.t,kalman_res.x(5,:));
+     
+    p2=plot(kalman_res.t,kalman_res.x(5,:));
+    yline([mean(kalman_res.x(5,:))],mylinestyles{ax2.ColorOrderIndex-1})
+    text(510, mean(kalman_res.x(5,:)),'Average E', 'VerticalAlignment', 'Bottom');
     ax2.LineStyleOrderIndex = ax2.ColorOrderIndex;
-    plot(kalman_res.t,kalman_res.x(6,:));
+
+    p3=plot(kalman_res.t,kalman_res.x(6,:));
+    %yline([mean(kalman_res.x(6,:))],mylinestyles{ax2.ColorOrderIndex-1},'Average D')
+    
     %title('Wind')
     xlabel('Time [s]')
     ylabel('Speed [m/s]')
-    legend('North','East','Down','Orientation','horizontal')
+    legend([p1,p2,p3],{'North','East','Down'},'Orientation','horizontal')
     grid on
-    axis([-inf inf -inf inf])
+    grid minor
+    %axis([-inf inf -inf inf])
 
     % Export figure
     if strcmp(subplot_config,'one')
-       fig_name = ['OD_wind_',formattedDateTime,'.eps'];
-       exportgraphics(fig,fig_name)
+       fig_name = [file_ident,'_wind_',formattedDateTime,'.eps'];
+       exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
     end
 end
 
 %% Third Figure: Skew
+% Saturate skew angle
+kalman_res.u(12,:) = min(deg2rad(90),max(kalman_res.u(12,:),0));
 
 if strcmp(subplot_config,'two')
     ax3=subplot(2,1,2);
@@ -125,7 +162,10 @@ hold on
 xlabel('Time [s]')
 ylabel('Skew Angle [deg]')
 grid on
-axis([min(kalman_res.t) max(kalman_res.t) -5 105])
+grid minor
+yline([0],'--','Quad-Mode','LabelHorizontalAlignment','Right','LabelVerticalAlignment','Top')
+yline([90],'--','FWD Flight','LabelHorizontalAlignment','Right','LabelVerticalAlignment','Bottom')
+axis([min(kalman_res.t) max(kalman_res.t) -5 110])
 
 % Hatch definition
 Alpha           = {0.5,0.5,0.5};
@@ -137,6 +177,10 @@ HatchType		= {'single','single','single'};
 for i=1:length(hover_start)
     x = kalman_res.t(kalman_res.t>=hover_start(i) & kalman_res.t<=hover_end(i));
     y = rad2deg(kalman_res.u(12,kalman_res.t>=hover_start(i) & kalman_res.t<=hover_end(i))');
+    
+    % Remove unecessary points
+    x = x(diff(y)~=0);
+    y = y(diff(y)~=0);
     if length(x)>2 && length(y)>2
         x = [x; x(end); x(1)];
         y = [y;0;0];
@@ -147,6 +191,10 @@ end
 for i=1:length(transition_start)
     x = kalman_res.t(kalman_res.t>=transition_start(i) & kalman_res.t<=transition_end(i));
     y = rad2deg(kalman_res.u(12,kalman_res.t>=transition_start(i) & kalman_res.t<=transition_end(i))');
+    
+    % Remove unecessary points
+    x = x(diff(y)~=0);
+    y = y(diff(y)~=0);
     if length(x)>2 && length(y)>2
         x = [x; x(end); x(1)];
         y = [y;0;0];
@@ -157,6 +205,10 @@ end
 for i=1:length(ff_start)
     x = kalman_res.t(kalman_res.t>=ff_start(i) & kalman_res.t<=ff_end(i));
     y = rad2deg(kalman_res.u(12,kalman_res.t>=ff_start(i) & kalman_res.t<=ff_end(i))');
+    
+    % Remove unecessary points
+    x = x(diff(y)~=0);
+    y = y(diff(y)~=0);
     if length(x)>2 && length(y)>2
         x = [x; x(end); x(1)];
         y = [y;0;0];
@@ -180,8 +232,8 @@ end
 
 % Export figure
 if strcmp(subplot_config,'one')
-   fig_name = ['OD_skew_',formattedDateTime,'.eps'];
-   exportgraphics(fig,fig_name)
+   fig_name = [file_ident,'_skew_',formattedDateTime,'.eps'];
+   exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 end
 
 %% Fourth figure: Motor Command
@@ -199,28 +251,35 @@ else
     hold on
     plot(kalman_res.t,kalman_res.u(11,:));
     %title('Motor Commands')
-    xlabel('Time [s]')
-    ylabel('RPM')
+    if WT
+        xlabel('Time [s]')
+        ylabel('PWM Command')
+        axis([-inf inf 900 2100])
+    else
+        xlabel('Time [s]')
+        ylabel('Motor RPM')
+        axis([-inf inf 0 10000])
+    end
     legend('Pusher Motor','Hover Motor','Orientation','horizontal')
     grid on
-    axis([-inf inf 0 9000])
+    grid minor
 
     % Export figure
     if strcmp(subplot_config,'one')
-       fig_name = ['OD_motor_',formattedDateTime,'.eps'];
-       exportgraphics(fig,fig_name)
+       fig_name = [file_ident,'_motor_',formattedDateTime,'.eps'];
+       exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
     end
 end
 
 if strcmp(subplot_config,'two')
     linkaxes([ax1,ax3],'x')
-    fig_name = ['OD_two_',formattedDateTime,'.eps'];
-    exportgraphics(fig,fig_name)
+    fig_name = [file_ident,'_two_',formattedDateTime,'.eps'];
+    exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 elseif strcmp(subplot_config,'one')
     %Nothing
 else
-    fig_name = ['OD_four_',formattedDateTime,'.eps'];
-    exportgraphics(fig,fig_name)
+    fig_name = [file_ident,'_four_',formattedDateTime,'.eps'];
+    exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
     linkaxes([ax1,ax2,ax3,ax4],'x')
 end
 
