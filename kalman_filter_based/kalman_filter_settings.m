@@ -58,7 +58,7 @@ end
 % Process Noise
 EKF_AW_Q_accel = 1E-04;
 EKF_AW_Q_gyro = 1E-09;
-EKF_AW_Q_mu = 1E-6;
+EKF_AW_Q_mu = 1E-5;
 EKF_AW_Q_offset = 1E-8;
 
 % Measurement Noise
@@ -76,7 +76,7 @@ EKF_AW_P0_offset = EKF_AW_Q_offset;
 % Filter pre-filtering
 filter_low_freq = 0.2; %[Hz]
 filter_high_freq = 10; %[Hz]
-f_EKF = 20; %[Hz]
+f_EKF = 25; %[Hz]
 
 % Innovation gates
 EKF_AW_AX_INNOV_GATE = 10;
