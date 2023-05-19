@@ -44,10 +44,11 @@ ax4 = subplot(3,2,4);
 plot(kalman_res.t,kalman_res.z(1:3,:)-kalman_res.y(1:3,:));
 hold on
 plot(kalman_res.t,kalman_res.z(1:3,:),'--')
+plot(kalman_res.t,vecnorm(kalman_res.z(1:3,:)-kalman_res.y(1:3,:)))
 title('Ground Velocity')
 xlabel('Time [s]')
 ylabel('Speed [m/s]')
-legend('Kalman V_N','Kalman V_E','Kalman V_D','Real V_N','Real V_E','Real V_D')
+legend('Kalman V_N','Kalman V_E','Kalman V_D','Real V_N','Real V_E','Real V_D','V_{gnd}')
 grid on
 
 ax5 = subplot(3,2,5);
@@ -59,7 +60,7 @@ xlabel('Time [s]')
 ylabel('Sideslip [deg]')
 legend('Kalman','Best estimation')
 grid on
-axis([-inf inf -90 90])
+axis([-inf inf -50 50])
 
 ax6 = subplot(3,2,6);
 plot(kalman_res.t,rad2deg(atan2(kalman_res.x(3,:),kalman_res.x(1,:))));
@@ -70,7 +71,7 @@ xlabel('Time [s]')
 ylabel('Angle of Attack [deg]')
 legend('Kalman','Best estimation')
 grid on
-axis([-inf inf -90 90])
+axis([-inf inf -50 50])
 
 linkaxes([ax1,ax2,ax3,ax4,ax5,ax6],'x')
 
