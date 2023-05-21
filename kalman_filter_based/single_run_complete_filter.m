@@ -148,7 +148,7 @@ plot(kalman_res{1}.t,kalman_res{1}.innov_gates)
 legend({'GPS_x','GPS_y','GPS_z','a_x','a_y','a_z','V_{pitot}'})
 
 % Residuals histogram
-residual_hist(kalman_res{1}.y',100,dt,1)
+residual_hist(kalman_res{1}.y',100,dt,1,2)
 
 %% Plot covariance
 

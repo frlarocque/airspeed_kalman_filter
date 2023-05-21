@@ -1,9 +1,21 @@
-function residual_hist(y_res,bin_n,dt,fit_norm)
+function residual_hist(y_res,bin_n,dt,fit_norm,filt_freq)
 %UNTITLED3 Summary of this function goes here
 %   Detailed explanation goes here
+if nargin<5
+    filt_freq = 0;
+end
 
-% Discard everything bigger than 2 var
-outlier_thresh = 3;
+% Filter signal
+if filt_freq~=0
+    [b,a] = butter(2,2*filt_freq*dt,'low');
+    for i=1:size(y_res,2)
+        y_res(:,i) = filtfilt(b,a,y_res(:,i));
+    end
+end
+
+
+% Discard everything bigger than X var
+outlier_thresh = 5;
 v_x_res = remove_outlier(y_res(:,1),outlier_thresh);
 v_y_res = remove_outlier(y_res(:,2),outlier_thresh);
 v_z_res = remove_outlier(y_res(:,3),outlier_thresh);
@@ -64,7 +76,7 @@ if fit_norm
     str2 = sprintf('Speed Cauchy fit mu = %2.2e gamma = %2.2e',params_fit(1), params_fit(2));
     
    legend('V_x','V_y','V_z','Gaussian Fit','Cauchy Fit')
-   title([str1,'\n',str2])
+   title([str1,' ',str2])
 
    subplot(2,1,2)
    data = accel_x_res;
@@ -83,7 +95,7 @@ if fit_norm
     str2 = sprintf('Acceleration Cauchy fit mu = %2.2e gamma = %2.2e',params_fit(1), params_fit(2));
     
    legend('A_x','A_y','A_z','Gaussian Fit','Cauchy Fit')
-   title([str1,'\n',str2])
+   title([str1,' ',str2])
 end
 %linkaxes([subplot(3,1,1) subplot(3,1,2) subplot(3,1,3)],'x')
 %max_var = max(var(y));
@@ -131,7 +143,7 @@ if fit_norm
     str2 = sprintf('Pitot Cauchy fit mu = %2.2e gamma = %2.2e',params_fit(1), params_fit(2));
     
    legend('Pitot','Gaussian Fit','Cauchy Fit')
-   title([str1,'\n',str2])
+   title([str1,' ',str2])
 
     subplot(2,1,2)
     data = pitot_res_diff;
@@ -150,7 +162,7 @@ if fit_norm
     str2 = sprintf('Pitot Diff Cauchy fit mu = %2.2e gamma = %2.2e',params_fit(1), params_fit(2));
     
     legend('Pitot Diff','Gaussian Fit','Cauchy Fit')
-    title([str1,'\n',str2])
+    title([str1,' ',str2])
 
 end
 
