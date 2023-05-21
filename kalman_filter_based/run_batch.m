@@ -40,7 +40,13 @@ writecell(variableData, excel_filename, 'Sheet', excel_sheet_params);
 
 %% Main loop
 
-variableData = {'File Name','Path','Duration Flight [s]','Mean Pusher RPM [RPM]','Mean Hover RPM [RPM]','Mean Skew [deg]','Max Skew [deg]','Mean Airspeed [m/s]','Mean Groundspeed [m/s]','Mean Wind [m/s]','Error RMS [m/s]','Error Mean [m/s]','Error Max [m/s]','Error Min [m/s]','Error Std Dev [m^2/s^2]'};
+variableData = {'File Name','Path',...
+                'Duration Flight [s]','Mean Pusher RPM [RPM]','Mean Hover RPM [RPM]',...
+                'Mean Skew [deg]','Max Skew [deg]',...
+                'Mean Airspeed [m/s]','Mean Groundspeed [m/s]','Mean Wind [m/s]',...
+                'Error Overall RMS [m/s]','Error Overall Mean [m/s]','Error Overall Max [m/s]','Error Overall Min [m/s]','Error Overall Std Dev [m^2/s^2]',...
+                'Error Constant Wind RMS [m/s]','Error Constant Wind  Mean [m/s]','Error Constant Wind  Max [m/s]','Error Constant Wind  Min [m/s]','Error Constant Wind  Std Dev [m^2/s^2]',...
+                'Error RMS Hover [m/s]','Error RMS Transition [m/s]','Error RMS Forward Flight [m/s]'};
 
 for iii=1:length(fileList)
     clearvars -except iii variableData fileList kalman_res excel_filename excel_sheet_params excel_sheet_results
@@ -92,21 +98,39 @@ for iii=1:length(fileList)
     R = diag([[1 1 1].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
     
     % Resample to different sample time
-    u_list = resample(u_list',t,f_EKF)';
-    z_list = resample(z_list',t,f_EKF)';
+    u_list_resampled = resample(u_list',t,f_EKF)';
+    z_list_resampled = resample(z_list',t,f_EKF)';
+    airspeed_pitot_resampled.flight.data = resample(airspeed_pitot.flight.data,t,f_EKF);
     t = [t(1):1/f_EKF:t(end)]';
     dt = 1/f_EKF;
-    airspeed = resample(airspeed_pitot.flight.data,airspeed_pitot.flight.time,f_EKF);
-
+    airspeed_pitot_resampled.flight.time = t;
+    airspeed_pitot_resampled.flight.valid = logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t));
+    
+    % Wrap back heading to -180 to 180
+    u_list_resampled(9,:) = wrapToPi(u_list_resampled(9,:));
     %% Run filter
     
-    kalman_res{iii} = run_EKF(epsi,t,Q,R,P_0,x_0,u_list,z_list,f_fh,g_fh);
-    kalman_res{iii}.error = error_quantification(kalman_res{iii}.x(1,logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest')))',airspeed(logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest'))));
-    
+    kalman_res{iii} = run_EKF(epsi,t,Q,R,P_0,x_0,u_list_resampled,z_list_resampled,f_fh,g_fh);
+    kalman_res{iii}.error = error_quantification_full(kalman_res{iii}.x(1,:)',airspeed_pitot_resampled.flight.data,airspeed_pitot_resampled.flight.valid,kalman_res{iii}.u(12,:)');
+    kalman_res{iii}.error.constant_wind = error_quantification(kalman_res{iii}.x(1,:)',interp1(airspeed_estimation.time,airspeed_estimation.data,kalman_res{iii}.t));
+
+
     %% Get data for excel file
-                %variableData = {'File Name','Path','Duration of flight [s]','Mean Pusher RPM','Mean Hover RPM','Mean Skew','Max Skew','Mean Airspeed','Mean Wind','Error RMS','Error Mean','Error Max','Error Min','Error Std Dev'};
+%                 {'File Name','Path',...
+%                 'Duration Flight [s]','Mean Pusher RPM [RPM]','Mean Hover RPM [RPM]',...
+%                 'Mean Skew [deg]','Max Skew [deg]',...
+%                 'Mean Airspeed [m/s]','Mean Groundspeed [m/s]','Mean Wind [m/s]',...
+%                 'Error Overall RMS [m/s]','Error Overall Mean [m/s]','Error Overall Max [m/s]','Error Overall Min [m/s]','Error Overall Std Dev [m^2/s^2]',...
+%                 'Error Constant Wind RMS [m/s]','Error Constant Wind  Mean [m/s]','Error Constant Wind  Max [m/s]','Error Constant Wind  Min [m/s]','Error Constant Wind  Std Dev [m^2/s^2]',...
+%                 'Error RMS Hover [m/s]','Error RMS Transition [m/s]','Error RMS Forward Flight [m/s]'};
     
-    variableData = [variableData; {file, fileList{iii}, kalman_res{iii}.t(end)-kalman_res{iii}.t(1),mean(kalman_res{iii}.u(10,:)), mean(kalman_res{iii}.u(11,:)), rad2deg(mean(kalman_res{iii}.u(12,:))),rad2deg(max(kalman_res{iii}.u(12,:))), mean(airspeed_pitot.flight.data(airspeed_pitot.flight.valid)),mean(vecnorm(Vg_NED.flight.data,2,2)) ,wind.norm ,kalman_res{iii}.error.error_RMS, kalman_res{iii}.error.error_mean, kalman_res{iii}.error.error_max, kalman_res{iii}.error.error_min, kalman_res{iii}.error.std_dev}];
+    variableData = [variableData; {file, fileList{iii},...
+                    kalman_res{iii}.t(end)-kalman_res{iii}.t(1),mean(kalman_res{iii}.u(10,:)), mean(kalman_res{iii}.u(11,:)),...
+                    rad2deg(mean(kalman_res{iii}.u(12,:))),rad2deg(max(kalman_res{iii}.u(12,:))),...
+                    mean(airspeed_pitot.flight.data(airspeed_pitot.flight.valid)),mean(vecnorm(Vg_NED.flight.data,2,2)) ,wind.norm ,...
+                    kalman_res{iii}.error.valid_pitot.error_RMS, kalman_res{iii}.error.valid_pitot.error_mean, kalman_res{iii}.error.valid_pitot.error_max, kalman_res{iii}.error.valid_pitot.error_min, kalman_res{iii}.error.valid_pitot.std_dev,...
+                    kalman_res{iii}.error.constant_wind.error_RMS, kalman_res{iii}.error.constant_wind.error_mean, kalman_res{iii}.error.constant_wind.error_max, kalman_res{iii}.error.constant_wind.error_min, kalman_res{iii}.error.constant_wind.std_dev,...
+                    kalman_res{iii}.error.hover.error_RMS,kalman_res{iii}.error.transition.error_RMS,kalman_res{iii}.error.ff.error_RMS}];
 end
 
 %% To excel file
