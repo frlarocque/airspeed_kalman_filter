@@ -8,6 +8,7 @@ function g = g_13_cst(state,input,meas_noise)
 % z = [V_x V_y V_z a_x a_y a_z pitot];
 
 global EKF_AW_USE_MODEL_BASED EKF_AW_USE_BETA EKF_AW_WING_INSTALLED EKF_AW_PROPAGATE_OFFSET EKF_AW_VEHICLE_MASS
+global EKF_AW_FORCES_FUSELAGE EKW_AW_FORCES_HOVER EKF_AW_FORCES_PUSHER EKF_AW_FORCES_WING EKF_AW_FORCES_ELEVATOR
 
 u=state(1);v=state(2);w=state(3);
 mu_x=state(4);mu_y=state(5);mu_z=state(6);
@@ -80,7 +81,8 @@ else
     a_y = (k_v.*v.^2.*sign_v)./EKF_AW_VEHICLE_MASS + k_y.*u.^2.*sign_u;
 end
 if EKF_AW_WING_INSTALLED
-    a_y = a_y + Fy_wing(skew,alpha,u)./EKF_AW_VEHICLE_MASS;
+    Fy_w = Fy_wing(skew,alpha,u);
+    a_y = a_y + Fy_w./EKF_AW_VEHICLE_MASS;
 end
 
 % A_z
@@ -96,5 +98,11 @@ Fz_elev = 0;%Fz_elevator(elevator_pprz,V_a);
 a_z = (Fz_fus+Fz_w+Fz_elev+Fz_hprop)./EKF_AW_VEHICLE_MASS;
 
 g = [speed;a_x;a_y;a_z;u]+v_noise;
+
+EKF_AW_FORCES_FUSELAGE = [Fx_fus;0;0];
+EKW_AW_FORCES_HOVER = [Fx_hprop;Fy_hprop;Fz_hprop];
+EKF_AW_FORCES_PUSHER = [Fx_push;0;0];
+EKF_AW_FORCES_WING = [Fx_w;Fy_w;Fz_w];
+EKF_AW_FORCES_ELEVATOR = [0;0;Fz_elev];
 
 end

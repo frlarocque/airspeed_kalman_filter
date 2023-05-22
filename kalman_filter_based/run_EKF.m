@@ -11,6 +11,8 @@ global EKF_AW_AZ_SCHED_GAIN EKF_AW_AZ_SCHED_START_DEG EKF_AW_AZ_SCHED_END_DEG
 global EKF_AW_AX_SCHED_GAIN EKF_AW_AX_SCHED_START_DEG EKF_AW_AX_SCHED_END_DEG
 global EKF_AW_USE_MODEL_BASED EKF_AW_USE_BETA EKF_AW_WING_INSTALLED EKF_AW_PROPAGATE_OFFSET EKF_AW_VEHICLE_MASS EKF_AW_USE_PITOT 
 global EKF_AW_AX_INNOV_GATE EKF_AW_AY_INNOV_GATE EKF_AW_AZ_INNOV_GATE EKF_AW_V_GPS_INNOV_GATE
+global EKF_AW_RES_DETECT_CRIT_LOW EKF_AW_RES_DETECT_CRIT_HIGH EKF_AW_RES_DETECT_CRIT_DIFF EKF_AW_RES_DETECT_TIME_LOW EKF_AW_RES_DETECT_TIME_HIGH EKF_AW_RES_DETECT_TIME_DIFF EKF_AW_RES_DETECT_FILTER_FREQ
+global EKF_AW_FORCES_FUSELAGE EKW_AW_FORCES_HOVER EKF_AW_FORCES_PUSHER EKF_AW_FORCES_WING EKF_AW_FORCES_ELEVATOR
 
 dt = mean(t(2:end)-t(1:end-1));
 
@@ -26,12 +28,30 @@ S = cell(1,length(t));
 R_variable = cell(1,length(t));
 Q_variable = cell(1,length(t));
 innov_gate_state = zeros(size(z_list));
+res_fault_detector = struct();
+
+fuselage_forces = zeros(3,length(t));
+wing_forces = zeros(3,length(t));
+pusher_forces = zeros(3,length(t));
+hover_forces = zeros(3,length(t));
+elevator_forces = zeros(3,length(t));
 
 if show_waitbar
 h = waitbar(0,'Please wait...');
 end
 
 flag_quick_convergence = false;
+
+pitot_detect = residual_fault_detector(EKF_AW_RES_DETECT_CRIT_LOW,EKF_AW_RES_DETECT_CRIT_HIGH,EKF_AW_RES_DETECT_CRIT_DIFF,EKF_AW_RES_DETECT_TIME_LOW,...
+    EKF_AW_RES_DETECT_TIME_HIGH,EKF_AW_RES_DETECT_TIME_DIFF,EKF_AW_RES_DETECT_FILTER_FREQ,dt);
+res_fault_detector.criterias.crit_low = EKF_AW_RES_DETECT_CRIT_LOW;
+res_fault_detector.criterias.crit_high = EKF_AW_RES_DETECT_CRIT_HIGH;
+res_fault_detector.criterias.crit_diff = EKF_AW_RES_DETECT_CRIT_DIFF;
+
+res_fault_detector.criterias.time_low = EKF_AW_RES_DETECT_TIME_LOW;
+res_fault_detector.criterias.time_high = EKF_AW_RES_DETECT_TIME_HIGH;
+res_fault_detector.criterias.time_diff = EKF_AW_RES_DETECT_TIME_DIFF;
+
 for k=1:length(t)
     if show_waitbar
     waitbar(k / length(t))
@@ -137,6 +157,14 @@ for k=1:length(t)
     % Check innnovation
     innov_gate_state(1:end-1,k) = abs(y_list(1:end-1,k)) > [EKF_AW_V_GPS_INNOV_GATE.*ones(3,1);EKF_AW_AX_INNOV_GATE;EKF_AW_AY_INNOV_GATE;EKF_AW_AZ_INNOV_GATE] & ~flag_quick_convergence.*ones(6,1);
     
+    % Check pitot innovation
+    update_innov(pitot_detect,y_list(end,k))
+    
+    check_thresholds(pitot_detect)
+    res_fault_detector.res(:,k) = [pitot_detect.res;pitot_detect.res_filt;pitot_detect.res_filt];
+    res_fault_detector.count(:,k) = [pitot_detect.count_low;pitot_detect.count_high;pitot_detect.count_diff];
+    res_fault_detector.flag(:,k) = [pitot_detect.flag_low_fault;pitot_detect.flag_high_fault;pitot_detect.flag_diff_fault];
+
     % Calculate S
     S{k} = G_val*P_pred*G_val'+M_val*R_variable{k}*M_val';
 
@@ -191,7 +219,12 @@ for k=1:length(t)
     end
 
     P{k} = (eye(length(x))-K{k}*G_val)*P_pred;
-
+    
+    fuselage_forces(:,k) = EKF_AW_FORCES_FUSELAGE;
+    wing_forces(:,k) = EKF_AW_FORCES_WING;
+    pusher_forces(:,k) = EKF_AW_FORCES_PUSHER;
+    hover_forces(:,k) = EKW_AW_FORCES_HOVER;
+    elevator_forces(:,k) = EKF_AW_FORCES_ELEVATOR;
 end
 
 EKF_res.t = t;
@@ -205,6 +238,14 @@ EKF_res.R = R_variable;
 EKF_res.K = K;
 EKF_res.S = S;
 EKF_res.innov_gates = innov_gate_state;
+EKF_res.res_fault_detector = res_fault_detector;
+
+EKF_res.forces.fuselage = fuselage_forces;
+EKF_res.forces.wing = wing_forces;
+EKF_res.forces.pusher = pusher_forces;
+EKF_res.forces.hover = hover_forces;
+EKF_res.forces.elevator = elevator_forces;
+
 
 if show_waitbar
 close(h);
