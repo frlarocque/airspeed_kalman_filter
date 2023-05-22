@@ -67,7 +67,7 @@ airspeed_pitot_resampled.flight.valid = logical(interp1(airspeed_pitot.flight.ti
 u_list_resampled(9,:) = wrapToPi(u_list_resampled(9,:));
 
 %% Covariance Sweep
-cov_list =  logspace(-9,-2,20); %1.43E-6 %7.8E-8; ;
+cov_list =  logspace(-9,-2,40); %1.43E-6 %7.8E-8; ;
 kalman_res = cell(1,length(cov_list));
 
 % Loop for all wind variances
@@ -82,7 +82,7 @@ for i=1:length(cov_list)
     R = diag([[1 1 1].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
 
     % Run filter
-    kalman_res{i} = run_EKF(epsi,t,Q,R,P_0,x_0,u_list_resampled,z_list_resampled,f_fh,g_fh,true);
+    kalman_res{i} = run_EKF(epsi,t,Q,R,P_0,x_0,u_list_resampled,z_list_resampled,f_fh,g_fh,false);
     kalman_res{i}.error = error_quantification_full(kalman_res{i}.x(1,:)',airspeed_pitot_resampled.flight.data,airspeed_pitot_resampled.flight.valid,kalman_res{i}.u(12,:)');
     kalman_res{i}.error.constant_wind = error_quantification(kalman_res{i}.x(1,:)',interp1(airspeed_estimation.time,airspeed_estimation.data,kalman_res{i}.t));
     error{i} = kalman_res{i}.error;
@@ -98,8 +98,10 @@ for i=1:length(error)
 end
 
 %% Nice frequency plot
-AR = 4;
+set(gcf, 'Renderer', 'Painters');
+AR = 2;
 size = 500;
+font_size = 20;
 
 fig_height = size;
 fig_width = fig_height*AR;
@@ -136,11 +138,14 @@ set(gcf,'DefaultAxesColorOrder',mycolors, ...
 subplot(1,1,1)
 p1 = semilogx(cov_list,error_RMS_list);
 
-xlabel('Wind Covariance [(m/s)^2]')
-ylabel('Airspeed Estimation RMS Error')
+xlabel('Wind Covariance [(m/s)²]')
+ylabel('Airspeed Estimation RMS Error [m/s]')
 
 grid on
-grid minor
+%grid minor
+
+% Change font size
+set(findall(gcf,'-property','FontSize'),'FontSize',font_size)
 
 % Export figure
 fig_name = ['wind_cov_sweep_RMS_',formattedDateTime,'.eps'];
@@ -150,11 +155,14 @@ exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 subplot(1,1,1)
 p1 = semilogx(cov_list,error_mean_list);
 
-xlabel('Wind Covariance [(m/s)^2]')
-ylabel('Airspeed Estimation Mean Error')
+xlabel('Wind Covariance [(m/s)²]')
+ylabel('Airspeed Estimation Mean Error [m/s]')
 
 grid on
-grid minor
+%grid minor
+
+% Change font size
+set(findall(gcf,'-property','FontSize'),'FontSize',font_size)
 
 % Export figure
 fig_name = ['wind_cov_sweep_Mean_',formattedDateTime,'.eps'];

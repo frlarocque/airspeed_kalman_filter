@@ -73,21 +73,21 @@ for i=1:length(freq_list)
     f_EKF = freq_list(i);
 
     % Resample to different sample time
-    u_list_resampled = resample(u_list',t,f_EKF)';
-    z_list_resampled = resample(z_list',t,f_EKF)';
-    airspeed_pitot_resampled.flight.data = resample(airspeed_pitot.flight.data,t,f_EKF);
-    t_resampled = [t(1):1/f_EKF:t(end)]';
+    t_resampled = [t(1):1/f_EKF:t(end)];
+    u_list_resampled = cut_resample(u_list',t,t_resampled,[t_resampled(1)-1 t_resampled(end)+1])';
+    z_list_resampled = cut_resample(z_list',t,t_resampled,[t_resampled(1)-1 t_resampled(end)+1])';
+    airspeed_pitot_resampled.flight.data = cut_resample(airspeed_pitot.flight.data,airspeed_pitot.flight.time,t_resampled,[t_resampled(1)-1 t_resampled(end)+1]);
+    
     dt = 1/f_EKF;
     airspeed_pitot_resampled.flight.time = t_resampled;
-    airspeed_pitot_resampled.flight.valid = logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t_resampled));
-    
+    airspeed_pitot_resampled.flight.valid = logical(cut_resample(double(airspeed_pitot.flight.valid),airspeed_pitot.flight.time,t_resampled,[t_resampled(1)-1 t_resampled(end)+1]));
     % Wrap back heading to -180 to 180
     u_list_resampled(9,:) = wrapToPi(u_list_resampled(9,:));
 
     % Run filter
     kalman_res{i} = run_EKF(epsi,t_resampled,Q,R,P_0,x_0,u_list_resampled,z_list_resampled,f_fh,g_fh);
-    kalman_res{i}.error = error_quantification_full(kalman_res{i}.x(1,:)',airspeed_pitot_resampled.flight.data,airspeed_pitot_resampled.flight.valid,kalman_res{1}.u(12,:)');
-    kalman_res{i}.error.constant_wind = error_quantification(kalman_res{i}.x(1,:)',interp1(airspeed_estimation.time,airspeed_estimation.data,kalman_res{1}.t));
+    kalman_res{i}.error = error_quantification_full(kalman_res{i}.x(1,:)',airspeed_pitot_resampled.flight.data,airspeed_pitot_resampled.flight.valid,kalman_res{i}.u(12,:)');
+    kalman_res{i}.error.constant_wind = error_quantification(kalman_res{i}.x(1,:)',cut_resample(airspeed_estimation.data,airspeed_estimation.time,kalman_res{i}.t,[kalman_res{i}.t(1)-1 kalman_res{i}.t(end)+1]));
 
     error{i} = kalman_res{i}.error;
 end
@@ -101,7 +101,8 @@ for i=1:length(error)
     error_mean_list(i) = error{i}.all.error_mean;
 end
 %% Nice frequency plot
-AR = 4;
+set(gcf, 'Renderer', 'Painters');
+AR = 2;
 size = 500;
 
 fig_height = size;
@@ -138,9 +139,10 @@ set(gcf,'DefaultAxesColorOrder',mycolors, ...
 % RMS
 subplot(1,1,1)
 p1 = plot(freq_list,error_RMS_list);
+axis([7 inf -inf inf])
 
 xlabel('EKF Frequency [Hz]')
-ylabel('Airspeed Estimation RMS Error')
+ylabel('Airspeed Estimation RMS Error [m/s]')
 
 grid on
 grid minor
@@ -152,6 +154,7 @@ exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 % Mean
 subplot(1,1,1)
 p1 = plot(freq_list,error_mean_list);
+axis([7 inf -inf inf])
 
 xlabel('EKF Frequency [Hz]')
 ylabel('Airspeed Estimation Mean Error')
