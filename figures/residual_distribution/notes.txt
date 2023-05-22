@@ -1,0 +1,5 @@
+ran on 22/05/2023
+
+ran on OUTDOOR_23_05_17__14_00_31_SD_1_short.mat
+
+ran with filter at 1Hz
