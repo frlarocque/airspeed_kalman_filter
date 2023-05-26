@@ -54,19 +54,23 @@ R = diag([[1 1 1E-3].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y
 
 f_EKF = 25;
 % Resample to different sample time
-u_list = resample(u_list',t,f_EKF)';
-z_list = resample(z_list',t,f_EKF)';
-t = [t(1):1/f_EKF:t(end)]';
-dt = 1/f_EKF;
-airspeed = resample(airspeed_pitot.flight.data,airspeed_pitot.flight.time,f_EKF);
+t_resampled = [t(1):1/f_EKF:t(end)]';
+u_list_resampled = cut_resample(u_list',t,t_resampled,[t_resampled(1)-1 t_resampled(end)+1])';
+z_list_resampled = cut_resample(z_list',t,t_resampled,[t_resampled(1)-1 t_resampled(end)+1])';
+airspeed_pitot_resampled.flight.data = cut_resample(airspeed_pitot.flight.data,airspeed_pitot.flight.time,t_resampled,[t_resampled(1)-1 t_resampled(end)+1]);
+airspeed_pitot_resampled.flight.time = t_resampled;
+airspeed_pitot_resampled.flight.valid = logical(cut_resample(double(airspeed_pitot.flight.valid),airspeed_pitot.flight.time,t_resampled,[t_resampled(1)-1 t_resampled(end)+1]));
+% Wrap back heading to -180 to 180
+u_list_resampled(9,:) = wrapToPi(u_list_resampled(9,:));
 
 %% Run filter
 kalman_res = {};
-[EKF_res] = run_EKF(epsi,t,Q,R,P_0,x_0,u_list,z_list,f_fh,g_fh,true);
+[EKF_res] = run_EKF(epsi,t_resampled,Q,R,P_0,x_0,u_list_resampled,z_list_resampled,f_fh,g_fh,true);
 
 kalman_res{1} = EKF_res;
 
-kalman_res{1}.error = error_quantification(kalman_res{1}.x(1,logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest')))',airspeed(logical(interp1(airspeed_pitot.flight.time,double(airspeed_pitot.flight.valid),t,'nearest'))),kalman_res{1}.u(12,:));
+kalman_res{1}.error = error_quantification_full(kalman_res{1}.x(1,:)',airspeed_pitot_resampled.flight.data,airspeed_pitot_resampled.flight.valid,kalman_res{1}.u(12,:)');
+kalman_res{1}.error.constant_wind = error_quantification(kalman_res{1}.x(1,:)',interp1(airspeed_estimation.time,airspeed_estimation.data,kalman_res{1}.t));
 
 fprintf("FINISHED!\n \nWAKE UP!\n")
 
@@ -75,8 +79,9 @@ select = 1;
 %plot_EKF_result(kalman_res{select},airspeed_pitot.flight,wind)
 plot_EKF_result_full(kalman_res{select},airspeed_pitot.flight,beta.flight,alpha.flight,wind)
 fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(vecnorm(kalman_res{select}.x(4:6,:),2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
-fprintf('Error RMS Overall %2.2f Hover %2.2f Transition %2.2f FF %2.2f\n',kalman_res{1}.error.error_RMS,kalman_res{1}.error.hover.error_RMS,kalman_res{1}.error.transition.error_RMS,kalman_res{1}.error.ff.error_RMS)
+fprintf('Error RMS Overall %2.2f Hover %2.2f Transition %2.2f FF %2.2f\n',kalman_res{1}.error.valid_pitot.error_RMS,kalman_res{1}.error.hover.error_RMS,kalman_res{1}.error.transition.error_RMS,kalman_res{1}.error.ff.error_RMS)
 
+%%
 if EKF_AW_PROPAGATE_OFFSET
 figure;
 ax1 = subplot(3,1,1);

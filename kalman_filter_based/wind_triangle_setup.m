@@ -37,6 +37,18 @@ if strcmp(conditions,'WINDTUNNEL')
     
     IMU_rate.raw.data = deg2rad([ac_data.EFF_FULL_INDI.angular_rate_p ac_data.EFF_FULL_INDI.angular_rate_q ac_data.EFF_FULL_INDI.angular_rate_r]);IMU_rate.raw.time = ac_data.EFF_FULL_INDI.timestamp;
     IMU_angle.raw.data = deg2rad([ac_data.EFF_FULL_INDI.phi_alt ac_data.EFF_FULL_INDI.theta_alt ac_data.EFF_FULL_INDI.psi_alt]);IMU_angle.raw.time = ac_data.EFF_FULL_INDI.timestamp;
+    
+    % Change -180to180 heading range (remove sudden changes)
+    for i=1:length(IMU_angle.raw.data(:,3))-1
+        difference = IMU_angle.raw.data(i+1,3)-IMU_angle.raw.data(i,3);
+        if abs(difference)>deg2rad(180)
+            if difference>0
+                IMU_angle.raw.data(i+1:end,3) = IMU_angle.raw.data(i+1:end,3) - deg2rad(360);
+            else
+                IMU_angle.raw.data(i+1:end,3) = IMU_angle.raw.data(i+1:end,3) + deg2rad(360);
+            end
+        end
+    end
 
     %Tunnel referential
     position_NED_tunnel.raw.data =[ac_data.EFF_FULL_INDI.position_N,ac_data.EFF_FULL_INDI.position_E,ac_data.EFF_FULL_INDI.position_D];position_NED_tunnel.raw.time = ac_data.EFF_FULL_INDI.timestamp;
