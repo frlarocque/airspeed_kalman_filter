@@ -1,4 +1,4 @@
-function nice_airspeed_estimation_plot(kalman_res,airspeed_pitot,subplot_config,AR,WT)
+function nice_airspeed_estimation_plot(kalman_res,airspeed_pitot,subplot_config,AR,WT,font_size)
 set(gcf, 'Renderer', 'Painters');
 % Default to four subplot
 if nargin<3
@@ -10,6 +10,9 @@ end
 if nargin<5
     WT = 0;
 end
+if nargin<6
+    font_size = 16;
+end
 
 if WT
     file_ident = 'WT';
@@ -20,15 +23,15 @@ end
 % Set figure size and aspect ratio
 if strcmp(subplot_config,'two')
     %AR = 1;
-    size = 1000;
+    heigth_size = 1000;
 elseif strcmp(subplot_config,'one')
     %AR = 8;
-    size = 500;
+    heigth_size = 500;
 else
     %AR = 1;
-    size = 1000;
+    heigth_size = 1000;
 end
-fig_height = size;
+fig_height = heigth_size;
 fig_width = fig_height*AR;
 
 screen = get(0, 'ScreenSize');
@@ -92,12 +95,14 @@ s2 = plot(airspeed_pitot.time,filtfilt(b,a,airspeed_pitot.data));
 xlabel('Time [s]')
 ylabel('Speed [m/s]')
 grid on
-grid minor
 legend([s1,s2],'Estimation','Pitot Tube','Orientation','horizontal')
 axis([-inf inf 0 1.2.*max(airspeed_pitot.data)])
 
 % Export figure
 if strcmp(subplot_config,'one')
+   % Change font size
+   set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
    fig_name = [file_ident,'_airspeed_',formattedDateTime,'.eps'];
    exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 end
@@ -133,11 +138,13 @@ else
     ylabel('Speed [m/s]')
     legend([p1,p2,p3],{'North','East','Down'},'Orientation','horizontal')
     grid on
-    grid minor
-    %axis([-inf inf -inf inf])
+    axis([-inf inf -inf 1.6*max(max(kalman_res.x(4:6,:)))])
 
     % Export figure
     if strcmp(subplot_config,'one')
+       % Change font size
+       set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
        fig_name = [file_ident,'_wind_',formattedDateTime,'.eps'];
        exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
     end
@@ -162,10 +169,9 @@ hold on
 xlabel('Time [s]')
 ylabel('Skew Angle [deg]')
 grid on
-grid minor
 yline([0],'--','Quad-Mode','LabelHorizontalAlignment','Right','LabelVerticalAlignment','Top')
 yline([90],'--','FWD Flight','LabelHorizontalAlignment','Right','LabelVerticalAlignment','Bottom')
-axis([min(kalman_res.t) max(kalman_res.t) -5 110])
+axis([min(kalman_res.t) max(kalman_res.t) -5 125])
 
 % Hatch definition
 Alpha           = {0.5,0.5,0.5};
@@ -219,7 +225,7 @@ end
 
 %Make the legend
 Legend  			= {'Hover','Transition','Forward Flight'};
-[legend_h,object_h,plot_h,text_str] = legendflex([hover_patch(1) transition_patch(1) ff_patch(1)],Legend,'nrow',1);
+[legend_h,object_h,plot_h,text_str] = legendflex([hover_patch(1) transition_patch(1) ff_patch(1)],Legend,'nrow',1,'FontSize',font_size);
 %object_h is the handle for the lines, patches and text objects
 %hatch the legend patches to match the patches 
 for i=1:3
@@ -232,6 +238,9 @@ end
 
 % Export figure
 if strcmp(subplot_config,'one')
+   % Change font size
+   set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
    fig_name = [file_ident,'_skew_',formattedDateTime,'.eps'];
    exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 end
@@ -259,32 +268,38 @@ else
         xlabel('Time [s]')
         ylabel('Motor RPM')
         axis([-inf inf 0 10000])
+        set(ax4, 'YTick', 0:3000:10000)
     end
     legend('Pusher Motor','Hover Motor','Orientation','horizontal')
     grid on
-    grid minor
 
     % Export figure
     if strcmp(subplot_config,'one')
+       % Change font size
+       set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
        fig_name = [file_ident,'_motor_',formattedDateTime,'.eps'];
        exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
     end
 end
 
 if strcmp(subplot_config,'two')
+    % Change font size
+    set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
     linkaxes([ax1,ax3],'x')
     fig_name = [file_ident,'_two_',formattedDateTime,'.eps'];
     exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 elseif strcmp(subplot_config,'one')
     %Nothing
 else
+    % Change font size
+    set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
     fig_name = [file_ident,'_four_',formattedDateTime,'.eps'];
     exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
     linkaxes([ax1,ax2,ax3,ax4],'x')
 end
-
-% Set font size
-% set(findall(gcf,'-property','FontSize'),'FontSize',font_size)
 
 % Restore the original default line width value
 set(groot, 'DefaultLineLineWidth', origLineWidth);
