@@ -1,4 +1,4 @@
-function nice_wind_tunnel_plot(kalman_res,airspeed_pitot,subplot_config,AR)
+function nice_wind_tunnel_plot(kalman_res,airspeed_pitot,subplot_config,AR,font_size)
 set(gcf, 'Renderer', 'Painters');
 % Default to four subplot
 if nargin<3
@@ -7,19 +7,22 @@ end
 if nargin<4
     AR = 1;
 end
+if nargin<5
+    font_size = 16;
+end
 
 % Set figure size and aspect ratio
 if strcmp(subplot_config,'two')
     %AR = 1;
-    size = 1000;
+    size_height = 1000;
 elseif strcmp(subplot_config,'one')
     %AR = 8;
-    size = 500;
+    size_height = 500;
 else
     %AR = 1;
-    size = 1000;
+    size_height = 1000;
 end
-fig_height = size;
+fig_height = size_height;
 fig_width = fig_height*AR;
 
 screen = get(0, 'ScreenSize');
@@ -81,10 +84,13 @@ xlabel('Time [s]')
 ylabel('Speed [m/s]')
 grid on
 legend([s1,s2],'Estimation','Pitot Tube','Orientation','horizontal')
-axis([-inf inf 0 1.2.*max(airspeed_pitot.data)])
+axis([-inf inf 0 1.35.*max(airspeed_pitot.data)])
 
 % Export figure
 if strcmp(subplot_config,'one')
+   % Change font size
+   set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
    fig_name = ['WT_airspeed_',formattedDateTime,'.eps'];
    exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 end
@@ -112,10 +118,13 @@ else
     ylabel('Speed [m/s]')
     legend('North','East','Down','Orientation','horizontal')
     grid on
-    axis([-inf inf -inf inf])
+    axis([-inf inf -inf 8])
 
     % Export figure
     if strcmp(subplot_config,'one')
+       % Change font size
+       set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
        fig_name = ['WT_wind_',formattedDateTime,'.eps'];
        exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
     end
@@ -138,7 +147,10 @@ hold on
 xlabel('Time [s]')
 ylabel('Skew Angle [deg]')
 grid on
-axis([min(kalman_res.t) max(kalman_res.t) 0 105])
+yline([0],'--','Quad-Mode','LabelHorizontalAlignment','Right','LabelVerticalAlignment','Top')
+yline([90],'--','FWD Flight','LabelHorizontalAlignment','Right','LabelVerticalAlignment','Bottom');
+
+axis([min(kalman_res.t) max(kalman_res.t) -5 125])
 
 % Hatch definition
 Alpha           = {0.5,0.5,0.5};
@@ -180,7 +192,7 @@ end
 
 %Make the legend
 Legend  			= {'Hover','Transition','Forward Flight'};
-[legend_h,object_h,plot_h,text_str] = legendflex([hover_patch(1) transition_patch(1) ff_patch(1)],Legend,'nrow',1);
+[legend_h,object_h,plot_h,text_str] = legendflex([hover_patch(1) transition_patch(2) ff_patch(1)],Legend,'nrow',1,'fontSize',font_size);
 %object_h is the handle for the lines, patches and text objects
 %hatch the legend patches to match the patches 
 for i=1:3
@@ -193,6 +205,9 @@ end
 
 % Export figure
 if strcmp(subplot_config,'one')
+   % Change font size
+   set(findall(gcf,'-property','FontSize'),'FontSize',font_size)
+   
    fig_name = ['WT_skew_',formattedDateTime,'.eps'];
    exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 end
@@ -216,29 +231,35 @@ else
     ylabel('PWM Command')
     legend('Pusher Motor','Hover Motor','Orientation','horizontal')
     grid on
-    axis([-inf inf 900 2100])
+    axis([-inf inf 900 2250])
 
     % Export figure
     if strcmp(subplot_config,'one')
+       % Change font size
+       set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
        fig_name = ['WT_motor_',formattedDateTime,'.eps'];
        exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
     end
 end
 
 if strcmp(subplot_config,'two')
+    % Change font size
+    set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
     linkaxes([ax1,ax3],'x')
     fig_name = ['WT_two_',formattedDateTime,'.eps'];
     exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 elseif strcmp(subplot_config,'one')
     %Nothing
 else
+    % Change font size
+    set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
     fig_name = ['WT_four_',formattedDateTime,'.eps'];
     exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
     linkaxes([ax1,ax2,ax3,ax4],'x')
 end
-
-% Set font size
-% set(findall(gcf,'-property','FontSize'),'FontSize',font_size)
 
 % Restore the original default line width value
 set(groot, 'DefaultLineLineWidth', origLineWidth);
