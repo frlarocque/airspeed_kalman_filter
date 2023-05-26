@@ -4,7 +4,7 @@ function [real_skew] = measSkew2Real(meas_skew)
 
 % In rad
 
-meas2real = [1.127787697110479   0.098753645420817];
+meas2real = [1.139065574081584   0.049376822710408];
 
 real_skew = polyval(meas2real,meas_skew);
 
