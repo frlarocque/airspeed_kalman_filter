@@ -28,7 +28,7 @@ global EKF_AW_P0_V_body EKF_AW_P0_mu EKF_AW_P0_offset
 global filter_low_freq filter_high_freq f_EKF
 
 EKF_AW_USE_MODEL_BASED = true;
-EKF_AW_USE_BETA = false;
+EKF_AW_USE_BETA = true;
 EKF_AW_WING_INSTALLED = true;
 EKF_AW_PROPAGATE_OFFSET = false;
 EKF_AW_USE_PITOT = false;
@@ -59,15 +59,15 @@ EKF_AW_Q_offset = 1E-5;
 EKF_AW_R_V_gnd = 1E-05;
 EKF_AW_R_accel_filt_x = 1E-7;
 EKF_AW_R_accel_filt_y = 1E-6;
-EKF_AW_R_accel_filt_z = 1E-6;
+EKF_AW_R_accel_filt_z = 5E-6;
 EKF_AW_R_V_pitot = 1E-7;
 
 EKF_AW_P0_V_body = 1E-2;
 EKF_AW_P0_mu = 1E1*EKF_AW_Q_mu;
 EKF_AW_P0_offset = EKF_AW_Q_offset;
 
-filter_low_freq = 1; %[Hz]
-filter_high_freq = 25; %[Hz]
+filter_low_freq = 2; %[Hz]
+filter_high_freq = 10; %[Hz]
 f_EKF = 25; %[Hz]
 
 f_fh = str2func('f_4');

@@ -34,8 +34,8 @@ dt = mean(diff(t));
 a_x_filt = filter(b,a,IMU_accel.flight.data(:,1));
 a_y_filt = filter(b,a,IMU_accel.flight.data(:,2));
 a_z_filt = filter(b,a,IMU_accel.flight.data(:,3));
-pusher_prop_pwm_filt = filtfilt(b,a,pusher_prop_pwm.flight.data);%filter(b,a,pusher_prop_rpm.flight.data);
-hover_prop_pwm_filt = filtfilt(b,a,mean(hover_prop_pwm.flight.data,2));%filter(b,a,mean(hover_prop_rpm.flight.data,2));skew_filt = filter(b,a,skew.flight.data);
+pusher_prop_pwm_filt = filter(b,a,pusher_prop_pwm.flight.data);
+hover_prop_pwm_filt = filter(b,a,mean(hover_prop_pwm.flight.data,2));
 skew_filt = filter(b,a,skew.flight.data);
 elevator_pwm_filt = filter(b,a,control_surface_pwm.flight.data(:,4));
 
@@ -45,14 +45,13 @@ z_list = [Vg_NED.flight.data a_x_filt a_y_filt a_z_filt airspeed_pitot.flight.da
 
 % Filter Data coming in
 [b,a] = butter(2,2*filter_high_freq*dt,'low');
-u_list(1:6,:) = filtfilt(b,a,u_list(1:6,:)')';%filter(b,a,u_list(1:6,:),[],2);
-z_list(1:3,:) = filtfilt(b,a,z_list(1:3,:)')';%filter(b,a,z_list(1:3,:),[],2);
+u_list(1:6,:) = filter(b,a,u_list(1:6,:),[],2);
+z_list(1:3,:) = filter(b,a,z_list(1:3,:),[],2);
 
 Q = diag([[1 1 1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[EKF_AW_Q_mu 1E-6 1E-9],[1 1 1].*EKF_AW_Q_offset]); %process noise
 P_0 = diag([[1 1 1].*EKF_AW_P0_V_body [1 1 1].*EKF_AW_P0_mu [1 1 1].*EKF_AW_P0_offset]); %covariance
 R = diag([[1 1 1E-3].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
 
-f_EKF = 25;
 % Resample to different sample time
 t_resampled = [t(1):1/f_EKF:t(end)]';
 u_list_resampled = cut_resample(u_list',t,t_resampled,[t_resampled(1)-1 t_resampled(end)+1])';
