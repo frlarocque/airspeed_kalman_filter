@@ -461,3 +461,81 @@ range = max(y)-min(y)
 RMS_percentage_range = RMS./range
 max_error = max(abs((fit_1(s_all_1,x) - y)))
 max_error_percentage_range = max_error./range
+
+%% Nice plot
+
+set(gcf, 'Renderer', 'Painters');
+
+line_width = 2;
+font_size = 20;
+marker_size = 15;
+AR = 1.5;
+fig_height = 750;
+fig_width = fig_height*AR;
+
+screen = get(0, 'ScreenSize');
+
+if fig_width>screen(3)
+    fig_width = screen(3);
+    fig_height = fig_width/AR;
+end
+fprintf('Exporting as %.0fx%.0f \n',fig_width,fig_height);
+
+% Get the current date and time
+nowDateTime = datetime('now');
+
+% Format the date and time in the "MM_DD_HH_MM" format
+formattedDateTime = datestr(nowDateTime,'mm_dd_HH_MM');
+
+fig = figure('position',[0 0 fig_width fig_height]);
+
+% Store the default line width value
+origLineWidth = get(groot, 'DefaultLineLineWidth');
+
+% Set a new default line width value
+set(groot, 'DefaultLineLineWidth', line_width);
+
+% Set colors and line styles
+mycolors = linspecer(3,'qualitative');
+mylinestyles = {'-', '--', ':'};
+mymarkerstyles = {'o','+','*','x','square','diamond','^'};
+set(gcf,'DefaultAxesColorOrder',mycolors, ...
+        'DefaultAxesLineStyleOrder',mylinestyles)
+
+nice_db = test_db;
+
+windspeed_bins = unique(round(nice_db.Windspeed,0));
+nice_db.Windspeed_bin = round(nice_db.Windspeed,0);
+skew_bins = deg2rad(unique(round(rad2deg(nice_db.Skew_sp),0)));
+skew_bins = skew_bins(1:2:end);
+nice_db.skew_bin = deg2rad(round(rad2deg(nice_db.Skew_sp),0));
+
+legend_lbl = {};
+col=linspecer(length(skew_bins));
+hdls = [];
+for i=1:length(skew_bins)
+    temp_db = nice_db(nice_db.skew_bin==skew_bins(i),:);
+    temp_x = [linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),20)',ones(20,1).*1,ones(20,1).*skew_bins(i)];
+    
+    temp_db.Fz_scaled = temp_db.Fz_wing./temp_db.Windspeed.^2;
+
+    temp_group = groupsummary(temp_db, ['Turn_Table'], 'mean', 'Fz_scaled');
+
+    hdls(i,1) = plot(rad2deg(temp_group.Turn_Table),temp_group.mean_Fz_scaled,mymarkerstyles{i},'color',col(i,:),'MarkerSize',marker_size);
+    hold on
+    hdls(i,2) = plot(rad2deg(linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),20)),fit_1(s_all_1,temp_x),'-','color',col(i,:));
+        
+    legend_lbl{i} = [mat2str(rad2deg(skew_bins(i))),' deg'];
+end
+lgd1 = legend(hdls(:,1),legend_lbl,'Location', 'northoutside', 'Orientation', 'horizontal');
+xlabel('Angle of attack [deg]')
+ylabel('Wing F_z / V^2 [N s^2 m^{-2}]')
+axis([-7 17 -0.45 0.05])
+grid on
+
+% Change font size
+set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
+fig_name = ['WING_FZ_',formattedDateTime,'.eps'];
+exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
+grid on

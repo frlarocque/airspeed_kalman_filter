@@ -263,3 +263,69 @@ ylabel('Pusher F_x [N]')
 axis([0 inf 0 inf])
 grid on
 
+%% Nice plot
+set(gcf, 'Renderer', 'Painters');
+
+line_width = 2;
+font_size = 20;
+marker_size = 15;
+AR = 1.5;
+fig_height = 750;
+fig_width = fig_height*AR;
+
+screen = get(0, 'ScreenSize');
+
+if fig_width>screen(3)
+    fig_width = screen(3);
+    fig_height = fig_width/AR;
+end
+fprintf('Exporting as %.0fx%.0f \n',fig_width,fig_height);
+
+% Get the current date and time
+nowDateTime = datetime('now');
+
+% Format the date and time in the "MM_DD_HH_MM" format
+formattedDateTime = datestr(nowDateTime,'mm_dd_HH_MM');
+
+fig = figure('position',[0 0 fig_width fig_height]);
+
+% Store the default line width value
+origLineWidth = get(groot, 'DefaultLineLineWidth');
+
+% Set a new default line width value
+set(groot, 'DefaultLineLineWidth', line_width);
+
+% Set colors and line styles
+mycolors = linspecer(3,'qualitative');
+mylinestyles = {'-', '--', ':'};
+mymarkerstyles = {'o','+','*','x','square','diamond','^'};
+set(gcf,'DefaultAxesColorOrder',mycolors, ...
+        'DefaultAxesLineStyleOrder',mylinestyles)
+
+windspeed_bins = unique(round(pusher_db.Windspeed,0));
+pusher_db.Windspeed_bin = round(pusher_db.Windspeed,0);
+legend_lbl = {};
+col=linspecer(length(windspeed_bins));
+hdls = [];
+for i=1:length(windspeed_bins)
+    temp_db = pusher_db(pusher_db.Windspeed_bin==windspeed_bins(i),:);
+    temp_x = [linspace(0,max(temp_db.rpm_Mot_Push),15)',ones(15,1).*windspeed_bins(i)];
+
+    hdls(i) = plot(temp_db.rpm_Mot_Push,temp_db.Fx_pusher,mymarkerstyles{i},'color',col(i,:),'MarkerSize',marker_size);
+    
+    hold on
+    plot(linspace(0,max(temp_db.rpm_Mot_Push),15),fit_all_rpm(s_all_rpm,temp_x),'-','color',col(i,:))
+    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
+end
+lgd1 = legend(hdls,legend_lbl,'Location', 'northoutside', 'Orientation', 'horizontal');
+xlabel('RPM [rev per minute]')
+ylabel('Pusher F_x [N]')
+axis([0 9500 0 30])
+grid on
+
+% Change font size
+set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
+fig_name = ['PUSHER_FX_',formattedDateTime,'.eps'];
+exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
+grid on

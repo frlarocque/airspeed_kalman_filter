@@ -30,17 +30,39 @@ full_db = readtable(fullfile(path,file));
 
 test_codes = unique(full_db.Code);
 
-test = 'AE';
-idx = contains(full_db.Code,test);
+test_1 = 'LP3';
+test_2 = 'LP4';
+idx_1 = contains(full_db.Code,test_1);
+idx_2 = contains(full_db.Code,test_2);
 
-test_db = full_db(idx,:);
+test_db_1 = full_db(idx_1,:);
+test_db_2 = full_db(idx_2,:);
+
+forces_columns = {'Mx','My','Mz','Fx','Fy','Fz',};
+
+% Substract db2 from db1
+test_db = table();
+
+for i=1:size(test_db_1,1)
+    id_1_mat = strsplit(test_db_1.ID{i}, '_');
+    id_1_mat = strjoin(id_1_mat([2:4,6:7]),'_');
+
+    for j=1:size(test_db_2,1)
+        id_2_mat = strsplit(test_db_2.ID{j}, '_');
+        id_2_mat = strjoin(id_2_mat([2:4,6:7]),'_');
+        
+        if strcmp(id_1_mat,id_2_mat)
+            test_db(end+1,:) = test_db_1(i,:);
+            test_db{end,forces_columns} = test_db_1{i,forces_columns} -test_db_2{j,forces_columns};
+            test_db.Code{end} = [test_1 '-' test_2];
+            break
+        end
+    end
+end
 
 % Transform all angles in rad
 deg_columns = {'Turn_Table','Skew','Skew_sp','Pitch','AoA','std_AoA'};
 test_db{:,deg_columns} = deg2rad(test_db{:,deg_columns});
-
-% Save
-save(['db_',test,'.mat'],'test_db')
 
 %% Remove entries
 % Removing entries with non-zero control surfaces
@@ -63,6 +85,7 @@ for i=1:size(test_db,1)
     for j=1:length(RPM_columns)
         if isnan(test_db{i,RPM_columns(j)})
             test_db{i,RPM_columns(j)} = mean(test_db{i,RPM_columns(RPM_columns~=RPM_columns(j)& ~isnan(test_db{i,RPM_columns}))});            
+            test_db{i,RPM_columns(j)} = 100.*round(test_db{i,RPM_columns(j)}./100);
             correction=correction+1;
         end
     end
@@ -74,16 +97,9 @@ fprintf(sprintf('Corrected RPM %d times\n',correction))
 % Hover_motors lift = Fz-body lift
 %Drag without hover props (only body drag)
 
-lift_body_coeff = [-1.569286184145456E-3 5.989835400355119E-3 -2.346715949355502E-1 6.611857425073364E-2]; %all airspeeds without hover props with skew
+test_db.Fz_hover = test_db.Fz;
 
-Fz_body = @(alpha,skew,V) (lift_body_coeff(1)  .*  cos(skew)+...
-                           lift_body_coeff(2)+...
-                           lift_body_coeff(3)  .*  alpha+...
-                           lift_body_coeff(4)  .*  alpha.^2).*V.^2;
-
-test_db.Fz_hover = test_db.Fz-Fz_body(test_db.Turn_Table,test_db.Skew_sp,test_db.Windspeed);
-
-% Calculating std dev of new Fz_pusher
+% Calculating std dev of new Fz
 % Mean C = mean A - mean B --> Variance C = Variance A + Variance B - 2*Correlation(A,B)*SD A * SD B
 % Assumming uncorrelated
 test_db.std_Fz_hover = sqrt(test_db.std_Fz.^2+test_db.std_Fz.^2);
@@ -194,3 +210,84 @@ fcn_all = @(k) sqrt(mean((fit_all(k,x) - y).^2));           % Least-Squares cost
 % RMS_all =
 % 
 %    2.117587085260848
+
+%% Nice plot
+nice_db = test_db;
+
+rpm_bins = unique(200.*round(nice_db.rpm_Mot_F./200,0));
+nice_db.rpm_bin = 200.*round(nice_db.rpm_Mot_F./200,0);
+windspeed_bins = unique(round(nice_db.Windspeed,0));
+nice_db.windspeed_bin = round(nice_db.Windspeed,0);
+
+set(gcf, 'Renderer', 'Painters');
+
+line_width = 2;
+font_size = 20;
+marker_size = 15;
+AR = 1.5;
+fig_height = 750;
+fig_width = fig_height*AR;
+
+screen = get(0, 'ScreenSize');
+
+if fig_width>screen(3)
+    fig_width = screen(3);
+    fig_height = fig_width/AR;
+end
+fprintf('Exporting as %.0fx%.0f \n',fig_width,fig_height);
+
+% Get the current date and time
+nowDateTime = datetime('now');
+
+% Format the date and time in the "MM_DD_HH_MM" format
+formattedDateTime = datestr(nowDateTime,'mm_dd_HH_MM');
+
+fig = figure('position',[0 0 fig_width fig_height]);
+
+% Store the default line width value
+origLineWidth = get(groot, 'DefaultLineLineWidth');
+
+% Set a new default line width value
+set(groot, 'DefaultLineLineWidth', line_width);
+
+% Set colors and line styles
+mycolors = linspecer(3,'qualitative');
+mylinestyles = {'-', '--', ':'};
+mymarkerstyles = {'o','+','*','x','square','diamond','^'};
+set(gcf,'DefaultAxesColorOrder',mycolors, ...
+        'DefaultAxesLineStyleOrder',mylinestyles)
+
+
+legend_lbl = {};
+col=linspecer(length(windspeed_bins)+1);
+hdls = [];
+Ax(1) = axes(fig); 
+
+for i=1:length(windspeed_bins)
+    temp_db = nice_db(nice_db.windspeed_bin==windspeed_bins(i),:);
+    
+
+    temp_group = groupsummary(temp_db, ['rpm_bin'], 'mean', 'Fz_hover');
+    
+    hdls(i,1) = plot(temp_group.rpm_bin,temp_group.mean_Fz_hover,mymarkerstyles{i},'color',col(i,:),'MarkerSize',marker_size);
+    hold on
+    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
+
+end
+temp_x = [linspace(0,max(rpm_bins),20)',ones(20,1).*0];
+plot(linspace(0,max(rpm_bins),20),fit_same(s_same,temp_x),'-','color',col(i+1,:))
+    
+set(Ax(1), 'Box','off')
+lgd1 = legend(hdls(:,1),legend_lbl,'Location', 'northoutside', 'Orientation', 'horizontal');
+
+xlabel('RPM [Rev per minute]')
+ylabel('Hover Motor F_z [N]')
+axis([0 inf -inf 0])
+grid on
+
+% Change font size
+set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
+fig_name = ['HOVER_FZ_',formattedDateTime,'.eps'];
+exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
+grid on

@@ -507,3 +507,91 @@ lgd1 = legend(hdls(:),legend_lbl,'location','southeast');
 title(lgd1,'Skew Angle') % add legend title
 sgtitle('Sideforce Data from Wind Tunnel tests')
 
+%% Nice db
+nice_db =  test_db(test_db.Skew<deg2rad(10),:);
+
+%% Nice plot
+set(gcf, 'Renderer', 'Painters');
+
+line_width = 2;
+font_size = 20;
+marker_size = 15;
+AR = 1.5;
+fig_height = 750;
+fig_width = fig_height*AR;
+
+screen = get(0, 'ScreenSize');
+
+if fig_width>screen(3)
+    fig_width = screen(3);
+    fig_height = fig_width/AR;
+end
+fprintf('Exporting as %.0fx%.0f \n',fig_width,fig_height);
+
+% Get the current date and time
+nowDateTime = datetime('now');
+
+% Format the date and time in the "MM_DD_HH_MM" format
+formattedDateTime = datestr(nowDateTime,'mm_dd_HH_MM');
+
+fig = figure('position',[0 0 fig_width fig_height]);
+
+% Store the default line width value
+origLineWidth = get(groot, 'DefaultLineLineWidth');
+
+% Set a new default line width value
+set(groot, 'DefaultLineLineWidth', line_width);
+
+% Set colors and line styles
+mycolors = linspecer(3,'qualitative');
+mylinestyles = {'-', '--', ':'};
+mymarkerstyles = {'o','+','*','x','square','diamond','^'};
+set(gcf,'DefaultAxesColorOrder',mycolors, ...
+        'DefaultAxesLineStyleOrder',mylinestyles)
+
+windspeed_bins = unique(round(nice_db.Windspeed,0));
+nice_db.Windspeed_bin = round(nice_db.Windspeed,0);
+
+legend_lbl = {};
+col=linspecer(length(windspeed_bins));
+hdls = [];
+Ax(1) = axes(fig); 
+for i=1:length(windspeed_bins)
+    temp_db = nice_db(nice_db.Windspeed_bin==windspeed_bins(i),:);
+    temp_x = [linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),20)',ones(20,1).*0,ones(20,1).*windspeed_bins(i)];
+    hdls(i,1) = plot(-rad2deg(temp_db.Turn_Table),temp_db.Fy,mymarkerstyles{i},'color',col(i,:),'MarkerSize',marker_size);
+    hold on
+    hdls(i,2) = plot(rad2deg(linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),20)),fit_quad(s_quad,temp_x),'-','color',col(i,:));
+    hdls(i,3) = plot(rad2deg(linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),20)),fit_v(s_v,sin(-temp_x(:,1)).*-temp_x(:,3)),'--','color',col(i,:));
+
+    legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
+
+end
+set(Ax(1), 'Box','off')
+lgd1 = legend(hdls(:,1),legend_lbl,'Location', 'northoutside', 'Orientation', 'horizontal');
+%title(lgd1,'Airspeed') % add legend title
+
+% copy axes 
+Ax(2) = copyobj(Ax(1),gcf);
+delete(get(Ax(2), 'Children') )
+
+% plot helper data, but invisible
+hold on
+H1 = plot([NaN NaN],[NaN NaN], '-', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2));
+H2 = plot([NaN NaN],[NaN NaN], '--', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2));
+hold off
+% make second axes invisible
+set(Ax(2), 'Color', 'none', 'XTick', [], 'YAxisLocation', 'right', 'Box', 'Off', 'Visible', 'off')
+% add linestyle legend
+lgd2 = legend([H1 H2], '\beta fit', 'v fit', 'Location', 'southwest', 'Orientation', 'horizontal');
+xlabel('Sideslip Angle [deg]')
+ylabel('Fuselage F_y [N]')
+axis([min(rad2deg(nice_db.Turn_Table))-1 max(rad2deg(nice_db.Turn_Table))+1 1.1*min(nice_db.Fy) 1.1*max(nice_db.Fy)])
+grid on
+%lgd3 = legend([hdls(:,1); H1; H2],[legend_lbl,{'\beta fit'}, {'v fit'}])
+
+% Change font size
+set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
+fig_name = ['FUSELAGE_FY_',formattedDateTime,'.eps'];
+exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
