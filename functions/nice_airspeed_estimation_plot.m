@@ -113,7 +113,9 @@ if strcmp(subplot_config,'two')
     % Nothing!
 else
     if strcmp(subplot_config,'one')
-        clf
+        fig = figure('position',[0 0 fig_width fig_height]);
+        set(gcf,'DefaultAxesColorOrder',mycolors, ...
+        'DefaultAxesLineStyleOrder',mylinestyles)
         ax2 = subplot(1,1,1);
     else
         ax2 = subplot(2,2,2);
@@ -157,7 +159,9 @@ kalman_res.u(12,:) = min(deg2rad(90),max(kalman_res.u(12,:),0));
 if strcmp(subplot_config,'two')
     ax3=subplot(2,1,2);
 elseif strcmp(subplot_config,'one')
-    clf
+    fig = figure('position',[0 0 fig_width fig_height]);
+    set(gcf,'DefaultAxesColorOrder',mycolors, ...
+        'DefaultAxesLineStyleOrder',mylinestyles)
     ax3 = subplot(1,1,1);
 else
     ax3 = subplot(2,2,3);
@@ -166,12 +170,14 @@ end
 plot(kalman_res.t,rad2deg(kalman_res.u(12,:)));
 hold on
 %title('Skew')
-xlabel('Time [s]')
-ylabel('Skew Angle [deg]')
+xlabel('Time [s]','fontSize',font_size)
+ylabel('Skew Angle [deg]','fontSize',font_size)
 grid on
 yline([0],'--','Quad-Mode','LabelHorizontalAlignment','Right','LabelVerticalAlignment','Top')
 yline([90],'--','FWD Flight','LabelHorizontalAlignment','Right','LabelVerticalAlignment','Bottom')
 axis([min(kalman_res.t) max(kalman_res.t) -5 125])
+ax3.XAxis.FontSize = font_size;
+ax3.YAxis.FontSize = font_size;
 
 % Hatch definition
 Alpha           = {0.5,0.5,0.5};
@@ -233,7 +239,7 @@ for i=1:3
 	hatchfill2(object_h(i+3),HatchType{i}, ...
 					'HatchAngle',HatchAngle{i},...
 					'HatchColor',HatchColor{i}, ...
-                    'HatchDensity',10);
+                   'HatchDensity',10);
 end
 
 % Export figure
@@ -250,7 +256,9 @@ if strcmp(subplot_config,'two')
     % Nothing
 else
     if strcmp(subplot_config,'one')
-        clf
+        fig = figure('position',[0 0 fig_width fig_height]);
+        set(gcf,'DefaultAxesColorOrder',mycolors, ...
+        'DefaultAxesLineStyleOrder',mylinestyles)
         ax4 = subplot(1,1,1);
     else
     ax4 = subplot(2,2,4);
