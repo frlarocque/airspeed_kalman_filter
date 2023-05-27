@@ -70,6 +70,7 @@ ff_end = kalman_res.t(diff(ff_logical)==-1);
 if strcmp(subplot_config,'two')
     ax1=subplot(2,1,1);
 elseif strcmp(subplot_config,'one')
+    
     ax1 = subplot(1,1,1);
 else
     ax1 = subplot(2,2,1);
@@ -101,7 +102,9 @@ if strcmp(subplot_config,'two')
     % Nothing!
 else
     if strcmp(subplot_config,'one')
-        clf
+        fig = figure('position',[0 0 fig_width fig_height]);
+        set(gcf,'DefaultAxesColorOrder',mycolors, ...
+        'DefaultAxesLineStyleOrder',mylinestyles)
         ax2 = subplot(1,1,1);
     else
         ax2 = subplot(2,2,2);
@@ -135,7 +138,9 @@ end
 if strcmp(subplot_config,'two')
     ax3=subplot(2,1,2);
 elseif strcmp(subplot_config,'one')
-    clf
+    fig = figure('position',[0 0 fig_width fig_height]);
+    set(gcf,'DefaultAxesColorOrder',mycolors, ...
+        'DefaultAxesLineStyleOrder',mylinestyles)
     ax3 = subplot(1,1,1);
 else
     ax3 = subplot(2,2,3);
@@ -150,7 +155,7 @@ grid on
 yline([0],'--','Quad-Mode','LabelHorizontalAlignment','Right','LabelVerticalAlignment','Top')
 yline([90],'--','FWD Flight','LabelHorizontalAlignment','Right','LabelVerticalAlignment','Bottom');
 
-axis([min(kalman_res.t) max(kalman_res.t) -5 125])
+axis([min(kalman_res.t) max(kalman_res.t) -5 135])
 
 % Hatch definition
 Alpha           = {0.5,0.5,0.5};
@@ -217,7 +222,9 @@ if strcmp(subplot_config,'two')
     % Nothing
 else
     if strcmp(subplot_config,'one')
-        clf
+        fig = figure('position',[0 0 fig_width fig_height]);
+        set(gcf,'DefaultAxesColorOrder',mycolors, ...
+        'DefaultAxesLineStyleOrder',mylinestyles)
         ax4 = subplot(1,1,1);
     else
     ax4 = subplot(2,2,4);
@@ -231,7 +238,7 @@ else
     ylabel('PWM Command')
     legend('Pusher Motor','Hover Motor','Orientation','horizontal')
     grid on
-    axis([-inf inf 900 2250])
+    axis([-inf inf 900 2350])
 
     % Export figure
     if strcmp(subplot_config,'one')
