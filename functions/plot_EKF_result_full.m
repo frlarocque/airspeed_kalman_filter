@@ -1,5 +1,16 @@
-function plot_EKF_result_full(kalman_res,airspeed_pitot,beta,alpha,wind)
+function plot_EKF_result_full(kalman_res,airspeed_pitot,beta,alpha,wind,cutoff_freq)
 %PLOT_EKF_RESULTS Plot results of EKF 
+
+
+
+if nargin==6
+    dt = mean(diff(kalman_res.t));
+    [b,a] = butter(2,2*cutoff_freq*dt,'low');
+    kalman_res.x = filtfilt(b,a,kalman_res.x')';
+    kalman_res.u = filtfilt(b,a,kalman_res.u')';
+    kalman_res.y = filtfilt(b,a,kalman_res.y')';
+    kalman_res.z = filtfilt(b,a,kalman_res.z')';
+end
 
 figure
 ax1=subplot(3,2,1);
