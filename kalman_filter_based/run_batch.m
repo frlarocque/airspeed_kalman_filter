@@ -41,20 +41,28 @@ writecell(variableData, excel_filename, 'Sheet', excel_sheet_params);
 %% Main loop
 
 variableData = {'File Name','Path',...
-                'Duration Flight [s]','Mean Pusher RPM [RPM]','Mean Hover RPM [RPM]',...
+                'Duration Flight [s]','Duration Hover Flight [s]','Duration Transition [s]','Duration Forward Flight [s]',...
+                'Mean Pusher RPM [RPM]','Mean Hover RPM [RPM]',...
                 'Mean Skew [deg]','Max Skew [deg]',...
                 'Mean Airspeed [m/s]','Mean Groundspeed [m/s]','Mean Wind [m/s]',...
                 'Error Overall RMS [m/s]','Error Overall Mean [m/s]','Error Overall Max [m/s]','Error Overall Min [m/s]','Error Overall Std Dev [m^2/s^2]',...
                 'Error Constant Wind RMS [m/s]','Error Constant Wind  Mean [m/s]','Error Constant Wind  Max [m/s]','Error Constant Wind  Min [m/s]','Error Constant Wind  Std Dev [m^2/s^2]',...
                 'Error RMS Hover [m/s]','Error RMS Transition [m/s]','Error RMS Forward Flight [m/s]'};
 
+analyzed_files = {};
+warning ('off','all');
 for iii=1:length(fileList)
-    clearvars -except iii variableData fileList kalman_res excel_filename excel_sheet_params excel_sheet_results
+    clearvars -except iii variableData fileList kalman_res excel_filename excel_sheet_params excel_sheet_results analyzed_files
     fprintf('Loading %d/%d %s\n',iii,length(fileList),fileList{iii})
     clear ac_data
     load(fileList{iii})
     [~, file, ~] = fileparts(fileList{iii});
-
+    
+    if any(strcmp(analyzed_files,file))
+        fprintf('Skipped file as already analyzed\n')
+    else
+        
+    
     %% Select relevant data
     % Setup Options
     graph = 0;
@@ -114,6 +122,12 @@ for iii=1:length(fileList)
     kalman_res{iii}.error = error_quantification_full(kalman_res{iii}.x(1,:)',airspeed_pitot_resampled.flight.data,airspeed_pitot_resampled.flight.valid,kalman_res{iii}.u(12,:)');
     kalman_res{iii}.error.constant_wind = error_quantification(kalman_res{iii}.x(1,:)',interp1(airspeed_estimation.time,airspeed_estimation.data,kalman_res{iii}.t));
 
+    %% Calculate time in different flight phases
+    [bool_hover,bool_transition,bool_ff] = identify_hover_transition_ff(kalman_res{iii}.u(12,:));
+    
+    hover_duration = sum(bool_hover).*dt;
+    transition_duration = sum(bool_transition).*dt;
+    ff_duration = sum(bool_ff).*dt;
 
     %% Get data for excel file
 %                 {'File Name','Path',...
@@ -125,13 +139,17 @@ for iii=1:length(fileList)
 %                 'Error RMS Hover [m/s]','Error RMS Transition [m/s]','Error RMS Forward Flight [m/s]'};
     
     variableData = [variableData; {file, fileList{iii},...
-                    kalman_res{iii}.t(end)-kalman_res{iii}.t(1),mean(kalman_res{iii}.u(10,:)), mean(kalman_res{iii}.u(11,:)),...
+                    kalman_res{iii}.t(end)-kalman_res{iii}.t(1),hover_duration,transition_duration,ff_duration...
+                    mean(kalman_res{iii}.u(10,:)), mean(kalman_res{iii}.u(11,:)),...
                     rad2deg(mean(kalman_res{iii}.u(12,:))),rad2deg(max(kalman_res{iii}.u(12,:))),...
                     mean(airspeed_pitot.flight.data(airspeed_pitot.flight.valid)),mean(vecnorm(Vg_NED.flight.data,2,2)) ,wind.norm ,...
                     kalman_res{iii}.error.valid_pitot.error_RMS, kalman_res{iii}.error.valid_pitot.error_mean, kalman_res{iii}.error.valid_pitot.error_max, kalman_res{iii}.error.valid_pitot.error_min, kalman_res{iii}.error.valid_pitot.std_dev,...
                     kalman_res{iii}.error.constant_wind.error_RMS, kalman_res{iii}.error.constant_wind.error_mean, kalman_res{iii}.error.constant_wind.error_max, kalman_res{iii}.error.constant_wind.error_min, kalman_res{iii}.error.constant_wind.std_dev,...
                     kalman_res{iii}.error.hover.error_RMS,kalman_res{iii}.error.transition.error_RMS,kalman_res{iii}.error.ff.error_RMS}];
-end
 
+analyzed_files{end+1} = file;
+    end
+end
+warning ('on','all');
 %% To excel file
 writecell(variableData, excel_filename, 'Sheet', excel_sheet_results);
