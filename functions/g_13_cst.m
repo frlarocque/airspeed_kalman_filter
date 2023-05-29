@@ -48,25 +48,28 @@ else
     Fx_push = Fx_pusher(RPM_pusher,u);
 end
 
-Fx_fus = Fx_fuselage(skew,alpha,u);%-0.04.*u.*u.*sign(u); %-0.04
+Fx_fus = -0.048.*u.*u.*sign(u); %Fx_fuselage(skew,alpha,u);
 
-Fx_hprop = Fx_hover_prop(RPM_hover,u);
-
-%if RPM_hover<1000
-%    Fx_hprop = 0;
-%else
-%    Fx_hprop = -0.3.*u;
-%end
+if RPM_hover<1000
+    Fx_hprop = 0;
+else
+    Fx_hprop = -0.75.*u;
+end
 
 if EKF_AW_WING_INSTALLED
-    Fx_w = Fx_wing(skew,alpha,u);
+    Fx_w = Fx_wing_3(skew,alpha,u);
 else
     Fx_w = 0; 
 end
 
-a_x = (Fx_fus + Fx_hprop + Fx_w + Fx_push + u*u*sign_u*k_x)./EKF_AW_VEHICLE_MASS;
+a_x = (Fx_fus + Fx_hprop + Fx_w + Fx_push + u.^2*sign_u*k_x)./EKF_AW_VEHICLE_MASS;
 
 % A_y
+if RPM_hover<1000
+    Fy_hprop = 0;
+else
+    Fy_hprop = 1.0.*-0.75.*v;
+end
 if EKF_AW_USE_BETA
     if vecnorm([u,v,w])==0
         beta=0;
@@ -75,11 +78,12 @@ if EKF_AW_USE_BETA
     end
     
     k_beta = -0.219;
-    a_y = (beta.*k_beta.*(V_a.^2)./EKF_AW_VEHICLE_MASS) + k_y;
+    a_y = ((beta.*k_beta.*(V_a.^2)+Fy_hprop)./EKF_AW_VEHICLE_MASS) + k_y;
 else
     k_v = 1.*-3.2E-1;
-    a_y = (k_v.*v.^2.*sign_v)./EKF_AW_VEHICLE_MASS + k_y.*u.^2.*sign_u;
+    a_y = (k_v.*v.^2.*sign_v+Fy_hprop)./EKF_AW_VEHICLE_MASS + k_y.*u.^2.*sign_u;
 end
+
 if EKF_AW_WING_INSTALLED
     Fy_w = Fy_wing(skew,alpha,u);
     a_y = a_y + Fy_w./EKF_AW_VEHICLE_MASS;
@@ -93,9 +97,9 @@ if EKF_AW_WING_INSTALLED
 else
     Fz_w = 0; 
 end
-Fz_elev = 0;%Fz_elevator(elevator_pprz,V_a);
+Fz_elev = 0;%Fz_elevator_2(elevator_pprz,V_a);
 
-a_z = (Fz_fus+Fz_w+Fz_elev+Fz_hprop)./EKF_AW_VEHICLE_MASS;
+a_z = (Fz_fus+Fz_w+Fz_elev+Fz_hprop+k_z*u.^2.*sign(u))./EKF_AW_VEHICLE_MASS;
 
 g = [speed;a_x;a_y;a_z;u]+v_noise;
 

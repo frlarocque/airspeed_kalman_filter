@@ -60,8 +60,8 @@ end
 % Process Noise
 EKF_AW_Q_accel = 1E-04;
 EKF_AW_Q_gyro = 1E-09;
-EKF_AW_Q_mu = 2.5E-5;
-EKF_AW_Q_offset = 1E-8;
+EKF_AW_Q_mu = 1E-6;
+EKF_AW_Q_offset = 1E-10;
 
 % Measurement Noise
 EKF_AW_R_V_gnd = 1E-05;
