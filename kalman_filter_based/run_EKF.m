@@ -133,7 +133,7 @@ for k=1:length(t)
         flag_quick_convergence = true;
         Q_variable{k}(7,7) = 10.^EKF_AW_AZ_QUICK_CONV_MU_GAIN*Q_variable{k}(7,7); %increase wind covariance --> it can change faster
         Q_variable{k}(8,8) = 10.^EKF_AW_AZ_QUICK_CONV_MU_GAIN*Q_variable{k}(8,8);
-        Q_variable{k}(9,9) = 10.^EKF_AW_AZ_QUICK_CONV_MU_GAIN*Q_variable{k}(9,9);
+        %Q_variable{k}(9,9) = 10.^EKF_AW_AZ_QUICK_CONV_MU_GAIN*Q_variable{k}(9,9);
 
         R_variable{k}(4,4) = 10.^EKF_AW_AZ_QUICK_CONV_ACCEL_GAIN*R_variable{k}(4,4); %decrease a_x cov --> more weight put on it
         R_variable{k}(5,5) = 10.^EKF_AW_AZ_QUICK_CONV_ACCEL_GAIN*R_variable{k}(5,5); %decrease a_x cov --> more weight put on it
@@ -146,6 +146,15 @@ for k=1:length(t)
     G_val = G(g_fh,x,u,epsi);
     L_val = L(f_fh,x,u,epsi);
     M_val = M(g_fh,x,u,epsi);
+    
+    if ~EKF_AW_PROPAGATE_OFFSET
+        Q_variable{k}(10,10) = 1E-10*Q_variable{k}(10,10);
+        Q_variable{k}(11,11) = 1E-10*Q_variable{k}(11,11);
+        Q_variable{k}(12,12) = 1E-10*Q_variable{k}(12,12);
+    end
+    if ~EKF_AW_USE_PITOT
+        R_variable{k}(7,7) = 1E6*R_variable{k}(7,7);
+    end
 
     % Prediction
     x_pred = x + dt*f_fh(x,u);
