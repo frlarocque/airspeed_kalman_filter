@@ -29,25 +29,14 @@ kalman_filter_settings
 t = airspeed_pitot.flight.time;
 dt = mean(diff(t));
 
-% Get filter accel agressively
-[b,a] = butter(2,2*filter_low_freq*dt,'low');
-
-a_x_filt = filter(b,a,IMU_accel.flight.data(:,1));
-a_y_filt = filter(b,a,IMU_accel.flight.data(:,2));
-a_z_filt = filter(b,a,IMU_accel.flight.data(:,3));
-pusher_prop_rpm_filt = filter(b,a,pusher_prop_rpm.flight.data);%filter(b,a,pusher_prop_rpm.flight.data);
-hover_prop_rpm_filt = filter(b,a,mean(hover_prop_rpm.flight.data,2));%filter(b,a,mean(hover_prop_rpm.flight.data,2));
-skew_filt = filter(b,a,skew.flight.data);
-elevator_pprz_filt = filter(b,a,control_surface_pprz.flight.data(:,4));
-
 u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data ...
-            pusher_prop_rpm_filt hover_prop_rpm_filt skew_filt elevator_pprz_filt]';
-z_list = [Vg_NED.flight.data a_x_filt a_y_filt a_z_filt airspeed_pitot.flight.data]'; %measurement
+            pusher_prop_rpm.flight.data mean(hover_prop_rpm.flight.data,2) skew.flight.data control_surface_pprz.flight.data(:,4)]';
+z_list = [Vg_NED.flight.data IMU_accel.flight.data airspeed_pitot.flight.data]'; %measurement
 
 % Filter Data coming in
-[b,a] = butter(2,2*filter_high_freq*dt,'low');
-u_list(1:6,:) = filtfilt(b,a,u_list(1:6,:)')';%filter(b,a,u_list(1:6,:),[],2);
-z_list(1:3,:) = filtfilt(b,a,z_list(1:3,:)')';%filter(b,a,z_list(1:3,:),[],2);
+[b,a] = butter(2,2*EKF_AW_MEAS_FILTERING*dt,'low');
+u_list = filter(b,a,u_list,[],2);
+z_list = filter(b,a,z_list,[],2);
 
 Q = diag([[1 1 1E1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[1 1 1E-2].*EKF_AW_Q_mu,[1 1 1].*EKF_AW_Q_offset]); %process noise
 P_0 = diag([[1 1 1].*EKF_AW_P0_V_body [1 1 1].*EKF_AW_P0_mu [1 1 1].*EKF_AW_P0_offset]); %covariance
@@ -80,7 +69,7 @@ fprintf("FINISHED!\n \nWAKE UP!\n")
 %% Plot
 select = 1;
 %plot_EKF_result(kalman_res{select},airspeed_pitot.flight,wind)
-plot_EKF_result_full(kalman_res{select},airspeed_pitot.flight,beta.flight,alpha.flight,wind)
+plot_EKF_result_full(kalman_res{select},airspeed_pitot.flight,beta.flight,alpha.flight,wind,1)
 fprintf('Estimated wind (using Kalman Filter) is %0.2f m/s going %0.2f deg\n',mean(vecnorm(kalman_res{select}.x(4:6,:),2)),rad2deg(atan2(mean(kalman_res{select}.x(4,:)),mean(kalman_res{select}.x(5,:)))))
 fprintf('Error RMS Overall %2.2f Hover %2.2f Transition %2.2f FF %2.2f\n',kalman_res{1}.error.valid_pitot.error_RMS,kalman_res{1}.error.hover.error_RMS,kalman_res{1}.error.transition.error_RMS,kalman_res{1}.error.ff.error_RMS)
 
