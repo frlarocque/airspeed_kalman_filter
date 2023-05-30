@@ -72,30 +72,20 @@ kalman_res = cell(1,length(freq_list));
 for i=1:length(freq_list)
     fprintf('RUNNING %2.2f\n',freq_list(i))
     
-    filter_low_freq = freq_list(i);
+    EKF_AW_MEAS_FILTERING = freq_list(i);
     
     t = airspeed_pitot.flight.time;
     dt = mean(diff(t));
-    % Get filter accel agressively
-    [b,a] = butter(2,2*filter_low_freq*dt,'low');
-    
-    a_x_filt = filter(b,a,IMU_accel.flight.data(:,1));
-    a_y_filt = filter(b,a,IMU_accel.flight.data(:,2));
-    a_z_filt = filter(b,a,IMU_accel.flight.data(:,3));
-    pusher_prop_rpm_filt = filter(b,a,pusher_prop_rpm.flight.data);%filter(b,a,pusher_prop_rpm.flight.data);
-    hover_prop_rpm_filt = filter(b,a,mean(hover_prop_rpm.flight.data,2));%filter(b,a,mean(hover_prop_rpm.flight.data,2));
-    skew_filt = filter(b,a,skew.flight.data);
-    elevator_pprz_filt = filter(b,a,control_surface_pprz.flight.data(:,4));
-    
-    u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data ...
-            pusher_prop_rpm_filt hover_prop_rpm_filt skew_filt elevator_pprz_filt]';
-    z_list = [Vg_NED.flight.data a_x_filt a_y_filt a_z_filt airspeed_pitot.flight.data]'; %measurement
-    
-    % Filter Data coming in
-    [b,a] = butter(2,2*filter_high_freq*dt,'low');
-    u_list(1:6,:) = filtfilt(b,a,u_list(1:6,:)')';%filter(b,a,u_list(1:6,:),[],2);
-    z_list(1:3,:) = filtfilt(b,a,z_list(1:3,:)')';%filter(b,a,z_list(1:3,:),[],2);
 
+    u_list = [IMU_accel.flight.data IMU_rate.flight.data IMU_angle.flight.data ...
+            pusher_prop_rpm.flight.data mean(hover_prop_rpm.flight.data,2) skew.flight.data control_surface_pprz.flight.data(:,4)]';
+    z_list = [Vg_NED.flight.data IMU_accel.flight.data airspeed_pitot.flight.data]'; %measurement
+
+    % Filter Data coming in
+    [b,a] = butter(2,2*EKF_AW_MEAS_FILTERING*dt,'low');
+    u_list = filter(b,a,u_list,[],2);
+    z_list = filter(b,a,z_list,[],2);
+    
     % Resample to different sample time
     u_list_resampled = resample(u_list',t,f_EKF)';
     z_list_resampled = resample(z_list',t,f_EKF)';
@@ -203,11 +193,10 @@ set(gcf,'DefaultAxesColorOrder',mycolors, ...
 subplot(1,1,1)
 p1 = plot(freq_list,error_RMS_list);
 
-xlabel('Accelerometer Cutoff Frequency [Hz]')
-ylabel('Airspeed Estimation RMS Error')
+xlabel('Measurement Filter Cutoff Frequency [Hz]')
+ylabel('Airspeed Estimation RMS Error [m/s]')
 
 grid on
-grid minor
 
 % Export figure
 fig_name = ['accel_freq_sweep_RMS_',formattedDateTime,'.eps'];
@@ -217,11 +206,10 @@ exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 subplot(1,1,1)
 p1 = plot(freq_list,error_mean_list);
 
-xlabel('Accelerometer Cutoff Frequency [Hz]')
-ylabel('Airspeed Estimation Mean Error')
+xlabel('Measurement Filter Cutoff Frequency [Hz]')
+ylabel('Airspeed Estimation Mean Error [m/s]')
 
 grid on
-grid minor
 
 % Export figure
 fig_name = ['accel_freq_sweep_Mean_',formattedDateTime,'.eps'];
