@@ -71,9 +71,9 @@ classdef residual_fault_detector < handle
         function check_thresholds(obj)
 
             % High Threshold
-            if abs(obj.res_filt)>obj.crit_high && ~obj.flag_high_fault
+            if abs(obj.res)>obj.crit_high && ~obj.flag_high_fault
                 obj.count_high = obj.count_high+1;
-            elseif abs(obj.res_filt)>obj.crit_high && obj.flag_high_fault
+            elseif abs(obj.res)>obj.crit_high && obj.flag_high_fault
                 obj.count_high = obj.count_high;
             else
                 obj.count_high = 0;
@@ -85,7 +85,7 @@ classdef residual_fault_detector < handle
             end
             
             % Low Threshold
-            if abs(obj.res_filt)>obj.crit_low && ~obj.flag_low_fault
+            if abs(obj.res)>obj.crit_low && ~obj.flag_low_fault
                 obj.count_low = obj.count_low+1;
             elseif abs(obj.res)>obj.crit_low && obj.flag_low_fault
                 obj.count_low = obj.count_low;
@@ -101,7 +101,7 @@ classdef residual_fault_detector < handle
             % Diff Threshold
             if abs(obj.res_filt)>obj.crit_diff && ~obj.flag_diff_fault
                 obj.count_diff = obj.count_diff+1;
-            elseif abs(obj.res)>obj.crit_diff && obj.flag_diff_fault
+            elseif abs(obj.res_filt)>obj.crit_diff && obj.flag_diff_fault
                 obj.count_diff = obj.count_diff;
             else
                 obj.count_diff = 0;
