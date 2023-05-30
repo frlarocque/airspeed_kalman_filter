@@ -50,7 +50,7 @@ end
 
 Fx_fus = -0.048.*u.*u.*sign(u); %Fx_fuselage(skew,alpha,u);
 
-if RPM_hover<1000
+if RPM_hover<2500
     Fx_hprop = 0;
 else
     Fx_hprop = -0.75.*u;
@@ -65,7 +65,7 @@ end
 a_x = (Fx_fus + Fx_hprop + Fx_w + Fx_push + u.^2*sign_u*k_x)./EKF_AW_VEHICLE_MASS;
 
 % A_y
-if RPM_hover<1000
+if RPM_hover<2500
     Fy_hprop = 0;
 else
     Fy_hprop = 1.0.*-0.75.*v;

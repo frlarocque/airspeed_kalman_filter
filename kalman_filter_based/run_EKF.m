@@ -133,7 +133,6 @@ for k=1:length(t)
         flag_quick_convergence = true;
         Q_variable{k}(7,7) = 10.^EKF_AW_AZ_QUICK_CONV_MU_GAIN*Q_variable{k}(7,7); %increase wind covariance --> it can change faster
         Q_variable{k}(8,8) = 10.^EKF_AW_AZ_QUICK_CONV_MU_GAIN*Q_variable{k}(8,8);
-        %Q_variable{k}(9,9) = 10.^EKF_AW_AZ_QUICK_CONV_MU_GAIN*Q_variable{k}(9,9);
 
         R_variable{k}(4,4) = 10.^EKF_AW_AZ_QUICK_CONV_ACCEL_GAIN*R_variable{k}(4,4); %decrease a_x cov --> more weight put on it
         R_variable{k}(5,5) = 10.^EKF_AW_AZ_QUICK_CONV_ACCEL_GAIN*R_variable{k}(5,5); %decrease a_x cov --> more weight put on it

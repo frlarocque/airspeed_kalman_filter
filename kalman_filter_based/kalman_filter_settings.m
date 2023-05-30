@@ -76,15 +76,15 @@ EKF_AW_P0_mu = 1E1*EKF_AW_Q_mu;
 EKF_AW_P0_offset = EKF_AW_Q_offset;
 
 % Filter pre-filtering
-EKF_AW_MEAS_FILTERING = 10; %[Hz]
+EKF_AW_MEAS_FILTERING = 2; %[Hz]
 f_EKF = 25; %[Hz]
 
 % Innovation gates
-EKF_AW_AX_INNOV_GATE = 10;
-EKF_AW_AY_INNOV_GATE = 10;
-EKF_AW_AZ_INNOV_GATE = 10;
+EKF_AW_AX_INNOV_GATE = 100;
+EKF_AW_AY_INNOV_GATE = 100;
+EKF_AW_AZ_INNOV_GATE = 100;
 
-EKF_AW_V_GPS_INNOV_GATE = 10;
+EKF_AW_V_GPS_INNOV_GATE = 100;
 
 % Pitot tube fault detection parameters
 EKF_AW_RES_DETECT_CRIT_LOW = 3;
