@@ -64,7 +64,14 @@ for iii=1:length(fileList)
     kalman_filter_settings
 
     %% Cov selection
-    EKF_AW_Q_mu = cov_list(cov_index);
+    EKF_AW_Q_mu_x = cov_list(i);
+    EKF_AW_Q_mu_y = cov_list(i);
+    EKF_AW_Q_mu_z = 1E-1.*cov_list(i);
+    
+    Q = diag([EKF_AW_Q_accel_x  EKF_AW_Q_accel_y EKF_AW_Q_accel_z ...
+         EKF_AW_Q_gyro_x EKF_AW_Q_gyro_y EKF_AW_Q_gyro_z ...
+         EKF_AW_Q_mu_x EKF_AW_Q_mu_y EKF_AW_Q_mu_z ...
+         EKF_AW_Q_offset_x EKF_AW_Q_offset_y EKF_AW_Q_offset_z]); %process noise
     
     %% Filtering and resampling
     t = airspeed_pitot.flight.time;
