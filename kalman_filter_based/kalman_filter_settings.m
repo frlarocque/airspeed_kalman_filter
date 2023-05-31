@@ -76,7 +76,7 @@ EKF_AW_R_V_gnd_x = 4.1E-04;
 EKF_AW_R_V_gnd_y = 4.2E-04;
 EKF_AW_R_V_gnd_z = 1.4E-04;
 EKF_AW_R_accel_filt_x = 5E-5;
-EKF_AW_R_accel_filt_y = 5E-5;
+EKF_AW_R_accel_filt_y = 5E-4;
 EKF_AW_R_accel_filt_z = 5E-4;
 EKF_AW_R_V_pitot = 1E-5;
 
