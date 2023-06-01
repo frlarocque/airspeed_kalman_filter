@@ -364,7 +364,7 @@ legend_lbl = {};
 col=linspecer(length(rpm_bins));
 hdls = [];
 Ax(1) = axes(fig); 
-
+error_vec = [];
 for i=1:length(rpm_bins)
     temp_db = nice_db(nice_db.rpm_bin==rpm_bins(i),:);
     
@@ -384,9 +384,9 @@ for i=1:length(rpm_bins)
     hdls(i,2) = plot(linspace(0,max(windspeed_bins),20),s.*linspace(0,max(windspeed_bins),20),'-','color',col(i,:)); 
 
     legend_lbl{i} = [mat2str(rpm_bins(i)),' RPM'];
-
+    error_vec = [error_vec; temp_group.mean_Fx_hover- -0.75.*temp_group.windspeed_bin];
 end
-set(Ax(1), 'Box','off')
+
 lgd1 = legend(hdls(:,1),legend_lbl,'Location', 'northoutside', 'Orientation', 'horizontal');
 
 xlabel('Windspeed [m/s]')
@@ -400,3 +400,6 @@ set(findall(gcf,'-property','FontSize'),'FontSize',font_size)
 fig_name = ['HOVER_FX_',formattedDateTime,'.eps'];
 exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 grid on
+
+% RMS
+fprintf('Overall RMS %2.2f\n',rms(error_vec))

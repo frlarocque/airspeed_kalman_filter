@@ -454,7 +454,7 @@ x = [nice_db.Turn_Table,nice_db.Windspeed,nice_db.Skew_sp];
 y = [nice_db.Fx];
 
 fit_nice = @(k,x)  k(1)*x(:,2).^2; % Function to fit
-fcn_nice = @(k) sqrt(mean((fit_simple(k,x) - y).^2));           % Least-Squares cost function
+fcn_nice = @(k) sqrt(mean((fit_nice(k,x) - y).^2));           % Least-Squares cost function
 [s_nice,RMS_nice] = fminsearch(fcn_nice,[-4E-2],options) %bound first coefficient to negative value
 
 %% Plot nice
@@ -503,6 +503,7 @@ legend_lbl = {};
 col=linspecer(length(windspeed_bins));
 hdls = [];
 Ax(1) = axes(fig); 
+error_vec = [];
 for i=1:length(windspeed_bins)
     temp_db = nice_db(nice_db.Windspeed_bin==windspeed_bins(i),:);
     temp_group = groupsummary(temp_db, ['Turn_Table'], 'mean', 'Fx');
@@ -513,24 +514,11 @@ for i=1:length(windspeed_bins)
     hdls(i,2) = plot(rad2deg(linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),10)),fit_nice(s_nice,temp_x),'-','color',col(i,:));
     
     legend_lbl{i} = [mat2str(windspeed_bins(i)),' m/s'];
-
+    error_vec = [error_vec; temp_group.mean_Fx-fit_nice(s_nice,[temp_group.Turn_Table,ones(length(temp_group.Turn_Table),1).*windspeed_bins(i),ones(length(temp_group.Turn_Table),1).*0])];
 end
-set(Ax(1), 'Box','off')
 lgd1 = legend(hdls(:,1),legend_lbl,'Location', 'northoutside', 'Orientation', 'horizontal');
-%title(lgd1,'Airspeed') % add legend title
 
-% copy axes 
-Ax(2) = copyobj(Ax(1),gcf);
-delete(get(Ax(2), 'Children') )
-
-% plot helper data, but invisible
-hold on
-H1 = plot([NaN NaN],[NaN NaN], '-', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2));
-H2 = plot([NaN NaN],[NaN NaN], '--', 'LineWidth', 1, 'Color', [0 0 0], 'Parent', Ax(2));
-hold off
-% make second axes invisible
-set(Ax(2), 'Color', 'none', 'XTick', [], 'YAxisLocation', 'right', 'Box', 'Off', 'Visible', 'off')
-xlabel('Angle of attack) [deg]')
+xlabel('Angle of attack [deg]')
 ylabel('Fuselage F_x [N]')
 axis([min(rad2deg(nice_db.Turn_Table))-1 max(rad2deg(nice_db.Turn_Table))+1 1.1*min(nice_db.Fx) 1.1*max(nice_db.Fx)])
 grid on
@@ -541,3 +529,5 @@ set(findall(gcf,'-property','FontSize'),'FontSize',font_size)
 fig_name = ['FUSELAGE_FX_',formattedDateTime,'.eps'];
 exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 
+% RMS
+fprintf('Overall RMS %2.2f\n',rms(error_vec))

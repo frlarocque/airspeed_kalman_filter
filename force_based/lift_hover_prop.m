@@ -277,7 +277,6 @@ end
 temp_x = [linspace(0,max(rpm_bins),20)',ones(20,1).*0];
 plot(linspace(0,max(rpm_bins),20),fit_same(s_same,temp_x),'-','color',col(i+1,:))
     
-set(Ax(1), 'Box','off')
 lgd1 = legend(hdls(:,1),legend_lbl,'Location', 'northoutside', 'Orientation', 'horizontal');
 
 xlabel('RPM [Rev per minute]')

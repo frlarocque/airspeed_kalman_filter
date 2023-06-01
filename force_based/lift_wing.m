@@ -513,6 +513,7 @@ nice_db.skew_bin = deg2rad(round(rad2deg(nice_db.Skew_sp),0));
 legend_lbl = {};
 col=linspecer(length(skew_bins));
 hdls = [];
+error_vec = [];
 for i=1:length(skew_bins)
     temp_db = nice_db(nice_db.skew_bin==skew_bins(i),:);
     temp_x = [linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),20)',ones(20,1).*1,ones(20,1).*skew_bins(i)];
@@ -526,6 +527,7 @@ for i=1:length(skew_bins)
     hdls(i,2) = plot(rad2deg(linspace(min(temp_db.Turn_Table),max(temp_db.Turn_Table),20)),fit_1(s_all_1,temp_x),'-','color',col(i,:));
         
     legend_lbl{i} = [mat2str(rad2deg(skew_bins(i))),' deg'];
+    error_vec = [error_vec; temp_group.mean_Fz_scaled-fit_1(s_all_1,[temp_group.Turn_Table,ones(length(temp_group.Turn_Table),1).*1,ones(length(temp_group.Turn_Table),1).*skew_bins(i)])];
 end
 lgd1 = legend(hdls(:,1),legend_lbl,'Location', 'northoutside', 'Orientation', 'horizontal');
 xlabel('Angle of attack [deg]')
@@ -539,3 +541,6 @@ set(findall(gcf,'-property','FontSize'),'FontSize',font_size)
 fig_name = ['WING_FZ_',formattedDateTime,'.eps'];
 exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
 grid on
+
+% RMS
+fprintf('Overall RMS %2.3f\n',rms(error_vec))
