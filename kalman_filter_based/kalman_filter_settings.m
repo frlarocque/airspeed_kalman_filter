@@ -64,19 +64,19 @@ EKF_AW_Q_accel_z = 3E-04;
 EKF_AW_Q_gyro_x = 3.1E-09;
 EKF_AW_Q_gyro_y = 1.2E-09;
 EKF_AW_Q_gyro_z = 1.3E-09;
-EKF_AW_Q_mu_x = 7.5E-5;
-EKF_AW_Q_mu_y = 7.5E-5;
-EKF_AW_Q_mu_z = 7.5E-6;
+EKF_AW_Q_mu_x = 12.5E-5;
+EKF_AW_Q_mu_y = 12.5E-5;
+EKF_AW_Q_mu_z = 12.5E-6;
 EKF_AW_Q_offset_x = 1E-10;
 EKF_AW_Q_offset_y = 1E-10;
 EKF_AW_Q_offset_z = 1E-10;
 
 % Measurement Noise
-EKF_AW_R_V_gnd_x = 4.1E-04;
-EKF_AW_R_V_gnd_y = 4.2E-04;
+EKF_AW_R_V_gnd_x = 4.1E-05;
+EKF_AW_R_V_gnd_y = 4.2E-05;
 EKF_AW_R_V_gnd_z = 1.4E-04;
 EKF_AW_R_accel_filt_x = 5E-5;
-EKF_AW_R_accel_filt_y = 5E-4;
+EKF_AW_R_accel_filt_y = 1E-4;
 EKF_AW_R_accel_filt_z = 5E-4;
 EKF_AW_R_V_pitot = 1E-5;
 
