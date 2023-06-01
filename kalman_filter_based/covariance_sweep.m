@@ -130,9 +130,12 @@ set(gcf,'DefaultAxesColorOrder',mycolors, ...
 subplot(1,1,1)
 p1 = semilogx(cov_list,error_RMS_list);
 
+% Set the xticks to be each power of 10
+xticks(logspace(-8, -2, 7));
+
 xlabel('Wind Covariance [(m/s)²]')
-ylabel('Airspeed Estimation RMS Error [m/s]')
-axis([1E-9 1E-2 -inf inf])
+ylabel('Airspeed Estimation RMSE [m/s]')
+axis([1E-8 1E-2 1.5 5])
 
 grid on
 %grid minor

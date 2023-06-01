@@ -21,7 +21,7 @@ fileList = findMATFiles(root_path);
 kalman_res = cell(1,length(fileList));
 
 %% Loop through wind cov values
-cov_list = logspace(-6.25,-4.75,5);
+cov_list = logspace(-7,-1,20);
 
 for cov_index=1:length(cov_list)
 fprintf('RUNNING %2.2e\n',cov_list(cov_index))
@@ -38,6 +38,24 @@ variableData = {'File Name','Path',...
 
 analyzed_files = {};
 warning ('off','all');
+
+%% Write Kalman filter settings in excel file
+    excel_filename = sprintf('batch_%s_%2.2e.xlsx',datestr(datetime, 'mm_dd_HH_MM'),cov_list(cov_index));
+    % Retrieve global variable names
+    globalVars = who('global');
+    
+    % Create a cell array to store the variable names and values
+    variableData_2 = {'Variable Name', 'Value'};
+    for ii = 1:numel(globalVars)
+        varName = globalVars{ii};
+        varValue = evalin('base', varName);
+        variableData_2 = [variableData_2; {varName, varValue}];
+    end
+    
+    % Write the variable data to the Excel file
+    writecell(variableData_2, excel_filename, 'Sheet', excel_sheet_params);
+
+    %% Main loop
 for iii=1:length(fileList)
     clearvars -except cov_index iii variableData fileList kalman_res excel_filename excel_sheet_params excel_sheet_results analyzed_files cov_list
     fprintf('Loading %d/%d %s\n',iii,length(fileList),fileList{iii})
@@ -64,9 +82,9 @@ for iii=1:length(fileList)
     kalman_filter_settings
 
     %% Cov selection
-    EKF_AW_Q_mu_x = cov_list(i);
-    EKF_AW_Q_mu_y = cov_list(i);
-    EKF_AW_Q_mu_z = 1E-1.*cov_list(i);
+    EKF_AW_Q_mu_x = cov_list(cov_index);
+    EKF_AW_Q_mu_y = cov_list(cov_index);
+    EKF_AW_Q_mu_z = 1E-1.*cov_list(cov_index);
     
     Q = diag([EKF_AW_Q_accel_x  EKF_AW_Q_accel_y EKF_AW_Q_accel_z ...
          EKF_AW_Q_gyro_x EKF_AW_Q_gyro_y EKF_AW_Q_gyro_z ...
@@ -85,10 +103,6 @@ for iii=1:length(fileList)
     [b,a] = butter(2,2*EKF_AW_MEAS_FILTERING*dt,'low');
     u_list = filter(b,a,u_list,[],2);
     z_list = filter(b,a,z_list,[],2);
-    
-    Q = diag([[1 1 1].*EKF_AW_Q_accel,[1 1 1].*EKF_AW_Q_gyro,[1 1 1E-2].*EKF_AW_Q_mu,[1 1 1].*EKF_AW_Q_offset]); %process noise
-    P_0 = diag([[1 1 1].*EKF_AW_P0_V_body [1 1 1].*EKF_AW_P0_mu [1 1 1].*EKF_AW_P0_offset]); %covariance
-    R = diag([[1 1 1].*EKF_AW_R_V_gnd EKF_AW_R_accel_filt_x EKF_AW_R_accel_filt_y EKF_AW_R_accel_filt_z EKF_AW_R_V_pitot]); %measurement noise
     
     % Resample to different sample time
     u_list_resampled = resample(u_list',t,f_EKF)';
@@ -114,22 +128,6 @@ for iii=1:length(fileList)
     transition_duration = sum(bool_transition).*dt;
     ff_duration = sum(bool_ff).*dt;
 
-    %% Write Kalman filter settings in excel file
-    excel_filename = sprintf('batch_%s_%d.xlsx',datestr(datetime, 'mm_dd_HH_MM'),log10(cov_list(cov_index)));
-    % Retrieve global variable names
-    globalVars = who('global');
-    
-    % Create a cell array to store the variable names and values
-    variableData_2 = {'Variable Name', 'Value'};
-    for ii = 1:numel(globalVars)
-        varName = globalVars{ii};
-        varValue = evalin('base', varName);
-        variableData_2 = [variableData_2; {varName, varValue}];
-    end
-    
-    % Write the variable data to the Excel file
-    writecell(variableData_2, excel_filename, 'Sheet', excel_sheet_params);
-    
     %% Get data for excel file
 %                 {'File Name','Path',...
 %                 'Duration Flight [s]','Mean Pusher RPM [RPM]','Mean Hover RPM [RPM]',...
