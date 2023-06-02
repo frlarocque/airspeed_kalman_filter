@@ -110,6 +110,7 @@ for iii=1:length(fileList)
     kalman_res{iii} = run_EKF(epsi,t,Q,R,P_0,x_0,u_list_resampled,z_list_resampled,f_fh,g_fh);
     kalman_res{iii}.error = error_quantification_full(kalman_res{iii}.x(1,:)',airspeed_pitot_resampled.flight.data,airspeed_pitot_resampled.flight.valid,kalman_res{iii}.u(12,:)');
     kalman_res{iii}.error.constant_wind = error_quantification(kalman_res{iii}.x(1,:)',interp1(airspeed_estimation.time,airspeed_estimation.data,kalman_res{iii}.t));
+    kalman_res{iii}.pitot_airspeed = airspeed_pitot_resampled;
 
     %% Calculate time in different flight phases
     [bool_hover,bool_transition,bool_ff] = identify_hover_transition_ff(kalman_res{iii}.u(12,:));
