@@ -169,7 +169,7 @@ for k=1:length(t)
     update_innov(pitot_detect,y_list(end,k))
     
     check_thresholds(pitot_detect)
-    res_fault_detector.res(:,k) = [pitot_detect.res;pitot_detect.res_filt;pitot_detect.res_filt];
+    res_fault_detector.res(:,k) = [pitot_detect.res;pitot_detect.res_filt;pitot_detect.res_diff];
     res_fault_detector.count(:,k) = [pitot_detect.count_low;pitot_detect.count_high;pitot_detect.count_diff];
     res_fault_detector.flag(:,k) = [pitot_detect.flag_low_fault;pitot_detect.flag_high_fault;pitot_detect.flag_diff_fault];
 

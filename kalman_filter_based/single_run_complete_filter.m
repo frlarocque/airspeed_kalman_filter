@@ -80,7 +80,7 @@ plot(kalman_res{select}.t,vecnorm(kalman_res{select}.x([4:5],:)))
 xlabel('Time [s]')
 ylabel('Wind Magnitude')
 ax2 = subplot(2,1,2);
-plot(kalman_res{select}.t,rad2deg(atan2(kalman_res{select}.x(4,:),kalman_res{select}.x(5,:))))
+plot(kalman_res{select}.t,rad2deg(atan2(kalman_res{select}.x(5,:),kalman_res{select}.x(4,:))))
 xlabel('Time [s]')
 ylabel('Wind Direction')
 linkaxes([ax1,ax2],'x')

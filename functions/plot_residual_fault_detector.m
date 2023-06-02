@@ -1,4 +1,4 @@
-function plot_residual_fault_detector(t,res_fault_detector)
+function plot_residual_fault_detector(t,res_fault_detector,fault_time)
 
 res = res_fault_detector.res;
 count = res_fault_detector.count;
@@ -13,6 +13,7 @@ hold on
 %s2 = plot(t,res(2,:));
 s3 = yline(res_fault_detector.criterias.crit_low,'--','color',"#D95319");yline(-res_fault_detector.criterias.crit_low,'o--','color',"#D95319")
 s4 = yline(res_fault_detector.criterias.crit_high,'r--');yline(-res_fault_detector.criterias.crit_high,'r--')
+xline(fault_time)
 %legend([s1,s2,s3,s4],'Raw Innovation','Low Passed Innovation','Low Threshold','High Threshold')
 legend([s1,s3,s4],'Raw Innovation','Low Threshold','High Threshold')
 xlabel('Time [s]')
@@ -23,6 +24,7 @@ axis([-inf inf -1.05*res_fault_detector.criterias.crit_high 1.05*res_fault_detec
 ax2 = subplot(2,2,2);
 s1 = plot(t,res(3,:));
 s2 = yline(res_fault_detector.criterias.crit_diff,'r--');yline(-res_fault_detector.criterias.crit_diff,'r--');
+xline(fault_time)
 legend([s1,s2],'Innovation Derivative','Threshold')
 xlabel('Time [s]')
 ylabel('Innovation Derivative [m/s /s]')
@@ -35,6 +37,7 @@ hold on
 s2 = plot(t,count(2,:)*dt);
 s3 = yline(res_fault_detector.criterias.time_low,'--','color',"#D95319");
 s4 = yline(res_fault_detector.criterias.time_high,'r--');
+xline(fault_time)
 legend([s1 s2 s3 s4],'Low Count','High Count','Limit Low','Limit High')
 xlabel('Time [s]')
 ylabel('Time for fault')
@@ -45,6 +48,7 @@ ax4 = subplot(2,2,4);
 s1 = plot(t,count(3,:)*dt);
 hold on
 s2 = yline(res_fault_detector.criterias.time_diff,'r--');
+xline(fault_time)
 legend([s1 s2],'Derivative Count','Limit')
 xlabel('Time [s]')
 ylabel('Time for fault')

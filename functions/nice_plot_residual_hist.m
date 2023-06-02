@@ -15,7 +15,7 @@ end
 
 
 % Discard everything bigger than X var
-outlier_thresh = 5;
+outlier_thresh = 7;
 v_x_res = remove_outlier(y_res(:,1),outlier_thresh);
 v_y_res = remove_outlier(y_res(:,2),outlier_thresh);
 v_z_res = remove_outlier(y_res(:,3),outlier_thresh);
@@ -148,7 +148,7 @@ hold on
 plot_hist(data,bin_n)
 ax1.ColorOrderIndex = 1;
 var_pitot = var(data);
-xlim([-4, 4]);
+xlim([-7, 7]);
 %legend('Pitot')
 ylabel('Probability Density Function')
 xlabel('Airspeed Residual [m/s]')
@@ -187,10 +187,10 @@ hold on
 plot_hist(data,bin_n)
 ax1.ColorOrderIndex = 1;
 var_pitot = var(data);
-xlim([-10, 10]);
+xlim([-20, 20]);
 %legend('Pitot')
 ylabel('Probability Density Function')
-xlabel('Airspeed Residual Derivative [m/s]')
+xlabel('Airspeed Residual Derivative [m/s²]')
 
 x = linspace(min(data),max(data),500); 
 
