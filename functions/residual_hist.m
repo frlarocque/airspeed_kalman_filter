@@ -169,6 +169,7 @@ end
     function plot_hist(residuals,bin_n)
         bin_edges = linspace(min(residuals),max(residuals),bin_n);
         counts = histcounts(residuals,bin_edges);
+        hist_prob = counts./sum(counts);
         pdf_hist = counts./(sum(counts).*mean(diff(bin_edges)));
     
         histogram('BinEdges',bin_edges,'BinCounts',pdf_hist)
