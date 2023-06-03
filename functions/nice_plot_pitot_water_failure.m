@@ -55,13 +55,14 @@ ax2=gca;
 ax2.FontSize = font_size-4; 
 
 % tail
-[xt yt] = ds2nfu(zoom_range(1)+4, 20);
+[xt yt] = ds2nfu(zoom_range(1)-5, 19);
 % head
-[xh yh] = ds2nfu(fault_time, kalman_res{1}.z(7,find(kalman_res{1}.t>=fault_time,1,'first')));
+[xh yh] = ds2nfu(fault_time-1.2, kalman_res{1}.z(7,find(kalman_res{1}.t>=fault_time,1,'first'))+0.3);
 annotation('textarrow',[xt xh],[yt yh],'String','Fault Start','fontsize',font_size-4)
 
-[p, z] = zoomPlot(kalman_res{1}.t,kalman_res{1}.z(7,:), zoom_range, [0.275 0.50 0.3875 0.4],[2 4]);
-xticks(linspace(zoom_range(1),zoom_range(2),9))
+[p, z] = zoomPlot(kalman_res{1}.t,kalman_res{1}.z(7,:), zoom_range, [0.225 0.52 0.3875 0.38],[2 3]);
+xticks(zoom_range(1):1:zoom_range(2))
+ylim([5 17])
 hold on
 grid on
 %grid minor
@@ -76,8 +77,8 @@ f = xline(fault_time,'linewidth',line_width,'color',mycolors(3,:));
 % [xh yh] = ds2nfu(fault_time, kalman_res{1}.z(7,find(kalman_res{1}.t>=fault_time,1,'first')));
 % annotation('textarrow',[xt xh],[yt yh],'String','Fault Start','fontsize',font_size-8)
 
-detection_low = kalman_res{1}.t(find(kalman_res{1}.res_fault_detector.flag(1,:)==1,1,'first'));
-d2 = xline(detection_low,'--','linewidth',line_width,'color',mycolors(5,:));
+%detection_low = kalman_res{1}.t(find(kalman_res{1}.pitot_fault_detector.flag(1,:)==1,1,'first'));
+%d2 = xline(detection_low,'--','linewidth',line_width,'color',mycolors(5,:));
 
 
 % % tail
@@ -86,7 +87,7 @@ d2 = xline(detection_low,'--','linewidth',line_width,'color',mycolors(5,:));
 % [xh yh] = ds2nfu(detection_diff, kalman_res{1}.z(7,find(kalman_res{1}.t>=detection_diff,1,'first')));
 % annotation('textarrow',[xt xh],[yt yh],'String','Detection by derivative','fontsize',font_size-8)
 
-detection_high = kalman_res{1}.t(find(kalman_res{1}.res_fault_detector.flag(2,:)==1,1,'first'));
+detection_high = kalman_res{1}.t(find(kalman_res{1}.pitot_fault_detector.flag(2,:)==1,1,'first'));
 d1 = xline(detection_high,'--','linewidth',line_width,'color',mycolors(4,:));
 
 
@@ -97,7 +98,7 @@ d1 = xline(detection_high,'--','linewidth',line_width,'color',mycolors(4,:));
 % annotation('textarrow',[xt xh],[yt yh],'String','Detection by high','fontsize',font_size-8)
 
 ax4=axes('position',get(ax2,'position'),'visible','off');
-legend(ax4,[f,d1,d2],{'Fault','Detection High','Detection Low'},'fontSize',font_size-4,'Location', 'northwest', 'Orientation', 'vertical');    
+legend(ax4,[f,d1],{'Fault','Detection Norm.'},'fontSize',font_size-4,'Location', 'northeast', 'Orientation', 'vertical');    
 ax5=axes('position',get(ax2,'position'),'visible','off');
 legend(ax5,[s1,s2],{'Pitot Tube','Estimation'},'fontSize',font_size-4,'Location', 'southeast', 'Orientation', 'vertical')
 

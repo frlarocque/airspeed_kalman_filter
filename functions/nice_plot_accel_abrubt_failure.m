@@ -4,7 +4,7 @@ set(gcf, 'Renderer', 'Painters');
 line_width = 2;
 font_size = 20;
 marker_size = 15;
-AR = 1.5;
+AR = 1;
 fig_height = 750;
 fig_width = fig_height*AR;
 
@@ -38,33 +38,31 @@ set(gcf,'DefaultAxesColorOrder',mycolors, ...
         'DefaultAxesLineStyleOrder',mylinestyles)
 
 %%
-fault_time = 311.915;
-zoom_range = [311.5,313.5];
+fault_time = kalman_res{1}.t(1)+100;
+zoom_range = [round(fault_time)-0.5,round(fault_time)+7];
 
-ax1 = subplot(1,1,1);
+ax1 = subplot(3,3,1:6);
 s1 = plot(kalman_res{1}.t,kalman_res{1}.z(7,:));
 hold on
 ax1.LineStyleOrderIndex = ax1.ColorOrderIndex;
 s2 = plot(kalman_res{1}.t,kalman_res{1}.x(1,:));
-xlim([kalman_res{1}.t(1) kalman_res{1}.t(1)+50])
+xlim([kalman_res{1}.t(1) fault_time+50])
 ylim([0 25])
-xlabel('Time [s]','fontSize',font_size)
+
 ylabel('Airspeed [m/s]','fontSize',font_size)
 grid on
 ax2=gca;
 ax2.FontSize = font_size-4; 
 
 % tail
-[xt yt] = ds2nfu(zoom_range(1)-2, 10);
+[xt yt] = ds2nfu(zoom_range(1)+9, 18);
 % head
-[xh yh] = ds2nfu(zoom_range(1), kalman_res{1}.z(7,find(kalman_res{1}.t>=fault_time,1,'first')));
+[xh yh] = ds2nfu(fault_time, kalman_res{1}.x(1,find(kalman_res{1}.t>=fault_time,1,'first'))+0.75);
 annotation('textarrow',[xt xh],[yt yh],'String','Fault','fontsize',font_size-4)
 
-
-
-[p, z] = zoomPlot(kalman_res{1}.t,kalman_res{1}.z(7,:), zoom_range, [0.45 0.55 0.44 0.37],[1 3]);
-xticks(linspace(zoom_range(1),zoom_range(2),9))
-ylim([-3 23])
+[p, z] = zoomPlot(kalman_res{1}.t,kalman_res{1}.x(1,:), zoom_range, [0.2 0.70 0.35 0.2],[2 3]);
+xticks(zoom_range(1):1:zoom_range(2))
+ylim([13 15.5])
 hold on
 grid on
 %grid minor
@@ -79,17 +77,18 @@ f = xline(fault_time,'linewidth',line_width,'color',mycolors(3,:));
 % [xh yh] = ds2nfu(fault_time, kalman_res{1}.z(7,find(kalman_res{1}.t>=fault_time,1,'first')));
 % annotation('textarrow',[xt xh],[yt yh],'String','Fault Start','fontsize',font_size-8)
 
-detection_diff = kalman_res{1}.t(find(kalman_res{1}.pitot_fault_detector.flag(3,:)==1,1,'first'));
-d2 = xline(detection_diff,':','linewidth',line_width,'color',mycolors(5,:));
+%detection_diff = kalman_res{1}.t(find(kalman_res{1}.ax_fault_detector.flag(3,:)==1,1,'first'));
+%d2 = xline(detection_diff,':','linewidth',line_width,'color',mycolors(5,:));
 
 % % tail
 % [xt yt] = ds2nfu(detection_diff+0.2, 20);
 % % head
 % [xh yh] = ds2nfu(detection_diff, kalman_res{1}.z(7,find(kalman_res{1}.t>=detection_diff,1,'first')));
 % annotation('textarrow',[xt xh],[yt yh],'String','Detection by derivative','fontsize',font_size-8)
-
-detection_high = kalman_res{1}.t(find(kalman_res{1}.pitot_fault_detector.flag(2,:)==1,1,'first'));
+%kalman_res{1}.ax_fault_detector.flag(2,1:(fault_time-kalman_res{1}.t(1))./dt) = 0;
+detection_high = kalman_res{1}.t(find(kalman_res{1}.ax_fault_detector.flag(2,:)==1,1,'first'));
 d1 = xline(detection_high,'--','linewidth',line_width,'color',mycolors(4,:));
+
 
 % % tail
 % [xt yt] = ds2nfu(detection_high+0.5, 2.5);
@@ -98,15 +97,36 @@ d1 = xline(detection_high,'--','linewidth',line_width,'color',mycolors(4,:));
 % annotation('textarrow',[xt xh],[yt yh],'String','Detection by high','fontsize',font_size-8)
 
 ax4=axes('position',get(ax2,'position'),'visible','off');
-legend(ax4,[f,d1,d2],{'Fault','Detection Norm.','Detection Diff.'},'fontSize',font_size-4,'Location', 'northwest', 'Orientation', 'vertical');    
+legend(ax4,[f,d1],{'Fault','Detection Norm.'},'fontSize',font_size-4,'Location', 'northeast', 'Orientation', 'vertical');    
 ax5=axes('position',get(ax2,'position'),'visible','off');
 legend(ax5,[s1,s2],{'Pitot Tube','Estimation'},'fontSize',font_size-4,'Location', 'southeast', 'Orientation', 'vertical')
 
 %legend(ax4,[s1,s2,f,d1,d2],{'Pitot Tube','Estimation','Fault','Detection High','Detection Diff'},'fontSize',font_size-4,'Location', 'northwest', 'Orientation', 'vertical');    
 
+ax1 = subplot(3,3,7:9);
+plot(kalman_res{1}.t,kalman_res{1}.x(4,:))
+hold on
+ax1.LineStyleOrderIndex = ax1.ColorOrderIndex;
+plot(kalman_res{1}.t,kalman_res{1}.x(5,:))
+grid on
+xlabel('Time [s]','fontSize',font_size)
+ylabel('Wind [m/s]','fontSize',font_size)
+legend('North','East','location','best','Orientation','horizontal')
+xlim([kalman_res{1}.t(1) fault_time+50])
+ax2=gca;
+ax2.FontSize = font_size-4; 
+% tail
+[xt yt] = ds2nfu(zoom_range(1)-5, -2.5);
+% head
+[xh yh] = ds2nfu(fault_time, kalman_res{1}.x(3,find(kalman_res{1}.t>=fault_time,1,'first')));
+annotation('textarrow',[xt xh],[yt yh],'String','Fault','fontsize',font_size-4)
+
 % Change font size
 %set(findall(gcf,'-property','FontSize'),'FontSize',font_size)
 
 % Export
-fig_name = ['abrupt_pitot_failure_',formattedDateTime,'.eps'];
+fig_name = ['accel_x_failure_',formattedDateTime,'.eps'];
 exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')
+
+
+set(groot, 'DefaultLineLineWidth', 1);

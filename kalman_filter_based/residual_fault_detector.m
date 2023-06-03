@@ -78,7 +78,7 @@ classdef residual_fault_detector < handle
             else
                 obj.count_high = 0;
             end
-            if obj.count_high>obj.time_high/obj.dt
+            if obj.count_high>=obj.time_high/obj.dt
                 obj.flag_high_fault = 1;
             else
                 obj.flag_high_fault = 0;
@@ -93,7 +93,7 @@ classdef residual_fault_detector < handle
                 else
                     obj.count_low = 0;
                 end
-                if obj.count_low>obj.time_low/obj.dt
+                if obj.count_low>=obj.time_low/obj.dt
                     obj.flag_low_fault = 1;
                 else
                     obj.flag_low_fault = 0;
@@ -108,7 +108,7 @@ classdef residual_fault_detector < handle
             else
                 obj.count_diff = 0;
             end
-            if obj.count_diff>obj.time_diff/obj.dt
+            if obj.count_diff>=obj.time_diff/obj.dt
                 obj.flag_diff_fault = 1;
             else
                 obj.flag_diff_fault = 0;

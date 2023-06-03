@@ -11,7 +11,9 @@ global EKF_AW_AZ_SCHED_GAIN EKF_AW_AZ_SCHED_START_DEG EKF_AW_AZ_SCHED_END_DEG
 global EKF_AW_AX_SCHED_GAIN EKF_AW_AX_SCHED_START_DEG EKF_AW_AX_SCHED_END_DEG
 global EKF_AW_USE_MODEL_BASED EKF_AW_USE_BETA EKF_AW_WING_INSTALLED EKF_AW_PROPAGATE_OFFSET EKF_AW_VEHICLE_MASS EKF_AW_USE_PITOT 
 global EKF_AW_AX_INNOV_GATE EKF_AW_AY_INNOV_GATE EKF_AW_AZ_INNOV_GATE EKF_AW_V_GPS_INNOV_GATE
-global EKF_AW_RES_DETECT_CRIT_LOW EKF_AW_RES_DETECT_CRIT_HIGH EKF_AW_RES_DETECT_CRIT_DIFF EKF_AW_RES_DETECT_TIME_LOW EKF_AW_RES_DETECT_TIME_HIGH EKF_AW_RES_DETECT_TIME_DIFF EKF_AW_RES_DETECT_FILTER_FREQ
+global EKF_AW_PITOT_DETECT_CRIT_LOW EKF_AW_PITOT_DETECT_CRIT_HIGH EKF_AW_PITOT_DETECT_CRIT_DIFF EKF_AW_PITOT_DETECT_TIME_LOW EKF_AW_PITOT_DETECT_TIME_HIGH EKF_AW_PITOT_DETECT_TIME_DIFF EKF_AW_PITOT_DETECT_FILTER_FREQ
+global EKF_AW_GPS_DETECT_CRIT_LOW EKF_AW_GPS_DETECT_CRIT_HIGH EKF_AW_GPS_DETECT_CRIT_DIFF EKF_AW_GPS_DETECT_TIME_LOW EKF_AW_GPS_DETECT_TIME_HIGH EKF_AW_GPS_DETECT_TIME_DIFF EKF_AW_GPS_DETECT_FILTER_FREQ
+global EKF_AW_AX_DETECT_CRIT_LOW EKF_AW_AX_DETECT_CRIT_HIGH EKF_AW_AX_DETECT_CRIT_DIFF EKF_AW_AX_DETECT_TIME_LOW EKF_AW_AX_DETECT_TIME_HIGH EKF_AW_AX_DETECT_TIME_DIFF EKF_AW_AX_DETECT_FILTER_FREQ
 global EKF_AW_FORCES_FUSELAGE EKW_AW_FORCES_HOVER EKF_AW_FORCES_PUSHER EKF_AW_FORCES_WING EKF_AW_FORCES_ELEVATOR
 
 dt = mean(t(2:end)-t(1:end-1));
@@ -28,7 +30,11 @@ S = cell(1,length(t));
 R_variable = cell(1,length(t));
 Q_variable = cell(1,length(t));
 innov_gate_state = zeros(size(z_list));
-res_fault_detector = struct();
+pitot_fault_detector = struct();
+gps_fault_detector = struct();
+ax_fault_detector = struct();
+ay_fault_detector = struct();
+az_fault_detector = struct();
 
 fuselage_forces = zeros(3,length(t));
 wing_forces = zeros(3,length(t));
@@ -42,15 +48,44 @@ end
 
 flag_quick_convergence = false;
 
-pitot_detect = residual_fault_detector(EKF_AW_RES_DETECT_CRIT_LOW,EKF_AW_RES_DETECT_CRIT_HIGH,EKF_AW_RES_DETECT_CRIT_DIFF,EKF_AW_RES_DETECT_TIME_LOW,...
-    EKF_AW_RES_DETECT_TIME_HIGH,EKF_AW_RES_DETECT_TIME_DIFF,EKF_AW_RES_DETECT_FILTER_FREQ,dt);
-res_fault_detector.criterias.crit_low = EKF_AW_RES_DETECT_CRIT_LOW;
-res_fault_detector.criterias.crit_high = EKF_AW_RES_DETECT_CRIT_HIGH;
-res_fault_detector.criterias.crit_diff = EKF_AW_RES_DETECT_CRIT_DIFF;
+% Pitot Fault Detector
+pitot_detect = residual_fault_detector(EKF_AW_PITOT_DETECT_CRIT_LOW,EKF_AW_PITOT_DETECT_CRIT_HIGH,EKF_AW_PITOT_DETECT_CRIT_DIFF,...
+                                       EKF_AW_PITOT_DETECT_TIME_LOW,EKF_AW_PITOT_DETECT_TIME_HIGH,EKF_AW_PITOT_DETECT_TIME_DIFF,...
+                                       EKF_AW_PITOT_DETECT_FILTER_FREQ,dt);
 
-res_fault_detector.criterias.time_low = EKF_AW_RES_DETECT_TIME_LOW;
-res_fault_detector.criterias.time_high = EKF_AW_RES_DETECT_TIME_HIGH;
-res_fault_detector.criterias.time_diff = EKF_AW_RES_DETECT_TIME_DIFF;
+pitot_fault_detector.criterias.crit_low = EKF_AW_PITOT_DETECT_CRIT_LOW;
+pitot_fault_detector.criterias.crit_high = EKF_AW_PITOT_DETECT_CRIT_HIGH;
+pitot_fault_detector.criterias.crit_diff = EKF_AW_PITOT_DETECT_CRIT_DIFF;
+
+pitot_fault_detector.criterias.time_low = EKF_AW_PITOT_DETECT_TIME_LOW;
+pitot_fault_detector.criterias.time_high = EKF_AW_PITOT_DETECT_TIME_HIGH;
+pitot_fault_detector.criterias.time_diff = EKF_AW_PITOT_DETECT_TIME_DIFF;
+
+% GPS Fault Detector
+gps_detect = residual_fault_detector(EKF_AW_GPS_DETECT_CRIT_LOW,EKF_AW_GPS_DETECT_CRIT_HIGH,EKF_AW_GPS_DETECT_CRIT_DIFF,...
+                                       EKF_AW_GPS_DETECT_TIME_LOW,EKF_AW_GPS_DETECT_TIME_HIGH,EKF_AW_GPS_DETECT_TIME_DIFF,...
+                                       EKF_AW_GPS_DETECT_FILTER_FREQ,dt);
+
+gps_fault_detector.criterias.crit_low = EKF_AW_GPS_DETECT_CRIT_LOW;
+gps_fault_detector.criterias.crit_high = EKF_AW_GPS_DETECT_CRIT_HIGH;
+gps_fault_detector.criterias.crit_diff = EKF_AW_GPS_DETECT_CRIT_DIFF;
+
+gps_fault_detector.criterias.time_low = EKF_AW_GPS_DETECT_TIME_LOW;
+gps_fault_detector.criterias.time_high = EKF_AW_GPS_DETECT_TIME_HIGH;
+gps_fault_detector.criterias.time_diff = EKF_AW_GPS_DETECT_TIME_DIFF;
+
+% A_x Fault Detector
+ax_detect = residual_fault_detector(EKF_AW_AX_DETECT_CRIT_LOW,EKF_AW_AX_DETECT_CRIT_HIGH,EKF_AW_AX_DETECT_CRIT_DIFF,...
+                                       EKF_AW_AX_DETECT_TIME_LOW,EKF_AW_AX_DETECT_TIME_HIGH,EKF_AW_AX_DETECT_TIME_DIFF,...
+                                       EKF_AW_AX_DETECT_FILTER_FREQ,dt);
+
+ax_fault_detector.criterias.crit_low = EKF_AW_AX_DETECT_CRIT_LOW;
+ax_fault_detector.criterias.crit_high = EKF_AW_AX_DETECT_CRIT_HIGH;
+ax_fault_detector.criterias.crit_diff = EKF_AW_AX_DETECT_CRIT_DIFF;
+
+ax_fault_detector.criterias.time_low = EKF_AW_AX_DETECT_TIME_LOW;
+ax_fault_detector.criterias.time_high = EKF_AW_AX_DETECT_TIME_HIGH;
+ax_fault_detector.criterias.time_diff = EKF_AW_AX_DETECT_TIME_DIFF;
 
 for k=1:length(t)
     if show_waitbar
@@ -169,9 +204,39 @@ for k=1:length(t)
     update_innov(pitot_detect,y_list(end,k))
     
     check_thresholds(pitot_detect,flag_quick_convergence)
-    res_fault_detector.res(:,k) = [pitot_detect.res;pitot_detect.res_filt;pitot_detect.res_diff];
-    res_fault_detector.count(:,k) = [pitot_detect.count_low;pitot_detect.count_high;pitot_detect.count_diff];
-    res_fault_detector.flag(:,k) = [pitot_detect.flag_low_fault;pitot_detect.flag_high_fault;pitot_detect.flag_diff_fault];
+    pitot_fault_detector.res(:,k) = [pitot_detect.res;pitot_detect.res_filt;pitot_detect.res_diff];
+    pitot_fault_detector.count(:,k) = [pitot_detect.count_low;pitot_detect.count_high;pitot_detect.count_diff];
+    pitot_fault_detector.flag(:,k) = [pitot_detect.flag_low_fault;pitot_detect.flag_high_fault;pitot_detect.flag_diff_fault];
+    
+    if t(k)-t(1)>100
+        fprintf('');
+    end
+
+    % Check GPS innovation
+    update_innov(gps_detect,vecnorm(y_list(1:3,k)))
+    
+    check_thresholds(gps_detect,flag_quick_convergence)
+    gps_fault_detector.res(:,k) = [gps_detect.res;gps_detect.res_filt;gps_detect.res_diff];
+    gps_fault_detector.count(:,k) = [gps_detect.count_low;gps_detect.count_high;gps_detect.count_diff];
+    gps_fault_detector.flag(:,k) = [gps_detect.flag_low_fault;gps_detect.flag_high_fault;gps_detect.flag_diff_fault];
+    
+    if any(gps_fault_detector.flag(:,k))
+        R_variable{k}(1,1) = 1E6*R_variable{k}(1,1);
+        R_variable{k}(2,2) = 1E6*R_variable{k}(2,2);
+        R_variable{k}(3,3) = 1E6*R_variable{k}(3,3);
+    end
+
+    % Check Ax innovation
+    update_innov(ax_detect,y_list(4,k))
+    
+    check_thresholds(ax_detect,flag_quick_convergence)
+    ax_fault_detector.res(:,k) = [ax_detect.res;ax_detect.res_filt;ax_detect.res_diff];
+    ax_fault_detector.count(:,k) = [ax_detect.count_low;ax_detect.count_high;ax_detect.count_diff];
+    ax_fault_detector.flag(:,k) = [ax_detect.flag_low_fault;ax_detect.flag_high_fault;ax_detect.flag_diff_fault];
+    
+    if any(ax_fault_detector.flag(:,k))
+        R_variable{k}(4,4) = 1E6*R_variable{k}(4,4);
+    end
 
     % Calculate S
     S{k} = G_val*P_pred*G_val'+M_val*R_variable{k}*M_val';
@@ -183,7 +248,7 @@ for k=1:length(t)
     x_list(:,k) = x_pred;
 
     % V_gnd contribution
-    if ~any(innov_gate_state(1:3,k))
+    if ~any(innov_gate_state(1:3,k)) && ~any(gps_fault_detector.flag(:,k)) 
         x_list(1:3,k) = x_list(1:3,k)+ K{k}(1:3,1:3)*y_list(1:3,k); % Update V_body
         x_list(4:6,k) = x_list(4:6,k)+ K{k}(4:6,1:3)*y_list(1:3,k); % Update mu
         if EKF_AW_PROPAGATE_OFFSET
@@ -246,7 +311,11 @@ EKF_res.R = R_variable;
 EKF_res.K = K;
 EKF_res.S = S;
 EKF_res.innov_gates = innov_gate_state;
-EKF_res.res_fault_detector = res_fault_detector;
+EKF_res.pitot_fault_detector = pitot_fault_detector;
+EKF_res.gps_fault_detector = gps_fault_detector;
+EKF_res.ax_fault_detector = ax_fault_detector;
+EKF_res.ay_fault_detector = ay_fault_detector;
+EKF_res.az_fault_detector = az_fault_detector;
 
 EKF_res.forces.fuselage = fuselage_forces;
 EKF_res.forces.wing = wing_forces;
