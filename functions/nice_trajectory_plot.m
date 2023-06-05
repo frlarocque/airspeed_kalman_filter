@@ -86,7 +86,7 @@ psi_u = cos(PSI).*sqrt(U.^2+V.^2);
 psi_v = sin(PSI).*sqrt(U.^2+V.^2);
 
 %% Plot figure
-scale = 0.5;
+scale = 1.0;
 start_point = plot(position_NED.data(1,2),position_NED.data(1,1),"^",'MarkerSize',marker_size,...
             'MarkerFaceColor',mycolors(1,:), ... 
             'MarkerEdgeColor',mycolors(1,:));
@@ -98,14 +98,15 @@ end_point = plot(position_NED.data(end,2),position_NED.data(end,1),"v",'MarkerSi
 if all(skew==0)
     p1 = plot(position_NED.data(:,2),position_NED.data(:,1),'--r');
 else
-    x = position_NED.data(:,2)';
-    y = position_NED.data(:,1)';
+    interval = 50;
+    x = position_NED.data(1:interval:end,2)';
+    y = position_NED.data(1:interval:end,1)';
     z = zeros(size(x));
-    lineColor = rad2deg(skew)';
+    lineColor = rad2deg(skew(1:interval:end))';
     p1 = surface([x;x], [y;y], [z;z], [lineColor;lineColor],...
 	    'FaceColor', 'no',...
 	    'EdgeColor', 'interp',...
-	    'LineWidth', line_width);
+	    'LineWidth', line_width*3);
     grid on;colorbar('northoutside',...
         'Ticks',[0 45 90],...
         'TickLabels',{'Quad Mode','Transition','FWD Flight'});
@@ -123,17 +124,26 @@ if show_time
     end
 end
 axis('equal')
+%axis('equal','padded')
 legend([start_point end_point q1 q2],{'Takeoff','Landing','Ground Speed','Orientation'},'Location','Northwest')
-
-if nargin>4
-    % Plot wind if available
-    %axes('Position',[.75 .15 0.1 0.1])
-    %q3 = quiver(-250,-50,wind_vect(2),wind_vect(1),10,'color',mycolors(5,:),'linewidth',line_width);
-    %title('Wind')
-end
 
 % Change font size
 set(findall(gcf,'-property','FontSize'),'FontSize',font_size) 
+
+if nargin>4
+    text(200,120,'Wind [m/s]','FontSize',font_size-4)
+    % Plot wind if available
+    axes('Position',[.62 .14 0.3 0.3])
+    c = compass(wind_vect(1),wind_vect(2));
+    text_hdl = polarticks(8,c);
+    view(90,-90)
+    c(1).Color = mycolors(5,:);
+    c(1).LineWidth = line_width;
+    
+    set(findall(text_hdl,'-property','FontSize'),'FontSize',font_size-6)
+    ax2=gca;
+    ax2.FontSize = font_size-4; 
+end
 
 fig_name = ['trajectory_',formattedDateTime,'.eps'];
 exportgraphics(fig,fig_name,'BackgroundColor','none','ContentType','vector')

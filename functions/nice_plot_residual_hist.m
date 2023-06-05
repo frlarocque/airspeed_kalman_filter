@@ -191,25 +191,26 @@ xlim([-20, 20]);
 %legend('Pitot')
 ylabel('Probability Density Function')
 xlabel('Airspeed Residual Derivative [m/s²]')
+grid on
 
 x = linspace(min(data),max(data),500); 
 
-% Gaussian Fit
-[params_fit, gaussian_fn] = fit_gaussian(data);
-y = gaussian_fn(x,params_fit(1),params_fit(2));
-p1 = plot(x,y);
-ax1.LineStyleOrderIndex = ax1.ColorOrderIndex;
-str1 = sprintf('Pitot Gaussian fit mu = %2.2e sigma = %2.2e',params_fit(1),params_fit(2));
-
-% Cauchy fit
-[params_fit, cauchy_fn] = fit_cauchy(data);
-y = cauchy_fn(x, params_fit(1), params_fit(2));
-p2 = plot(x,y);
-str2 = sprintf('Pitot Cauchy fit mu = %2.2e gamma = %2.2e',params_fit(1), params_fit(2));
-
-grid on
-legend([p1,p2],{'Gaussian Fit','Cauchy Fit'})
-fprintf([str1,' ',str2])
+% % Gaussian Fit
+% [params_fit, gaussian_fn] = fit_gaussian(data);
+% y = gaussian_fn(x,params_fit(1),params_fit(2));
+% p1 = plot(x,y);
+% ax1.LineStyleOrderIndex = ax1.ColorOrderIndex;
+% str1 = sprintf('Pitot Gaussian fit mu = %2.2e sigma = %2.2e',params_fit(1),params_fit(2));
+% 
+% % Cauchy fit
+% [params_fit, cauchy_fn] = fit_cauchy(data);
+% y = cauchy_fn(x, params_fit(1), params_fit(2));
+% p2 = plot(x,y);
+% str2 = sprintf('Pitot Cauchy fit mu = %2.2e gamma = %2.2e',params_fit(1), params_fit(2));
+% 
+% 
+% legend([p1,p2],{'Gaussian Fit','Cauchy Fit'})
+% fprintf([str1,' ',str2])
 
 % Change font size
 set(findall(gcf,'-property','FontSize'),'FontSize',font_size)
