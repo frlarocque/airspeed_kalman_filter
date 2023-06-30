@@ -72,6 +72,8 @@ filt_freq = 5;
 
 bin_n = 200;
 
+total_duration = 60*60;%320;
+
 % High Threshold
 residuals = filtfilt(b,a,vecnorm(y_total(1:2,:)));
 threshold = 2.5;
@@ -88,9 +90,7 @@ p = sum(pdf_hist(1:find(bin_edges>-threshold,1))).*mean(diff(bin_edges))+...
 
 p_sequence = p^(floor(time_threshold.*f_EKF));
 
-intervals = total_duration/(time_threshold);
-
-p_total_duration = 1-(1-p_sequence).^intervals;
+p_total_duration = 1-((1-p_sequence)^(total_duration*f_EKF));
 
 p_total_duration*100
 
@@ -110,22 +110,20 @@ p = sum(pdf_hist(1:find(bin_edges>-threshold,1))).*mean(diff(bin_edges))+...
 
 p_sequence = p^(floor(time_threshold.*f_EKF));
 
-intervals = total_duration/(time_threshold);
-
-p_total_duration = 1-(1-p_sequence).^intervals;
+p_total_duration = 1-((1-p_sequence)^(total_duration*f_EKF));
 
 p_total_duration*100
 
 %% Calculate A_x Histogram and threshold probabilities
-filt_freq = 0.5;
+filt_freq = 0.1;
 [b,a] = butter(2,2*filt_freq*dt,'low');
 
 bin_n = 200;
 
 % High Threshold
 residuals = filtfilt(b,a,y_total(4,:));
-threshold = 2.0;
-time_threshold = 0.04*15;
+threshold = 1.25;
+time_threshold = 0.04*50;
 f_EKF;
 
 bin_edges = linspace(min(residuals),max(residuals),bin_n);
@@ -138,16 +136,40 @@ p = sum(pdf_hist(1:find(bin_edges>-threshold,1))).*mean(diff(bin_edges))+...
 
 p_sequence = p^(floor(time_threshold.*f_EKF));
 
-intervals = total_duration/(time_threshold);
-
-p_total_duration = 1-(1-p_sequence).^intervals;
+p_total_duration = 1-((1-p_sequence)^(total_duration*f_EKF));
 
 p_total_duration*100
 
 % Diff Threshold
 residuals = filtfilt(b,a,diff(y_total(4,:))./dt);
-threshold = 250;
-time_threshold = 0.08;
+threshold = 150;
+time_threshold = 0.12;
+f_EKF;
+
+bin_edges = linspace(min(residuals),max(residuals),bin_n);
+counts = histcounts(residuals,bin_edges);
+hist_prob = counts./sum(counts);
+pdf_hist = counts./(sum(counts).*mean(diff(bin_edges)));
+
+p = sum(pdf_hist(1:find(bin_edges>-threshold,1))).*mean(diff(bin_edges))+...
+    sum(pdf_hist(find(bin_edges>threshold,1):end)).*mean(diff(bin_edges));
+
+p_sequence = p^(floor(time_threshold.*f_EKF));
+
+p_total_duration = 1-((1-p_sequence)^(total_duration*f_EKF));
+
+p_total_duration*100
+
+%% Calculate pitot Histogram and threshold probabilities
+filt_freq = 5;
+[b,a] = butter(2,2*filt_freq*dt,'low');
+
+bin_n = 200;
+
+% High Threshold
+residuals = filtfilt(b,a,y_total(7,:));
+threshold = 5.5;
+time_threshold = 0.04*6;
 f_EKF;
 
 bin_edges = linspace(min(residuals),max(residuals),bin_n);
@@ -162,7 +184,27 @@ p_sequence = p^(floor(time_threshold.*f_EKF));
 
 intervals = total_duration/(time_threshold);
 
-p_total_duration = 1-(1-p_sequence).^intervals;
+p_total_duration = 1-((1-p_sequence)^(total_duration*f_EKF));
+
+p_total_duration*100
+
+% Diff Threshold
+residuals = filtfilt(b,a,diff(y_total(7,:))./dt);
+threshold = 25;
+time_threshold = 0.12;
+f_EKF;
+
+bin_edges = linspace(min(residuals),max(residuals),bin_n);
+counts = histcounts(residuals,bin_edges);
+hist_prob = counts./sum(counts);
+pdf_hist = counts./(sum(counts).*mean(diff(bin_edges)));
+
+p = sum(pdf_hist(1:find(bin_edges>-threshold,1))).*mean(diff(bin_edges))+...
+    sum(pdf_hist(find(bin_edges>threshold,1):end)).*mean(diff(bin_edges));
+
+p_sequence = p^(floor(time_threshold.*f_EKF));
+
+p_total_duration = 1-((1-p_sequence)^(total_duration*f_EKF));
 
 p_total_duration*100
 
@@ -293,36 +335,6 @@ f_EKF
 total_duration = 320;
 
 p = 0.02+0.12; %3 threshold
-
-p_sequence = p^(floor(time_threshold.*f_EKF));
-
-intervals = total_duration/(time_threshold);
-
-p_total_duration = 1-(1-p_sequence).^intervals;
-
-p_total_duration*100
-
-%%  High
-time_threshold=0.04*6;
-f_EKF
-total_duration = 320;
-
-p = 0.1; % Diff 0.006076+0.003717;
-
-p_sequence = p^(floor(time_threshold.*f_EKF));
-
-intervals = total_duration/(time_threshold);
-
-p_total_duration = 1-(1-p_sequence).^intervals;
-
-p_total_duration*100
-
-%% Diff
-time_threshold=3*0.04;
-f_EKF
-total_duration = 320;
-
-p = 0.006076+0.003717;
 
 p_sequence = p^(floor(time_threshold.*f_EKF));
 

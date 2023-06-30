@@ -21,7 +21,7 @@
 % Kelsey Bower (kelsey.bower@case.edu) 10/20/15
  
 
-function [p z] = zoomPlot(x,y,xbounds,pos,varargin)
+function [p z d] = zoomPlot(x,y,xbounds,pos,varargin)
 % Please retain the following:
 % 
 % Original Author: 
@@ -63,6 +63,6 @@ end
 % Plot zoomPlot and change axis
 z = axes('position',pos);
 box on 
-plot(x,y)
+d = plot(x,y);
 axis([xbounds(1) xbounds(2) min(y(index)) max(y(index))]);
 end
